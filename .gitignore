@@ -1,0 +1,22 @@
+# Credenciales y configs sensibles
+.vscode/
+.claude/
+
+# Archivos temporales
+*.zip
+SUBIR_A_HOSTINGER.md
+uploads/
+setup/
+
+# API vieja (PHP/MySQL - reemplazada por Vercel/Turso)
+api/config.php
+api/install.php
+
+# Node.js
+node_modules/
+.env
+.env.local
+.env*.local
+
+# Vercel
+.vercel/
