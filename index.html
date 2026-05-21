@@ -1608,7 +1608,7 @@ async function delFromHist(id,btn){
 
 async function clearHist(){
   if(!confirm('¿Limpiar todo el historial?'))return;
-  try{await Promise.all(_histCache.map(x=>fetch('/api/presupuestos/'+x.id,{method:'DELETE'})));}catch{}
+  try{await fetch('/api/presupuestos',{method:'DELETE'});}catch{}
   renderHist();
 }
 
@@ -1754,4 +1754,7 @@ document.getElementById('matType').addEventListener('change',function(){
 document.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',calc));
 
 // ── INIT ──────────────────────────────────────────────────────────────
-setPrinter('A1');updMargin(50);calc
+setPrinter('A1');updMargin(50);calc();
+</script>
+</body>
+</html>

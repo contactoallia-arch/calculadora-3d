@@ -51,5 +51,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, data: { id: Number(result.lastInsertRowid) } });
   }
 
+  // DELETE — borrar todos los presupuestos
+  if (req.method === "DELETE") {
+    await db.execute("DELETE FROM presupuestos");
+    return res.status(200).json({ ok: true });
+  }
+
   return res.status(405).json({ ok: false, error: "Método no permitido" });
 }

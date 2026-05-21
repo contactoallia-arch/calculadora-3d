@@ -1,0 +1,34 @@
+# ─── ArteLab UY Calculadora · .htaccess ──────────────────────────────────
+
+# Codificación
+AddDefaultCharset UTF-8
+
+# Comprimir assets de texto
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+</IfModule>
+
+# Cache de navegador para assets estáticos
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/png             "access plus 1 month"
+    ExpiresByType image/jpeg            "access plus 1 month"
+    ExpiresByType text/css              "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+</IfModule>
+
+# Bloquear listado de directorios
+Options -Indexes
+
+# Bloquear acceso a la carpeta setup/ en producción
+# (descomentá después de instalar)
+# <Location /setup>
+#     Order deny,allow
+#     Deny from all
+# </Location>
+
+# Bloquear acceso directo a archivos PHP de la API (solo vía index.html)
+<Files "config.php">
+    Order allow,deny
+    Deny from all
+</Files>
