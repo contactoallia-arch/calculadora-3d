@@ -1547,69 +1547,68 @@ function exportPDF(){
   window.print();
 }
 
-// ── HISTORY · servidor + localStorage como respaldo ──────────────────
-const API={base:'api/presupuestos/'};
-// Cache en memoria para loadSnap (incluye snap completo)
+// ── HISTORY · Vercel + Turso ──────────────────────────────────────────
 let _histCache=[];
-
-function getHist(){try{return JSON.parse(localStorage.getItem('al-hist'))||[];}catch{return[];}}
 
 async function saveToHist(){
   if(!S.lc){alert('Calculá primero el presupuesto.');return;}
   const btn=document.querySelector('.abtn.s');const orig=btn.innerHTML;
   btn.disabled=true;btn.textContent='Guardando…';
-  const entry={
-    id:Date.now(),
-    piece:document.getElementById('pieceName').value||'Sin nombre',
-    client:document.getElementById('cName').value||'—',
-    mat:document.getElementById('matType').value,
-    qty:S.lc.qty,price:S.lc.totalP,margin:S.margin,
-    date:new Date().toLocaleDateString('es-UY'),
-    snap:captureForm()
-  };
-  // Guardar localmente siempre
-  const h=getHist();h.unshift(entry);
-  localStorage.setItem('al-hist',JSON.stringify(h.slice(0,50)));
-  // Intentar guardar en servidor
   try{
-    const r=await fetch(API.base+'guardar.php',{
+    const r=await fetch('/api/presupuestos',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({pieza:entry.piece,cliente:entry.client,mat:entry.mat,qty:entry.qty,precio:entry.price,margen:entry.margin,fecha:entry.date,snap:entry.snap})
+      body:JSON.stringify({
+        pieza:document.getElementById('pieceName').value||'Sin nombre',
+        cliente:document.getElementById('cName').value||'—',
+        mat:document.getElementById('matType').value,
+        qty:S.lc.qty,precio:S.lc.totalP,margen:S.margin,
+        fecha:new Date().toLocaleDateString('es-UY'),
+        snap:captureForm()
+      })
     });
     const d=await r.json();
-    if(d.ok){btn.textContent='✅ Guardado';} else {btn.textContent='✅ Local';}
-  }catch{btn.textContent='✅ Local';}
-  btn.disabled=false;setTimeout(()=>{btn.innerHTML=orig;},1800);
+    if(d.ok){btn.textContent='✅ Guardado';}
+    else{btn.textContent='❌ Error';console.error(d.error);}
+  }catch(e){btn.textContent='❌ Sin conexión';console.error(e);}
+  btn.disabled=false;setTimeout(()=>{btn.innerHTML=orig;},2000);
 }
 
 async function renderHist(){
   const el=document.getElementById('mHistB');
   el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">Cargando…</div>';
-  let items=[];
   try{
-    const r=await fetch(API.base+'listar.php');
+    const r=await fetch('/api/presupuestos');
     const d=await r.json();
-    if(d.ok&&d.data.length){
-      // Mapear formato servidor → formato UI
-      items=d.data.map(e=>({id:e.id,piece:e.pieza,client:e.cliente,mat:e.mat,qty:e.qty,price:e.precio,margin:e.margen,date:e.fecha,snap:e.snap,fromServer:true}));
-      _histCache=items;
-    }
-  }catch{}
-  // Complementar con localStorage si el servidor está vacío
-  if(!items.length){items=getHist();_histCache=items;}
-  if(!items.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">No hay presupuestos guardados.</div>';return;}
-  el.innerHTML=items.map(e=>`<div class="hitem" onclick="loadSnap(${e.id},${!!e.fromServer})"><div class="hi-row"><div><div class="hi-piece">${e.piece}</div><div class="hi-client">${e.client} · ${e.mat} · ×${e.qty}</div></div><div style="text-align:right"><div class="hi-price">$ ${fmt(e.price)}</div><div style="font-size:11px;color:var(--t3)">Margen ${e.margin}%</div></div></div><div class="hi-date">${e.date}</div></div>`).join('');
+    if(!d.ok)throw new Error(d.error);
+    const items=d.data.map(e=>({id:e.id,piece:e.pieza,client:e.cliente,mat:e.mat,qty:e.qty,price:e.precio,margin:e.margen,date:e.fecha,snap:e.snap}));
+    _histCache=items;
+    if(!items.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">No hay presupuestos guardados.</div>';return;}
+    const total=items.length;
+    el.innerHTML=items.map((e,i)=>{
+      const num='PRES-'+String(total-i).padStart(3,'0');
+      return `<div class="hitem"><div class="hi-row" onclick="loadSnap(${e.id})"><div><div class="hi-piece"><span style="font-size:10px;font-weight:600;color:var(--acc);letter-spacing:.5px;margin-right:6px">${num}</span>${e.piece}</div><div class="hi-client">${e.client} · ${e.mat} · ×${e.qty}</div></div><div style="text-align:right"><div class="hi-price">$ ${fmt(e.price)}</div><div style="font-size:11px;color:var(--t3)">Margen ${e.margin}%</div></div></div><div class="hi-date">${e.date}<button onclick="event.stopPropagation();delFromHist(${e.id},this)" style="margin-left:12px;background:none;border:none;cursor:pointer;color:var(--t3);font-size:13px" title="Eliminar">🗑</button></div></div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">Error cargando historial.</div>';
+    console.error(e);
+  }
 }
 
-function loadSnap(id,fromServer){
-  const e=fromServer?_histCache.find(x=>x.id===id&&x.fromServer):getHist().find(x=>x.id===id);
+function loadSnap(id){
+  const e=_histCache.find(x=>x.id===id);
   if(!e||!e.snap)return;restoreForm(e.snap);closeM();setTimeout(calc,100);
+}
+
+async function delFromHist(id,btn){
+  if(!confirm('¿Eliminar este presupuesto?'))return;
+  btn.textContent='…';
+  try{await fetch('/api/presupuestos/'+id,{method:'DELETE'});renderHist();}
+  catch{btn.textContent='❌';}
 }
 
 async function clearHist(){
   if(!confirm('¿Limpiar todo el historial?'))return;
-  localStorage.removeItem('al-hist');
-  try{await fetch(API.base+'eliminar.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})});}catch{}
+  try{await Promise.all(_histCache.map(x=>fetch('/api/presupuestos/'+x.id,{method:'DELETE'})));}catch{}
   renderHist();
 }
 
@@ -1755,7 +1754,4 @@ document.getElementById('matType').addEventListener('change',function(){
 document.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',calc));
 
 // ── INIT ──────────────────────────────────────────────────────────────
-setPrinter('A1');updMargin(50);calc();
-</script>
-</body>
-</html>
+setPrinter('A1');updMargin(50);calc
