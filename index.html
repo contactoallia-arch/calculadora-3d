@@ -1412,7 +1412,7 @@ function exportPDF(){
   const mat=document.getElementById('matType').value;
   const grams=document.getElementById('grams').value;
   const notes=clientOn?document.getElementById('notes').value:'';
-  const hist=getHist(),num=String(hist.length+1).padStart(4,'0');
+  const num=String((_histCache.length||0)+1).padStart(4,'0');
   const dt=new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
 
   // Build print doc HTML (simplified — no cost breakdown)
