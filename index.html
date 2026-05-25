@@ -853,6 +853,19 @@ footer{text-align:center;padding:18px;font-size:11.5px;color:var(--t3);border-to
       <button onclick="setDisp(this,'BOTH')">Ambos</button>
     </div>
   </div>
+  <div id="presBar" style="display:none;padding:10px 22px;background:var(--acs);border-bottom:1px solid var(--acg);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);opacity:.7">Presupuesto activo</div>
+    <div id="presNumView" style="display:flex;align-items:center;gap:6px">
+      <span id="presNumLabel" style="font-family:var(--fh);font-size:22px;font-weight:300;color:var(--ac);letter-spacing:-0.02em">#0001</span>
+      <button onclick="startEditNum()" title="Cambiar número" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:14px;padding:2px 5px;border-radius:4px;line-height:1">✏</button>
+    </div>
+    <div id="presNumEditRow" style="display:none;align-items:center;gap:6px">
+      <span style="font-size:14px;font-weight:600;color:var(--ac)">#</span>
+      <input type="number" id="presNumInput" min="1" step="1" style="width:80px;height:34px;font-size:15px" onkeydown="if(event.key==='Enter')confirmEditNum();if(event.key==='Escape')cancelEditNum()">
+      <button onclick="confirmEditNum()" style="height:32px;padding:0 11px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)">OK</button>
+      <button onclick="cancelEditNum()" style="height:32px;padding:0 10px;background:var(--sf2);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:12px;cursor:pointer;font-family:var(--fb)">✕</button>
+    </div>
+  </div>
   <div class="r-body">
     <div class="price-hero">
       <div class="ph-main">
@@ -896,9 +909,13 @@ footer{text-align:center;padding:18px;font-size:11.5px;color:var(--t3);border-to
         <svg class="icon" viewBox="0 0 18 18"><path d="M9 2a7 7 0 00-6.08 10.47L2 16l3.62-.9A7 7 0 109 2z"/><path d="M6.5 7c.3.6.8 1.4 1.5 2s1.5 1.2 2.1 1.4" opacity=".5"/><path d="M6 6.5s.5-.5 1 0l.7 1c.2.3 0 .6-.2.8C7.2 8.6 7 9 7.5 9.5s.9.3 1.2 0c.2-.2.5-.4.8-.2l1 .7c.5.5 0 1 0 1-.5.5-2 .7-3.5-.8S5.5 7 6 6.5z"/></svg>
         Compartir WhatsApp
       </a>
-      <button class="abtn s" onclick="saveToHist()">
-        <svg class="icon" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" rx="2"/><path d="M3 7h12M7 3v12"/></svg>
-        Historial
+      <button class="abtn s" id="saveBtn" onclick="savePresupuesto()">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M13 2H5a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2z"/><path d="M12 2v5H6V2"/><path d="M5 13h8"/></svg>
+        Guardar
+      </button>
+      <button class="abtn s" id="newBtn" style="display:none" onclick="newPresupuesto()">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+        Nuevo
       </button>
     </div>
   </div>
@@ -928,7 +945,7 @@ const PR={
 let S={
   spoolCur:'UYU',pkgCur:'UYU',matPill:'PLA',disp:'UYU',margin:50,
   ivaOnSpool:false,ivaOnBill:false,
-  extras:[],extId:0,lc:null,pieces:[],pieceId:0,qtyVariants:[],
+  extras:[],extId:0,lc:null,pieces:[],pieceId:0,qtyVariants:[],editingId:null,editingNum:null,
   sec:{elec:true,printer:true,labor:true,extras:true,time:true,client:true},
   col:{pedido:false,client:false,elec:false,time:false,printer:false,labor:false,extras:false,dims:false},
   prices:{...DEF}
@@ -1412,7 +1429,7 @@ function exportPDF(){
   const mat=document.getElementById('matType').value;
   const grams=document.getElementById('grams').value;
   const notes=clientOn?document.getElementById('notes').value:'';
-  const num=String((_histCache.length||0)+1).padStart(4,'0');
+  const num=S.editingNum?String(S.editingNum).padStart(4,'0'):String((_histCache.length||0)+1).padStart(4,'0');
   const dt=new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
 
   // Build print doc HTML (simplified — no cost breakdown)
@@ -1550,25 +1567,64 @@ function exportPDF(){
 // ── HISTORY · Vercel + Turso ──────────────────────────────────────────
 let _histCache=[];
 
-async function saveToHist(){
+// ── PRESUPUESTO ACTIVO ────────────────────────────────────────────────
+function updatePresBar(){
+  const bar=document.getElementById('presBar');
+  const saveBtn=document.getElementById('saveBtn');
+  const newBtn=document.getElementById('newBtn');
+  if(!bar)return;
+  if(S.editingId){
+    bar.style.display='flex';
+    document.getElementById('presNumLabel').textContent='#'+String(S.editingNum||1).padStart(4,'0');
+    document.getElementById('presNumInput').value=S.editingNum||1;
+    if(saveBtn){saveBtn.innerHTML=saveBtn.innerHTML.replace(/Guardar|Actualizar/,'Actualizar');}
+    if(newBtn)newBtn.style.display='';
+  } else {
+    bar.style.display='none';
+    if(saveBtn){saveBtn.innerHTML=saveBtn.innerHTML.replace(/Guardar|Actualizar/,'Guardar');}
+    if(newBtn)newBtn.style.display='none';
+  }
+}
+function startEditNum(){
+  document.getElementById('presNumView').style.display='none';
+  document.getElementById('presNumEditRow').style.display='flex';
+  document.getElementById('presNumInput').select();
+}
+function cancelEditNum(){
+  document.getElementById('presNumEditRow').style.display='none';
+  document.getElementById('presNumView').style.display='flex';
+}
+function confirmEditNum(){
+  const v=parseInt(document.getElementById('presNumInput').value);
+  if(v>0){S.editingNum=v;document.getElementById('presNumLabel').textContent='#'+String(v).padStart(4,'0');}
+  cancelEditNum();
+}
+function newPresupuesto(){S.editingId=null;S.editingNum=null;updatePresBar();}
+
+async function savePresupuesto(){
   if(!S.lc){alert('Calculá primero el presupuesto.');return;}
-  const btn=document.querySelector('.abtn.s');const orig=btn.innerHTML;
+  const btn=document.getElementById('saveBtn');const orig=btn.innerHTML;
   btn.disabled=true;btn.textContent='Guardando…';
+  const payload={
+    pieza:document.getElementById('pieceName').value||'Sin nombre',
+    cliente:document.getElementById('cName').value||'—',
+    mat:document.getElementById('matType').value,
+    qty:S.lc.qty,precio:S.lc.totalP,margen:S.margin,
+    fecha:new Date().toLocaleDateString('es-UY'),
+    snap:captureForm()
+  };
   try{
-    const r=await fetch('/api/presupuestos',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        pieza:document.getElementById('pieceName').value||'Sin nombre',
-        cliente:document.getElementById('cName').value||'—',
-        mat:document.getElementById('matType').value,
-        qty:S.lc.qty,precio:S.lc.totalP,margen:S.margin,
-        fecha:new Date().toLocaleDateString('es-UY'),
-        snap:captureForm()
-      })
-    });
+    let r;
+    if(S.editingId){
+      r=await fetch('/api/presupuestos',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:S.editingId,numero:S.editingNum,...payload})});
+    } else {
+      r=await fetch('/api/presupuestos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    }
     const d=await r.json();
-    if(d.ok){btn.textContent='✅ Guardado';}
-    else{btn.textContent='❌ Error';console.error(d.error);}
+    if(d.ok){
+      if(!S.editingId&&d.data){S.editingId=d.data.id;S.editingNum=d.data.numero;}
+      updatePresBar();btn.textContent='✅ Guardado';
+    } else {btn.textContent='❌ Error';console.error(d.error);}
   }catch(e){btn.textContent='❌ Sin conexión';console.error(e);}
   btn.disabled=false;setTimeout(()=>{btn.innerHTML=orig;},2000);
 }
@@ -1584,9 +1640,28 @@ async function renderHist(){
     _histCache=items;
     if(!items.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">No hay presupuestos guardados.</div>';return;}
     const total=items.length;
-    el.innerHTML=items.map((e,i)=>{
-      const num='PRES-'+String(total-i).padStart(3,'0');
-      return `<div class="hitem"><div class="hi-row" onclick="loadSnap(${e.id})"><div><div class="hi-piece"><span style="font-size:10px;font-weight:600;color:var(--acc);letter-spacing:.5px;margin-right:6px">${num}</span>${e.piece}</div><div class="hi-client">${e.client} · ${e.mat} · ×${e.qty}</div></div><div style="text-align:right"><div class="hi-price">$ ${fmt(e.price)}</div><div style="font-size:11px;color:var(--t3)">Margen ${e.margin}%</div></div></div><div class="hi-date">${e.date}<button onclick="event.stopPropagation();delFromHist(${e.id},this)" style="margin-left:12px;background:none;border:none;cursor:pointer;color:var(--t3);font-size:13px" title="Eliminar">🗑</button></div></div>`;
+    el.innerHTML=items.map(e=>{
+      const num='#'+String(e.numero||e.id).padStart(4,'0');
+      const isActive=S.editingId===e.id;
+      return `<div class="hitem${isActive?' hitem-active':''}" style="${isActive?'border-color:var(--ac);background:var(--acx)':''}">
+        <div class="hi-row" onclick="loadSnap(${e.id})">
+          <div>
+            <div class="hi-piece"><span style="font-size:11px;font-weight:700;color:var(--ac);letter-spacing:.5px;margin-right:7px">${num}</span>${e.piece}</div>
+            <div class="hi-client">${e.client} · ${e.mat} · ×${e.qty}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="hi-price">$ ${fmt(e.price)}</div>
+            <div style="font-size:11px;color:var(--t3)">Margen ${e.margin}%</div>
+          </div>
+        </div>
+        <div class="hi-date" style="display:flex;align-items:center;justify-content:space-between">
+          <span>${e.date}</span>
+          <div style="display:flex;gap:5px">
+            <button onclick="event.stopPropagation();loadSnap(${e.id});closeM()" style="height:26px;padding:0 10px;background:var(--acs);color:var(--ac);border:1px solid var(--acg);border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fb)">Editar</button>
+            <button onclick="event.stopPropagation();delFromHist(${e.id},this)" style="height:26px;padding:0 8px;background:none;color:var(--t3);border:1px solid var(--bd);border-radius:100px;font-size:12px;cursor:pointer">🗑</button>
+          </div>
+        </div>
+      </div>`;
     }).join('');
   }catch(e){
     el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">Error cargando historial.</div>';
@@ -1596,7 +1671,12 @@ async function renderHist(){
 
 function loadSnap(id){
   const e=_histCache.find(x=>x.id===id);
-  if(!e||!e.snap)return;restoreForm(e.snap);closeM();setTimeout(calc,100);
+  if(!e||!e.snap)return;
+  restoreForm(e.snap);
+  S.editingId=e.id;
+  S.editingNum=e.numero||e.id;
+  updatePresBar();
+  closeM();setTimeout(calc,100);
 }
 
 async function delFromHist(id,btn){
