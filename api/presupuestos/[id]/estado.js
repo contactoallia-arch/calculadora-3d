@@ -2,7 +2,8 @@ import { getDB } from "../../_lib/db.js";
 import { requireAuth, logAction } from "../../_lib/auth.js";
 
 const FLUJO = {
-  borrador:   ["enviado", "cancelado"],
+  sin_enviar: ["enviado", "aprobado", "rechazado", "cancelado"],
+  borrador:   ["enviado", "aprobado", "rechazado", "cancelado"],
   enviado:    ["aprobado", "rechazado", "cancelado"],
   aprobado:   ["produccion", "cancelado"],
   produccion: ["listo", "cancelado"],
