@@ -1,5 +1,5 @@
 {
-  "framework": "nextjs",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/api/auth/login",   "destination": "/api/auth?action=login" },
     { "source": "/api/auth/logout",  "destination": "/api/auth?action=logout" },

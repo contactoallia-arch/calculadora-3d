@@ -8,10 +8,6 @@ SUBIR_A_HOSTINGER.md
 uploads/
 setup/
 
-# API vieja (PHP/MySQL - reemplazada por Vercel/Turso)
-api/config.php
-api/install.php
-
 # Node.js
 node_modules/
 .env
@@ -20,3 +16,16 @@ node_modules/
 
 # Vercel
 .vercel/
+
+# Next.js (no usado — app es HTML estático + Vercel serverless)
+.next/
+app/
+next.config.js
+.vercelignore
+
+# Archivos de desarrollo local
+tweaks-panel.jsx
+index.html
+fix-git.bat
+PLAN_SISTEMA_GESTION.md
+Plan/

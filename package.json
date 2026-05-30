@@ -2,17 +2,9 @@
   "name": "calculadora-3d",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
-  },
   "dependencies": {
     "@libsql/client": "^0.14.0",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.0",
-    "next": "^15.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "jsonwebtoken": "^9.0.0"
   }
 }
