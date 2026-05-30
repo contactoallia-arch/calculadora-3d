@@ -16,17 +16,17 @@ export default async function handler(req, res) {
     const r = await db.execute({ sql: "SELECT * FROM clientes WHERE id=?", args: [id] });
     if (!r.rows[0]) return res.status(404).json({ ok: false, error: "No encontrado" });
     const presups = await db.execute({
-      sql: "SELECT id,numero,pieza,estado,precio,moneda,fecha FROM presupuestos WHERE cliente_id=? ORDER BY id DESC",
+      sql: "SELECT id,COALESCE(numero,id) as numero,pieza,estado,precio,moneda,fecha FROM presupuestos WHERE cliente_id=? ORDER BY id DESC",
       args: [id]
     });
     return res.status(200).json({ ok: true, data: { ...r.rows[0], presupuestos: presups.rows } });
   }
 
   if (req.method === "PUT") {
-    const { nombre, email, telefono, notas, activo } = req.body || {};
+    const { nombre, email, telefono, notas, activo, tipo, empresa, rut, direccion } = req.body || {};
     await db.execute({
-      sql: "UPDATE clientes SET nombre=?,email=?,telefono=?,notas=?,activo=? WHERE id=?",
-      args: [nombre, email || null, telefono || null, notas || null, activo !== undefined ? activo : 1, id]
+      sql: "UPDATE clientes SET nombre=?,email=?,telefono=?,notas=?,activo=?,tipo=?,empresa=?,rut=?,direccion=? WHERE id=?",
+      args: [nombre, email||null, telefono||null, notas||null, activo!==undefined?activo:1, tipo||"persona", empresa||null, rut||null, direccion||null, id]
     });
     await logAction(db, user, "EDITAR_CLIENTE", "cliente", id);
     return res.status(200).json({ ok: true });

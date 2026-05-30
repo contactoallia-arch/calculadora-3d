@@ -27,11 +27,11 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { nombre, email, telefono, notas } = req.body || {};
+    const { nombre, email, telefono, notas, tipo, empresa, rut, direccion } = req.body || {};
     if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
     const r = await db.execute({
-      sql: "INSERT INTO clientes (nombre,email,telefono,notas,created_by) VALUES (?,?,?,?,?)",
-      args: [nombre, email || null, telefono || null, notas || null, user.id]
+      sql: "INSERT INTO clientes (nombre,email,telefono,notas,tipo,empresa,rut,direccion,created_by) VALUES (?,?,?,?,?,?,?,?,?)",
+      args: [nombre, email||null, telefono||null, notas||null, tipo||"persona", empresa||null, rut||null, direccion||null, user.id]
     });
     await logAction(db, user, "CREAR_CLIENTE", "cliente", Number(r.lastInsertRowid));
     return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });

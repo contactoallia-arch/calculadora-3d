@@ -23,13 +23,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { categoria, descripcion, monto, moneda, tipo_cambio, fecha, tipo, presupuesto_id, recurrente, gasto_fijo_id } = req.body || {};
+    const { categoria, descripcion, para_que, monto, moneda, tipo_cambio, fecha, tipo, presupuesto_id, recurrente, gasto_fijo_id, medio_pago } = req.body || {};
     if (!descripcion || !monto) return res.status(400).json({ ok: false, error: "Descripción y monto requeridos" });
     const r = await db.execute({
-      sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,tipo_cambio,fecha,tipo,presupuesto_id,recurrente,gasto_fijo_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      args: [categoria||"otros", descripcion, monto, moneda||"UYU", tipo_cambio||null,
+      sql: "INSERT INTO gastos (categoria,descripcion,para_que,monto,moneda,tipo_cambio,fecha,tipo,presupuesto_id,recurrente,gasto_fijo_id,medio_pago,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [categoria||"otros", descripcion, para_que||null, monto, moneda||"UYU", tipo_cambio||null,
              fecha||new Date().toLocaleDateString("es-UY"), tipo||"manual",
-             presupuesto_id||null, recurrente?1:0, gasto_fijo_id||null, user.id]
+             presupuesto_id||null, recurrente?1:0, gasto_fijo_id||null, medio_pago||"efectivo", user.id]
     });
     const id = Number(r.lastInsertRowid);
     await logAction(db, user, "CREAR_GASTO", "gasto", id);

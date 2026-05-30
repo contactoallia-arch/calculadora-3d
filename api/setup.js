@@ -104,6 +104,12 @@ export default async function handler(req, res) {
       created_by INTEGER
     )
   `);
+  for (const col of [
+    "ADD COLUMN tipo TEXT NOT NULL DEFAULT 'persona'",
+    "ADD COLUMN empresa TEXT",
+    "ADD COLUMN rut TEXT",
+    "ADD COLUMN direccion TEXT"
+  ]) { try { await db.execute(`ALTER TABLE clientes ${col}`); } catch {} }
 
   // Cobros
   await db.execute(`
@@ -140,6 +146,10 @@ export default async function handler(req, res) {
       created_by     INTEGER
     )
   `);
+  for (const col of [
+    "ADD COLUMN medio_pago TEXT DEFAULT 'efectivo'",
+    "ADD COLUMN para_que TEXT"
+  ]) { try { await db.execute(`ALTER TABLE gastos ${col}`); } catch {} }
 
   // Gastos fijos recurrentes
   await db.execute(`

@@ -723,15 +723,29 @@ table.dtbl td.b{color:var(--t1);font-weight:600}
 </div>
 
 <!-- Modal: nuevo/editar cliente -->
-<div class="modal" id="mCliente">
+<div class="modal" id="mCliente" style="max-width:520px">
   <div class="mh"><div class="mt">Cliente</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
-    <div class="frow"><div class="fgrp"><label>Nombre *</label><input id="cliNombre" placeholder="Nombre del cliente"></div></div>
+    <div class="frow">
+      <div class="fgrp" style="flex:0 0 auto">
+        <label>Tipo</label>
+        <select id="cliTipo" onchange="toggleCliEmpresa()">
+          <option value="persona">Persona</option>
+          <option value="empresa">Empresa</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Nombre / Razón social *</label><input id="cliNombre" placeholder="Nombre completo o razón social"></div>
+    </div>
+    <div class="frow" id="cliEmpresaRow" style="display:none">
+      <div class="fgrp"><label>Empresa (razón social completa)</label><input id="cliEmpresa" placeholder="S.A., S.R.L., etc."></div>
+      <div class="fgrp"><label>RUT</label><input id="cliRut" placeholder="21 000000 0001"></div>
+    </div>
     <div class="frow">
       <div class="fgrp"><label>Email</label><input id="cliEmail" type="email" placeholder="email@ejemplo.com"></div>
       <div class="fgrp"><label>Teléfono</label><input id="cliTel" placeholder="09X XXX XXX"></div>
     </div>
-    <div class="frow"><div class="fgrp"><label>Notas</label><textarea id="cliNotas" placeholder="Notas internas…"></textarea></div></div>
+    <div class="frow"><div class="fgrp"><label>Dirección</label><input id="cliDir" placeholder="Calle, número, ciudad"></div></div>
+    <div class="frow"><div class="fgrp"><label>Notas internas</label><textarea id="cliNotas" placeholder="Preferencias, historial, referencias…"></textarea></div></div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveCliente()">Guardar</button></div>
 </div>
@@ -827,7 +841,7 @@ table.dtbl td.b{color:var(--t1);font-weight:600}
     </div>
     <div class="tbl-wrap">
       <table class="dtbl">
-        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th>Tipo</th><th></th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción / Para qué</th><th>Monto</th><th>Medio</th><th>Tipo</th><th></th></tr></thead>
         <tbody id="gastoTbody"><tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
       </table>
     </div>
@@ -838,7 +852,7 @@ table.dtbl td.b{color:var(--t1);font-weight:600}
 </div>
 
 <!-- Modal: nuevo gasto -->
-<div class="modal" id="mGasto">
+<div class="modal" id="mGasto" style="max-width:480px">
   <div class="mh"><div class="mt">Registrar gasto</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div class="frow">
@@ -846,11 +860,27 @@ table.dtbl td.b{color:var(--t1);font-weight:600}
       <div class="fgrp"><label>Fecha *</label><input id="gastoFecha" type="date"></div>
     </div>
     <div class="frow">
+      <div class="fgrp"><label>Para qué fue</label><input id="gastoParaQue" placeholder="Ej: producción presupuesto #0012, stock, mantenimiento…"></div>
+    </div>
+    <div class="frow">
       <div class="fgrp"><label>Categoría</label>
         <select id="gastoCatInput">
           <option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option>
         </select>
       </div>
+      <div class="fgrp"><label>Medio de pago</label>
+        <select id="gastoMedioPago">
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="tarjeta_debito">Tarjeta débito</option>
+          <option value="tarjeta_credito">Tarjeta crédito</option>
+          <option value="mercadopago">MercadoPago</option>
+          <option value="paypal">PayPal</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
       <div class="fgrp"><label>Monto *</label><input id="gastoMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
       <div class="fgrp"><label>Moneda</label><select id="gastoMoneda"><option>UYU</option><option>USD</option></select></div>
     </div>
@@ -1644,6 +1674,55 @@ async function loadDashboard() {
         <div style="color:#dc2626;font-family:var(--fh)">$ ${fmtMoney(p.precio)}</div>
       </div>`).join('') : '<div class="empty"><p>Sin cobros pendientes ✓</p></div>';
 
+    // Métricas de conversión
+    const conv = d.data.conversion;
+    if (conv) {
+      const FUNNEL_ORDER = ['borrador','enviado','aprobado','produccion','listo','entregado','cobrado'];
+      const FUNNEL_LABELS = { borrador:'Borrador', enviado:'Enviado', aprobado:'Aprobado', produccion:'Producción', listo:'Listo', entregado:'Entregado', cobrado:'Cobrado' };
+      const total = Object.values(conv.funnel).reduce((s,v) => s + (v?.cnt||0), 0);
+      let convHtml = `
+        <div class="section-card" style="margin-bottom:14px">
+          <div class="section-card-ttl">
+            Funnel de conversión
+            <span style="font-size:12px;color:var(--t2);font-family:var(--fb);font-weight:400">
+              Tasa: <strong style="color:${conv.tasaConversion>=50?'var(--ok)':'var(--ac)'}">${conv.tasaConversion}%</strong> enviado→aprobado
+              &nbsp;·&nbsp; Pipeline: <strong style="color:var(--ac)">$ ${fmtMoney(conv.valorPipeline)}</strong>
+            </span>
+          </div>
+          <div style="display:flex;gap:0;overflow:hidden;border-radius:var(--rs);margin-bottom:14px">`;
+      FUNNEL_ORDER.forEach(est => {
+        const f = conv.funnel[est];
+        if (!f || f.cnt === 0) return;
+        const pct = total > 0 ? Math.round(f.cnt/total*100) : 0;
+        const COLS = { borrador:'#aeaaa3',enviado:'#3b82f6',aprobado:'#059669',produccion:'#d4601a',listo:'#7c3aed',entregado:'#10b981',cobrado:'#1a7a40' };
+        convHtml += `<div style="flex:${pct};background:${COLS[est]};min-width:2px" title="${FUNNEL_LABELS[est]}: ${f.cnt}"></div>`;
+      });
+      convHtml += `</div><div style="display:flex;flex-wrap:wrap;gap:8px">`;
+      FUNNEL_ORDER.forEach(est => {
+        const f = conv.funnel[est];
+        if (!f || f.cnt === 0) return;
+        const COLS = { borrador:'#aeaaa3',enviado:'#3b82f6',aprobado:'#059669',produccion:'#d4601a',listo:'#7c3aed',entregado:'#10b981',cobrado:'#1a7a40' };
+        convHtml += `<div style="display:flex;align-items:center;gap:5px;font-size:12px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${COLS[est]};flex-shrink:0"></div>
+          <span style="color:var(--t2)">${FUNNEL_LABELS[est]}:</span>
+          <strong style="color:var(--t1)">${f.cnt}</strong>
+          <span style="color:var(--t3)">$ ${fmtMoney(f.valor)}</span>
+        </div>`;
+      });
+      convHtml += `</div></div>`;
+      // Insertar antes de dash-2col (últimos presupuestos)
+      const dashBody = document.querySelector('#page-dashboard .pg-body');
+      let convEl = document.getElementById('dashConversion');
+      if (!convEl) {
+        convEl = document.createElement('div');
+        convEl.id = 'dashConversion';
+        const twoCol = dashBody.querySelector('.dash-2col');
+        if (twoCol) dashBody.insertBefore(convEl, twoCol);
+        else dashBody.appendChild(convEl);
+      }
+      convEl.innerHTML = convHtml;
+    }
+
     // Listos para entregar
     const listos = d.data.listos;
     const dL = document.getElementById('dashListos');
@@ -1812,15 +1891,36 @@ function filterClientes() {
   </tr>`).join('') : '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Sin clientes</td></tr>';
 }
 
+function toggleCliEmpresa() {
+  const tipo = document.getElementById('cliTipo').value;
+  const row = document.getElementById('cliEmpresaRow');
+  row.style.display = tipo === 'empresa' ? '' : 'none';
+}
+
 function openClienteForm(id) {
   _editingClienteId = id || null;
   document.getElementById('cliNombre').value = '';
   document.getElementById('cliEmail').value = '';
   document.getElementById('cliTel').value = '';
   document.getElementById('cliNotas').value = '';
+  document.getElementById('cliDir').value = '';
+  document.getElementById('cliTipo').value = 'persona';
+  document.getElementById('cliEmpresa').value = '';
+  document.getElementById('cliRut').value = '';
+  document.getElementById('cliEmpresaRow').style.display = 'none';
   if (id) {
     const c = _cliCache.find(x => x.id === id);
-    if (c) { document.getElementById('cliNombre').value = c.nombre; document.getElementById('cliEmail').value = c.email||''; document.getElementById('cliTel').value = c.telefono||''; document.getElementById('cliNotas').value = c.notas||''; }
+    if (c) {
+      document.getElementById('cliNombre').value = c.nombre||'';
+      document.getElementById('cliEmail').value = c.email||'';
+      document.getElementById('cliTel').value = c.telefono||'';
+      document.getElementById('cliNotas').value = c.notas||'';
+      document.getElementById('cliDir').value = c.direccion||'';
+      document.getElementById('cliTipo').value = c.tipo||'persona';
+      document.getElementById('cliEmpresa').value = c.empresa||'';
+      document.getElementById('cliRut').value = c.rut||'';
+      if (c.tipo === 'empresa') document.getElementById('cliEmpresaRow').style.display = '';
+    }
   }
   openM('mCliente');
 }
@@ -1828,7 +1928,16 @@ function openClienteForm(id) {
 function editarCliente(id) { openClienteForm(id); }
 
 async function saveCliente() {
-  const body = { nombre: document.getElementById('cliNombre').value.trim(), email: document.getElementById('cliEmail').value.trim(), telefono: document.getElementById('cliTel').value.trim(), notas: document.getElementById('cliNotas').value.trim() };
+  const body = {
+    nombre: document.getElementById('cliNombre').value.trim(),
+    email: document.getElementById('cliEmail').value.trim(),
+    telefono: document.getElementById('cliTel').value.trim(),
+    notas: document.getElementById('cliNotas').value.trim(),
+    tipo: document.getElementById('cliTipo').value,
+    empresa: document.getElementById('cliEmpresa').value.trim(),
+    rut: document.getElementById('cliRut').value.trim(),
+    direccion: document.getElementById('cliDir').value.trim()
+  };
   if (!body.nombre) { showToast('El nombre es requerido', 'err'); return; }
   let d;
   if (_editingClienteId) d = await apiPut('/api/clientes/' + _editingClienteId, body);
@@ -1917,18 +2026,21 @@ async function loadGastos() {
   const total = rows.reduce((s,r) => s + Number(r.monto||0), 0);
   document.getElementById('gastoTotal').textContent = '$ ' + fmtMoney(total) + ' UYU';
   const TIPO_LABELS = { manual:'Manual', fijo_mensual:'Fijo', produccion_automatico:'Producción' };
+  const MEDIO_ICONS = { efectivo:'💵', transferencia:'🏦', tarjeta_debito:'💳', tarjeta_credito:'💳', mercadopago:'📱', paypal:'🌐', otro:'•' };
   document.getElementById('gastoTbody').innerHTML = rows.length ? rows.map(g => `<tr>
     <td>${g.fecha}</td>
     <td><span class="bdg borrador">${g.categoria}</span></td>
-    <td class="b">${g.descripcion}</td>
+    <td class="b">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${g.para_que}</div>`:''}</td>
     <td style="font-family:var(--fh)">$ ${fmtMoney(g.monto)} ${g.moneda}</td>
+    <td style="color:var(--t3);font-size:12px">${MEDIO_ICONS[g.medio_pago]||'•'} ${g.medio_pago||'efectivo'}</td>
     <td style="color:var(--t3);font-size:11px">${TIPO_LABELS[g.tipo]||g.tipo}</td>
     <td><button class="tbtn d" onclick="eliminarGasto(${g.id})">🗑</button></td>
-  </tr>`).join('') : '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Sin gastos</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--t3)">Sin gastos</td></tr>';
 }
 
 function openGastoForm() {
   document.getElementById('gastoDesc').value = '';
+  document.getElementById('gastoParaQue').value = '';
   document.getElementById('gastoMonto').value = '';
   document.getElementById('gastoFecha').value = new Date().toISOString().slice(0,10);
   openM('mGasto');
@@ -1938,6 +2050,8 @@ async function saveGasto() {
   const body = {
     categoria: document.getElementById('gastoCatInput').value,
     descripcion: document.getElementById('gastoDesc').value.trim(),
+    para_que: document.getElementById('gastoParaQue').value.trim(),
+    medio_pago: document.getElementById('gastoMedioPago').value,
     monto: parseFloat(document.getElementById('gastoMonto').value),
     moneda: document.getElementById('gastoMoneda').value,
     fecha: document.getElementById('gastoFecha').value
@@ -2781,9 +2895,16 @@ async function savePresupuesto(){
   if(!S.lc){alert('Calculá primero el presupuesto.');return;}
   const btn=document.getElementById('saveBtn');const orig=btn.innerHTML;
   btn.disabled=true;btn.textContent='Guardando…';
+  const authHeaders={'Content-Type':'application/json'};
+  if(typeof _token!=='undefined'&&_token) authHeaders.Authorization='Bearer '+_token;
   const payload={
     pieza:document.getElementById('pieceName').value||'Sin nombre',
+    // Nombre para mostrar en listado
     cliente:document.getElementById('cName').value||'—',
+    // Datos para auto-crear el cliente si no existe
+    cliente_nombre:document.getElementById('cName').value?.trim()||'',
+    cliente_email:document.getElementById('cEmail').value?.trim()||'',
+    cliente_tel:document.getElementById('cPhone').value?.trim()||'',
     mat:document.getElementById('matType').value,
     qty:S.lc.qty,precio:S.lc.totalP,margen:S.margin,
     fecha:new Date().toLocaleDateString('es-UY'),
@@ -2792,17 +2913,18 @@ async function savePresupuesto(){
   try{
     let r;
     if(S.editingId){
-      r=await fetch('/api/presupuestos',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:S.editingId,numero:S.editingNum,...payload})});
+      r=await fetch('/api/presupuestos/'+S.editingId,{method:'PUT',headers:authHeaders,body:JSON.stringify({numero:S.editingNum,...payload})});
     } else {
-      r=await fetch('/api/presupuestos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      r=await fetch('/api/presupuestos',{method:'POST',headers:authHeaders,body:JSON.stringify(payload)});
     }
     const d=await r.json();
     if(d.ok){
       if(!S.editingId&&d.data){S.editingId=d.data.id;S.editingNum=d.data.numero;}
       updatePresBar();btn.textContent='✅ Guardado';
+      showToast('Presupuesto guardado','ok');
     } else {btn.textContent='❌ Error';console.error(d.error);}
   }catch(e){btn.textContent='❌ Sin conexión';console.error(e);}
-  btn.disabled=false;setTimeout(()=>{btn.innerHTML=orig;},2000);
+  btn.disabled=false;setTimeout(()=>{btn.innerHTML=orig;},2500);
 }
 
 async function renderHist(){

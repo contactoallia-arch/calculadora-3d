@@ -13,10 +13,10 @@ export default async function handler(req, res) {
   const id = req.query.id;
 
   if (req.method === "PUT") {
-    const { categoria, descripcion, monto, moneda, fecha, tipo_cambio } = req.body || {};
+    const { categoria, descripcion, para_que, monto, moneda, fecha, tipo_cambio, medio_pago } = req.body || {};
     await db.execute({
-      sql: "UPDATE gastos SET categoria=?,descripcion=?,monto=?,moneda=?,tipo_cambio=?,fecha=? WHERE id=?",
-      args: [categoria||"otros", descripcion, monto, moneda||"UYU", tipo_cambio||null, fecha, id]
+      sql: "UPDATE gastos SET categoria=?,descripcion=?,para_que=?,monto=?,moneda=?,tipo_cambio=?,fecha=?,medio_pago=? WHERE id=?",
+      args: [categoria||"otros", descripcion, para_que||null, monto, moneda||"UYU", tipo_cambio||null, fecha, medio_pago||"efectivo", id]
     });
     await logAction(db, user, "EDITAR_GASTO", "gasto", id);
     return res.status(200).json({ ok: true });

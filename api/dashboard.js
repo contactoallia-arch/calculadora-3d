@@ -93,6 +93,22 @@ export default async function handler(req, res) {
   `);
   const listosR = await db.execute("SELECT id,COALESCE(numero,id) as numero,pieza,cliente,precio,moneda,fecha_entrega,fecha FROM presupuestos WHERE estado='listo' ORDER BY fecha_entrega ASC LIMIT 5");
 
+  // Métricas de conversión (todos los tiempos)
+  const funnelR = await db.execute(`
+    SELECT estado, COUNT(*) as cnt, COALESCE(SUM(precio),0) as valor
+    FROM presupuestos GROUP BY estado
+  `);
+  const funnel = {};
+  funnelR.rows.forEach(r => { funnel[r.estado] = { cnt: Number(r.cnt), valor: Number(r.valor) }; });
+
+  const totalEnviados = (funnel.enviado?.cnt||0) + (funnel.aprobado?.cnt||0) + (funnel.produccion?.cnt||0) + (funnel.listo?.cnt||0) + (funnel.entregado?.cnt||0) + (funnel.cobrado?.cnt||0);
+  const totalAprobados = (funnel.aprobado?.cnt||0) + (funnel.produccion?.cnt||0) + (funnel.listo?.cnt||0) + (funnel.entregado?.cnt||0) + (funnel.cobrado?.cnt||0);
+  const tasaConversion = totalEnviados > 0 ? Math.round((totalAprobados / totalEnviados) * 100) : 0;
+
+  // Valor del pipeline (presupuestos activos que aún no cobró)
+  const pipelineEstados = ['enviado','aprobado','produccion','listo','entregado'];
+  const valorPipeline = pipelineEstados.reduce((s,e) => s + (funnel[e]?.valor||0), 0);
+
   return res.status(200).json({
     ok: true,
     data: {
@@ -112,7 +128,14 @@ export default async function handler(req, res) {
       topClientes: topClientesR.rows,
       ultimosPresupuestos: ultimosR.rows,
       cobrosPendientes: pendientesR.rows,
-      listos: listosR.rows
+      listos: listosR.rows,
+      conversion: {
+        funnel,
+        tasaConversion,
+        valorPipeline: Math.round(valorPipeline),
+        totalEnviados,
+        totalAprobados
+      }
     }
   });
 }
