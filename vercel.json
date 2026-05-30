@@ -1,1 +1,18 @@
-{}
+{
+  "framework": "nextjs",
+  "rewrites": [
+    { "source": "/api/auth/login",   "destination": "/api/auth?action=login" },
+    { "source": "/api/auth/logout",  "destination": "/api/auth?action=logout" },
+    { "source": "/api/auth/me",      "destination": "/api/auth?action=me" },
+    { "source": "/api/clientes/:id", "destination": "/api/clientes?id=:id" },
+    { "source": "/api/cobros/:id",   "destination": "/api/cobros?id=:id" },
+    { "source": "/api/gastos/:id",   "destination": "/api/gastos?id=:id" },
+    { "source": "/api/gastos-fijos/generar-mes", "destination": "/api/gastos-fijos?action=generar-mes" },
+    { "source": "/api/gastos-fijos/:id",         "destination": "/api/gastos-fijos?id=:id" },
+    { "source": "/api/presupuestos/:id/estado",  "destination": "/api/presupuestos?id=:id&action=estado" },
+    { "source": "/api/presupuestos/:id/estados", "destination": "/api/presupuestos?id=:id&action=estados" },
+    { "source": "/api/presupuestos/:id",         "destination": "/api/presupuestos?id=:id" },
+    { "source": "/api/reportes/:tipo",           "destination": "/api/reportes?tipo=:tipo" },
+    { "source": "/api/usuarios/:id",             "destination": "/api/usuarios?id=:id" }
+  ]
+}
