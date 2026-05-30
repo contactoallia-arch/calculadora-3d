@@ -2323,8 +2323,8 @@ function filterPresupuestos() {
     const pendienteAprobacion = estado === 'borrador' || estado === 'sin_enviar' || estado === 'enviado';
     const aprobBtns = pendienteAprobacion
       ? `<div class="est-btns" style="margin-top:5px">
-          <button class="est-btn to-aprobado" style="font-size:11px;height:26px;padding:0 11px" onclick="cambiarEstado(${p.id},'aprobado',null,'presupuestos')">✓ Aprobar</button>
-          <button class="est-btn to-rechazado" style="font-size:11px;height:26px;padding:0 11px" onclick="cambiarEstado(${p.id},'rechazado',null,'presupuestos')">✗ Rechazar</button>
+          <button class="est-btn to-aprobado" style="font-size:11px;height:26px;padding:0 11px" onclick="cambiarEstado(${p.id},'aprobado',null,'presupuestos')">✓ Aprobado</button>
+          <button class="est-btn to-rechazado" style="font-size:11px;height:26px;padding:0 11px" onclick="cambiarEstado(${p.id},'rechazado',null,'presupuestos')">✗ Rechazado</button>
         </div>`
       : (() => {
           const siguientes = (FLUJO_FRONT[estado]||[]);
