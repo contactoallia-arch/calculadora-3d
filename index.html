@@ -329,9 +329,166 @@ input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12)}
 .prb-label.optional{background:rgba(91,91,204,0.1);color:#5b5bcc}
 .prb-label.variant{background:rgba(26,122,64,0.1);color:#1a7a40}
 footer{text-align:center;padding:18px;font-size:11.5px;color:var(--t3);border-top:1px solid var(--bd);letter-spacing:.02em}
+
+/* ── SPA LAYOUT ── */
+.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;background:var(--sf);border-right:1px solid var(--bd);overflow-y:auto;z-index:100;display:flex;flex-direction:column;transition:transform .25s ease}
+.sidebar-hd{padding:18px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bd);margin-bottom:6px}
+.sidebar-logo-ic{width:34px;height:34px;background:var(--ac);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo-ic svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-brand{font-family:var(--fh);font-size:14px;font-weight:700;color:var(--t1);line-height:1}
+.sidebar-brand-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.nav-sec{padding:8px 16px 2px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;margin:1px 8px;border-radius:var(--rs);cursor:pointer;font-size:13px;font-weight:500;color:var(--t2);transition:all var(--tr);border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:var(--fb)}
+.nav-item:hover{background:var(--sf2);color:var(--t1)}
+.nav-item.active{background:var(--acs);color:var(--ac);font-weight:600}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.sidebar-user{padding:12px 14px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:9px;margin-top:auto}
+.sidebar-av{width:30px;height:30px;background:var(--ac);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;font-family:var(--fh);flex-shrink:0}
+.sidebar-uname{flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-urol{font-size:10.5px;color:var(--t3)}
+.sidebar-logout-btn{width:26px;height:26px;border:none;background:none;cursor:pointer;color:var(--t3);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logout-btn:hover{background:#fef2f2;color:#dc2626}
+.sidebar-ov{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99;display:none}
+.sidebar-ov.show{display:block}
+.sidebar-toggle{display:none;position:fixed;top:12px;left:12px;z-index:201;width:36px;height:36px;border:1px solid var(--bd);border-radius:50%;background:var(--sf);color:var(--t2);cursor:pointer;font-size:16px;align-items:center;justify-content:center}
+.app-wrap{margin-left:240px;min-height:100vh}
+.page{display:none}.page.active{display:block}
+@media(max-width:768px){.sidebar{transform:translateX(-240px)}.sidebar.open{transform:translateX(0);box-shadow:4px 0 20px rgba(0,0,0,.15)}.app-wrap{margin-left:0}.sidebar-toggle{display:flex}.hdr{padding-left:58px !important}}
+
+/* ── MANAGEMENT PAGES ── */
+.pg-hdr{padding:22px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.pg-title{font-family:var(--fh);font-size:21px;font-weight:600;color:var(--t1)}
+.pg-sub{font-size:12.5px;color:var(--t2);margin-top:2px}
+.pg-body{padding:0 28px 40px}
+@media(max-width:680px){.pg-hdr,.pg-body{padding-left:14px;padding-right:14px}}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin-bottom:18px}
+.kpi-card{background:var(--sf);border-radius:var(--rm);box-shadow:var(--sh);padding:16px 18px}
+.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);margin-bottom:6px}
+.kpi-val{font-family:var(--fh);font-size:23px;font-weight:300;color:var(--t1)}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:3px}
+.kpi-card.accent{background:var(--ac)}.kpi-card.accent .kpi-lbl,.kpi-card.accent .kpi-val,.kpi-card.accent .kpi-sub{color:#fff}.kpi-card.accent .kpi-lbl{opacity:.7}
+.tbl-wrap{background:var(--sf);border-radius:var(--rm);box-shadow:var(--sh);overflow:hidden;margin-bottom:14px}
+.tbl-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bd);gap:8px;flex-wrap:wrap}
+.tbl-ttl{font-size:13px;font-weight:600;color:var(--t1)}
+table.dtbl{width:100%;border-collapse:collapse}
+table.dtbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--bd);background:var(--sf2);white-space:nowrap}
+table.dtbl td{font-size:13px;color:var(--t2);padding:10px 14px;border-bottom:1px solid var(--bd);vertical-align:middle}
+table.dtbl tr:last-child td{border-bottom:none}
+table.dtbl tr:hover td{background:var(--sf2)}
+table.dtbl td.b{color:var(--t1);font-weight:600}
+.bdg{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:100px;white-space:nowrap}
+.bdg.borrador{background:var(--sf2);color:var(--t3)}.bdg.enviado{background:rgba(59,130,246,.12);color:#3b82f6}
+.bdg.aprobado{background:rgba(16,185,129,.12);color:#059669}.bdg.produccion{background:var(--acs);color:var(--ac)}
+.bdg.listo{background:rgba(139,92,246,.12);color:#7c3aed}.bdg.entregado{background:rgba(16,185,129,.12);color:#059669}
+.bdg.cobrado{background:rgba(26,122,64,.12);color:var(--ok)}.bdg.cancelado,.bdg.rechazado{background:rgba(239,68,68,.1);color:#dc2626}
+.fil-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.fil-bar input,.fil-bar select{height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 10px;outline:none}
+.fil-bar input:focus,.fil-bar select:focus{border-color:var(--ac)}
+.frow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.fgrp{flex:1;min-width:140px}
+.fgrp label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
+.fgrp input,.fgrp select,.fgrp textarea{width:100%;height:36px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:13px;padding:0 10px;outline:none;transition:.14s}
+.fgrp textarea{height:64px;padding:7px 10px;resize:vertical}
+.fgrp input:focus,.fgrp select:focus,.fgrp textarea:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acs)}
+.tact{display:flex;gap:4px;white-space:nowrap}
+.tbtn{height:25px;padding:0 8px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:all var(--tr)}
+.tbtn:hover{border-color:var(--bds);color:var(--t1)}.tbtn.d:hover{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+.tbtn.p{background:var(--ac);border-color:var(--ac);color:#fff}.tbtn.p:hover{background:var(--ach)}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:16px}
+.chart-card{background:var(--sf);border-radius:var(--rm);box-shadow:var(--sh);padding:16px}
+.chart-ttl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:12px}
+.chart-wrap{position:relative;height:190px}
+.empty{text-align:center;padding:36px 16px;color:var(--t3)}
+.empty svg{width:38px;height:38px;margin:0 auto 10px;display:block;opacity:.3;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.empty p{font-size:13px}
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--t1);color:var(--sf);padding:10px 15px;border-radius:var(--rm);font-size:13px;font-weight:500;box-shadow:var(--sh2);opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;max-width:260px}
+#toast.show{opacity:1;transform:translateY(0)}#toast.ok{background:var(--ok)}#toast.err{background:#dc2626}
+.est-btns{display:flex;gap:5px;flex-wrap:wrap}
+.est-btn{height:24px;padding:0 9px;border:none;border-radius:100px;font-size:10.5px;font-weight:700;cursor:pointer;font-family:var(--fh);transition:all var(--tr)}
+.est-btn.to-enviado{background:rgba(59,130,246,.15);color:#3b82f6}.est-btn.to-aprobado{background:rgba(16,185,129,.15);color:#059669}
+.est-btn.to-produccion{background:var(--acs);color:var(--ac)}.est-btn.to-listo{background:rgba(139,92,246,.15);color:#7c3aed}
+.est-btn.to-entregado{background:rgba(16,185,129,.15);color:#059669}.est-btn.to-cobrado{background:rgba(26,122,64,.12);color:var(--ok)}
+.est-btn.to-cancelado,.est-btn.to-rechazado{background:rgba(239,68,68,.1);color:#dc2626}
+.est-btn:hover{opacity:.8;transform:scale(1.03)}
+.dash-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:680px){.dash-2col{grid-template-columns:1fr}}
+.section-card{background:var(--sf);border-radius:var(--rm);box-shadow:var(--sh);padding:20px;margin-bottom:14px}
+.section-card-ttl{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
 </style>
 </head>
 <body>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-ov" id="sidebarOv" onclick="closeSidebar()"></div>
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">☰</button>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-hd">
+    <div class="sidebar-logo-ic">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <div class="sidebar-brand">ArteLab UY</div>
+      <div class="sidebar-brand-sub">Sistema de gestión</div>
+    </div>
+  </div>
+  <nav style="flex:1;padding:4px 0">
+    <div class="nav-sec">Principal</div>
+    <button class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" id="nav-calculadora" onclick="showPage('calculadora')">
+      <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+      Calculadora
+    </button>
+    <div class="nav-sec">Gestión</div>
+    <button class="nav-item" id="nav-presupuestos" onclick="showPage('presupuestos')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+      Presupuestos
+    </button>
+    <button class="nav-item" id="nav-clientes" onclick="showPage('clientes')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Clientes
+    </button>
+    <button class="nav-item" id="nav-cobros" onclick="showPage('cobros')">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      Cobros
+    </button>
+    <button class="nav-item" id="nav-gastos" onclick="showPage('gastos')">
+      <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><circle cx="12" cy="12" r="2"/><path d="M6 7V5a2 2 0 012-2h8a2 2 0 012 2v2M6 17v2a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+      Gastos
+    </button>
+    <div class="nav-sec">Análisis</div>
+    <button class="nav-item" id="nav-reportes" onclick="showPage('reportes')">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reportes
+    </button>
+    <div class="nav-sec">Sistema</div>
+    <button class="nav-item" id="nav-config" onclick="showPage('config')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Configuración
+    </button>
+    <button class="nav-item" id="nav-logs" style="display:none" onclick="showPage('logs')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
+      Auditoría
+    </button>
+  </nav>
+  <div class="sidebar-user">
+    <div class="sidebar-av" id="sidebarAv">A</div>
+    <div style="flex:1;min-width:0">
+      <div class="sidebar-uname" id="sidebarName">Admin</div>
+      <div class="sidebar-urol" id="sidebarRol">admin</div>
+    </div>
+    <button class="sidebar-logout-btn" onclick="doLogout()" title="Cerrar sesión">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- TOAST -->
+<div id="toast"></div>
 
 <!-- PRINT DOC -->
 <div id="printDoc">
@@ -413,6 +570,9 @@ footer{text-align:center;padding:18px;font-size:11.5px;color:var(--t3);border-to
   <div class="mf"><button class="bs2" onclick="clearHist()">Limpiar historial</button></div>
 </div>
 
+<!-- APP WRAP -->
+<div class="app-wrap" id="appWrap">
+
 <!-- HEADER -->
 <header class="hdr">
   <a class="brand" href="#">
@@ -435,6 +595,418 @@ footer{text-align:center;padding:18px;font-size:11.5px;color:var(--t3);border-to
     <button class="hbtn-ico" id="themeBtn">🌙</button>
   </div>
 </header>
+
+<main class="app-main" id="appMain">
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: DASHBOARD
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Dashboard</div>
+      <div class="pg-sub">Resumen del negocio</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <input type="month" id="dashMes" style="height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 8px;outline:none">
+      <button class="hbtn" onclick="loadDashboard()">Actualizar</button>
+    </div>
+  </div>
+  <div class="pg-body">
+    <div class="kpi-grid" id="dashKpis">
+      <div class="kpi-card"><div class="kpi-lbl">Facturado mes</div><div class="kpi-val" id="kpiFact">—</div><div class="kpi-sub">UYU entregado/cobrado</div></div>
+      <div class="kpi-card accent"><div class="kpi-lbl">Cobrado mes</div><div class="kpi-val" id="kpiCobr">—</div><div class="kpi-sub" id="kpiCobrSub">efectivo + transferencia</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Gastos mes</div><div class="kpi-val" id="kpiGast">—</div><div class="kpi-sub">todos los tipos</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Ganancia neta</div><div class="kpi-val" id="kpiGan">—</div><div class="kpi-sub">Cobrado − Gastos</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">En producción</div><div class="kpi-val" id="kpiActivos">—</div><div class="kpi-sub">presupuestos activos</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card" style="grid-column:1/-1">
+        <div class="chart-ttl">Facturado vs Cobrado vs Gastos — últimos 12 meses</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartLine"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-ttl">Presupuestos por estado (mes)</div>
+        <div class="chart-wrap"><canvas id="chartEstados"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-ttl">Gastos por categoría (mes)</div>
+        <div class="chart-wrap"><canvas id="chartGastos"></canvas></div>
+      </div>
+    </div>
+    <div class="dash-2col">
+      <div class="tbl-wrap">
+        <div class="tbl-hd"><div class="tbl-ttl">Últimos presupuestos</div></div>
+        <div id="dashUltimos"><div class="empty"><p>Sin datos</p></div></div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-hd"><div class="tbl-ttl">Cobros pendientes</div><div style="font-size:11px;color:var(--t3)">entregados sin cobrar</div></div>
+        <div id="dashPendientes"><div class="empty"><p>Sin datos</p></div></div>
+      </div>
+    </div>
+    <div class="tbl-wrap" id="dashListos" style="display:none">
+      <div class="tbl-hd"><div class="tbl-ttl">🟢 Listos para entregar</div></div>
+      <div id="dashListosBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: PRESUPUESTOS
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-presupuestos" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Presupuestos</div>
+      <div class="pg-sub">Gestión y seguimiento de presupuestos</div>
+    </div>
+    <button class="abtn p" onclick="showPage('calculadora')">
+      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+      Nuevo presupuesto
+    </button>
+  </div>
+  <div class="pg-body">
+    <div class="fil-bar">
+      <select id="presEstado" onchange="loadPresupuestos()">
+        <option value="">Todos los estados</option>
+        <option value="borrador">Borrador</option>
+        <option value="enviado">Enviado</option>
+        <option value="aprobado">Aprobado</option>
+        <option value="produccion">En producción</option>
+        <option value="listo">Listo</option>
+        <option value="entregado">Entregado</option>
+        <option value="cobrado">Cobrado</option>
+        <option value="cancelado">Cancelado</option>
+        <option value="rechazado">Rechazado</option>
+      </select>
+      <input id="presSearch" placeholder="Buscar pieza o cliente…" oninput="filterPresupuestos()" style="min-width:180px">
+      <button class="hbtn" onclick="loadPresupuestos()">↻ Refrescar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl">
+        <thead><tr>
+          <th>#</th><th>Pieza</th><th>Cliente</th><th>Estado</th>
+          <th>Precio</th><th>Fecha</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="presTbody"><tr><td colspan="7" class="empty" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: CLIENTES
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-clientes" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Clientes</div>
+      <div class="pg-sub">Directorio de clientes</div>
+    </div>
+    <button class="abtn p" onclick="openClienteForm()">
+      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+      Nuevo cliente
+    </button>
+  </div>
+  <div class="pg-body">
+    <div class="fil-bar">
+      <input id="cliSearch" placeholder="Buscar nombre o email…" oninput="filterClientes()" style="min-width:200px">
+      <button class="hbtn" onclick="loadClientes()">↻ Refrescar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl">
+        <thead><tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Presupuestos</th><th>Facturado</th><th>Acciones</th></tr></thead>
+        <tbody id="cliTbody"><tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo/editar cliente -->
+<div class="modal" id="mCliente">
+  <div class="mh"><div class="mt">Cliente</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow"><div class="fgrp"><label>Nombre *</label><input id="cliNombre" placeholder="Nombre del cliente"></div></div>
+    <div class="frow">
+      <div class="fgrp"><label>Email</label><input id="cliEmail" type="email" placeholder="email@ejemplo.com"></div>
+      <div class="fgrp"><label>Teléfono</label><input id="cliTel" placeholder="09X XXX XXX"></div>
+    </div>
+    <div class="frow"><div class="fgrp"><label>Notas</label><textarea id="cliNotas" placeholder="Notas internas…"></textarea></div></div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveCliente()">Guardar</button></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: COBROS
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-cobros" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Cobros</div>
+      <div class="pg-sub">Registro de pagos recibidos</div>
+    </div>
+    <button class="abtn p" onclick="openCobroForm()">
+      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+      Registrar cobro
+    </button>
+  </div>
+  <div class="pg-body">
+    <div class="fil-bar">
+      <input type="month" id="cobroMes" onchange="loadCobros()" style="height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 8px;outline:none">
+      <select id="cobroMedio" onchange="loadCobros()">
+        <option value="">Todos los medios</option>
+        <option>efectivo</option><option>transferencia</option><option>mercadopago</option><option>paypal</option><option>crypto</option><option>otro</option>
+      </select>
+      <button class="hbtn" onclick="loadCobros()">↻ Refrescar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl">
+        <thead><tr><th>Fecha</th><th>Presupuesto</th><th>Cliente</th><th>Monto</th><th>Medio</th><th>Nota</th><th></th></tr></thead>
+        <tbody id="cobroTbody"><tr><td colspan="7" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div style="text-align:right;font-size:13px;color:var(--t2);padding:4px 8px">
+      Total período: <strong id="cobroTotal" style="color:var(--t1);font-family:var(--fh)">—</strong>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: registrar cobro -->
+<div class="modal" id="mCobro">
+  <div class="mh"><div class="mt">Registrar cobro</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp" style="flex:2"><label>Presupuesto *</label><select id="cobroPres"></select></div>
+      <div class="fgrp"><label>Fecha *</label><input id="cobroFecha" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Monto *</label><input id="cobroMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp"><label>Moneda</label><select id="cobroMoneda"><option>UYU</option><option>USD</option></select></div>
+      <div class="fgrp"><label>Medio de pago</label>
+        <select id="cobroMedioPago">
+          <option>efectivo</option><option>transferencia</option><option>mercadopago</option><option>paypal</option><option>crypto</option><option>otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow"><div class="fgrp"><label>Nota</label><input id="cobroNota" placeholder="Referencia, comprobante…"></div></div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveCobro()">Guardar cobro</button></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: GASTOS
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-gastos" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Gastos</div>
+      <div class="pg-sub">Registro de egresos del negocio</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="abtn s" onclick="generarGastosFijos()" title="Genera los gastos fijos del mes actual">⚙ Gastos fijos del mes</button>
+      <button class="abtn p" onclick="openGastoForm()">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+        Nuevo gasto
+      </button>
+    </div>
+  </div>
+  <div class="pg-body">
+    <div class="fil-bar">
+      <input type="month" id="gastoMes" onchange="loadGastos()" style="height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 8px;outline:none">
+      <select id="gastoCat" onchange="loadGastos()">
+        <option value="">Todas las categorías</option>
+        <option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option>
+      </select>
+      <select id="gastoTipo" onchange="loadGastos()">
+        <option value="">Todos los tipos</option>
+        <option value="manual">Manual</option>
+        <option value="fijo_mensual">Fijo mensual</option>
+        <option value="produccion_automatico">Producción automático</option>
+      </select>
+      <button class="hbtn" onclick="loadGastos()">↻ Refrescar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl">
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th>Tipo</th><th></th></tr></thead>
+        <tbody id="gastoTbody"><tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+    <div style="text-align:right;font-size:13px;color:var(--t2);padding:4px 8px">
+      Total período: <strong id="gastoTotal" style="color:var(--t1);font-family:var(--fh)">—</strong>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo gasto -->
+<div class="modal" id="mGasto">
+  <div class="mh"><div class="mt">Registrar gasto</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp" style="flex:2"><label>Descripción *</label><input id="gastoDesc" placeholder="Ej: Bobina PLA blanco 1kg"></div>
+      <div class="fgrp"><label>Fecha *</label><input id="gastoFecha" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Categoría</label>
+        <select id="gastoCatInput">
+          <option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Monto *</label><input id="gastoMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp"><label>Moneda</label><select id="gastoMoneda"><option>UYU</option><option>USD</option></select></div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveGasto()">Guardar</button></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: REPORTES
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-reportes" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Reportes</div>
+      <div class="pg-sub">Análisis de rentabilidad</div>
+    </div>
+    <button class="abtn p" onclick="loadReportes()">Actualizar</button>
+  </div>
+  <div class="pg-body">
+    <div class="fil-bar">
+      <input type="date" id="repDesde" style="height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 8px;outline:none">
+      <span style="font-size:12px;color:var(--t3)">hasta</span>
+      <input type="date" id="repHasta" style="height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 8px;outline:none">
+      <button class="hbtn" onclick="loadReportes()">Consultar</button>
+    </div>
+    <div class="section-card">
+      <div class="section-card-ttl">Ingresos por moneda</div>
+      <div id="repIngresos"><div class="empty"><p>Seleccioná un período y consultá</p></div></div>
+    </div>
+    <div class="section-card">
+      <div class="section-card-ttl">Gastos por categoría</div>
+      <div id="repGastos"><div class="empty"><p>—</p></div></div>
+    </div>
+    <div class="section-card">
+      <div class="section-card-ttl">Cobros pendientes</div>
+      <div id="repPendientes"><div class="empty"><p>Cargando…</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: CONFIGURACIÓN
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-config" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Configuración</div>
+      <div class="pg-sub">Ajustes del sistema</div>
+    </div>
+  </div>
+  <div class="pg-body">
+    <div class="section-card">
+      <div class="section-card-ttl">Empresa</div>
+      <div class="frow">
+        <div class="fgrp"><label>Nombre empresa</label><input id="cfgEmpresa" placeholder="ArteLab UY"></div>
+        <div class="fgrp"><label>WhatsApp (con código país)</label><input id="cfgWA" placeholder="59899000000"></div>
+      </div>
+      <div class="frow">
+        <div class="fgrp"><label>Tipo de cambio USD/UYU</label><input id="cfgTC" type="number" step="0.01" placeholder="42.5"></div>
+        <div class="fgrp"><label>Margen por defecto (%)</label><input id="cfgMargen" type="number" placeholder="50"></div>
+      </div>
+      <button class="abtn p" onclick="saveConfig()">Guardar configuración</button>
+    </div>
+    <div class="section-card" id="cfgUsuariosCard">
+      <div class="section-card-ttl">
+        Usuarios
+        <button class="tbtn p" onclick="openUserForm()">+ Nuevo usuario</button>
+      </div>
+      <table class="dtbl">
+        <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Activo</th><th>Último login</th><th></th></tr></thead>
+        <tbody id="cfgUsersTbody"></tbody>
+      </table>
+    </div>
+    <div class="section-card">
+      <div class="section-card-ttl">
+        Gastos fijos recurrentes
+        <button class="tbtn p" onclick="openGastoFijoForm()">+ Agregar</button>
+      </div>
+      <table class="dtbl">
+        <thead><tr><th>Nombre</th><th>Categoría</th><th>Monto</th><th>Día del mes</th><th>Activo</th><th></th></tr></thead>
+        <tbody id="cfgFijosTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo usuario -->
+<div class="modal" id="mUser">
+  <div class="mh"><div class="mt">Usuario</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp"><label>Nombre</label><input id="userNombre" placeholder="Nombre completo"></div>
+      <div class="fgrp"><label>Email</label><input id="userEmail" type="email" placeholder="email@ejemplo.com"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Contraseña</label><input id="userPass" type="password" placeholder="••••••••"></div>
+      <div class="fgrp"><label>Rol</label>
+        <select id="userRol">
+          <option value="operador">Operador</option>
+          <option value="visor">Visor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveUser()">Guardar</button></div>
+</div>
+
+<!-- Modal: gasto fijo -->
+<div class="modal" id="mGastoFijo">
+  <div class="mh"><div class="mt">Gasto fijo</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp" style="flex:2"><label>Nombre</label><input id="gfNombre" placeholder="Ej: Servicio de internet"></div>
+      <div class="fgrp"><label>Día del mes</label><input id="gfDia" type="number" min="1" max="28" value="1"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Categoría</label>
+        <select id="gfCat"><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option></select>
+      </div>
+      <div class="fgrp"><label>Monto</label><input id="gfMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp"><label>Moneda</label><select id="gfMoneda"><option>UYU</option><option>USD</option></select></div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveGastoFijo()">Guardar</button></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: LOGS
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-logs" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Auditoría</div>
+      <div class="pg-sub">Log de todas las acciones del sistema</div>
+    </div>
+  </div>
+  <div class="pg-body">
+    <div class="fil-bar">
+      <input id="logUser" placeholder="Usuario…" oninput="loadLogs()" style="width:140px">
+      <input id="logAccion" placeholder="Acción…" oninput="loadLogs()" style="width:160px">
+      <button class="hbtn" onclick="loadLogs()">↻ Refrescar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table class="dtbl">
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Detalle</th></tr></thead>
+        <tbody id="logTbody"><tr><td colspan="5" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: CALCULADORA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-calculadora" class="page">
 
 <!-- HERO -->
 <div class="hero">
@@ -924,7 +1496,611 @@ footer{text-align:center;padding:18px;font-size:11.5px;color:var(--t3);border-to
 </div><!-- end grid -->
 <footer>ArteLab UY · Tarifas UTE 2025–2026 · Tipo de cambio referencial BCU · Datos Bambu Lab wiki.bambulab.com</footer>
 
+</div><!-- /page-calculadora -->
+</main><!-- /app-main -->
+</div><!-- /app-wrap -->
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
 <script>
+// ── AUTH CHECK ────────────────────────────────────────────────────────
+let _currentUser = null;
+let _token = localStorage.getItem('al-token');
+
+(async function checkAuth() {
+  if (!_token) { window.location.href = '/login.html'; return; }
+  try {
+    const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + _token } });
+    const d = await r.json();
+    if (!d.ok) { localStorage.removeItem('al-token'); window.location.href = '/login.html'; return; }
+    _currentUser = d.user;
+    initSidebar();
+  } catch {
+    // si falla la red, continuar igualmente (offline mode)
+    const u = JSON.parse(localStorage.getItem('al-user') || 'null');
+    if (!u) { window.location.href = '/login.html'; return; }
+    _currentUser = u;
+    initSidebar();
+  }
+})();
+
+function apiGet(url) {
+  return fetch(url, { headers: { Authorization: 'Bearer ' + _token } }).then(r => r.json());
+}
+function apiPost(url, body) {
+  return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token }, body: JSON.stringify(body) }).then(r => r.json());
+}
+function apiPut(url, body) {
+  return fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + _token }, body: JSON.stringify(body) }).then(r => r.json());
+}
+function apiDelete(url) {
+  return fetch(url, { method: 'DELETE', headers: { Authorization: 'Bearer ' + _token } }).then(r => r.json());
+}
+
+function initSidebar() {
+  const u = _currentUser;
+  if (!u) return;
+  document.getElementById('sidebarName').textContent = u.nombre;
+  document.getElementById('sidebarRol').textContent = u.rol;
+  document.getElementById('sidebarAv').textContent = (u.nombre || 'U')[0].toUpperCase();
+  if (u.rol === 'admin') document.getElementById('nav-logs').style.display = '';
+  // Auto-cargar dashboard
+  const now = new Date();
+  document.getElementById('dashMes').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  loadDashboard();
+}
+
+async function doLogout() {
+  try { await apiPost('/api/auth/logout', {}); } catch {}
+  localStorage.removeItem('al-token');
+  localStorage.removeItem('al-user');
+  window.location.href = '/login.html';
+}
+
+// ── SPA ROUTER ────────────────────────────────────────────────────────
+let _activePage = 'dashboard';
+const _chartInstances = {};
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const pg = document.getElementById('page-' + page);
+  if (pg) pg.classList.add('active');
+  const nav = document.getElementById('nav-' + page);
+  if (nav) nav.classList.add('active');
+  _activePage = page;
+  closeSidebar();
+  // Lazy load page data
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'presupuestos') loadPresupuestos();
+  if (page === 'clientes') loadClientes();
+  if (page === 'cobros') loadCobros();
+  if (page === 'gastos') loadGastos();
+  if (page === 'reportes') loadCobrosPendientes();
+  if (page === 'config') loadConfig();
+  if (page === 'logs') loadLogs();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOv').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOv').classList.remove('show');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+let _toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.className = ''; }, 3500);
+}
+
+// ── FORMAT ────────────────────────────────────────────────────────────
+function fmtMoney(n) { return Number(n||0).toLocaleString('es-UY',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtDate(s) {
+  if (!s) return '—';
+  return s;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const mes = document.getElementById('dashMes').value;
+  if (!mes) return;
+  try {
+    const d = await apiGet('/api/dashboard?mes=' + mes);
+    if (!d.ok) return;
+    const k = d.data.kpis;
+    document.getElementById('kpiFact').textContent = '$ ' + fmtMoney(k.facturadoUYU);
+    document.getElementById('kpiCobr').textContent = '$ ' + fmtMoney(k.cobradoUYU);
+    document.getElementById('kpiGast').textContent = '$ ' + fmtMoney(k.gastosMes);
+    const gan = k.gananciaNeta;
+    const ganEl = document.getElementById('kpiGan');
+    ganEl.textContent = '$ ' + fmtMoney(gan);
+    ganEl.style.color = gan < 0 ? '#dc2626' : '';
+    document.getElementById('kpiActivos').textContent = k.presActivos;
+
+    // Últimos presupuestos
+    const ul = d.data.ultimosPresupuestos;
+    document.getElementById('dashUltimos').innerHTML = ul.length ? ul.map(p => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--bd);font-size:12.5px">
+        <div>
+          <span style="font-weight:600;color:var(--t1)">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza}</span>
+          <span class="bdg ${p.estado||'borrador'}" style="margin-left:6px">${p.estado||'borrador'}</span>
+        </div>
+        <div style="font-family:var(--fh);color:var(--ac)">$ ${fmtMoney(p.precio)}</div>
+      </div>`).join('') : '<div class="empty"><p>Sin presupuestos</p></div>';
+
+    // Cobros pendientes
+    const cp = d.data.cobrosPendientes;
+    document.getElementById('dashPendientes').innerHTML = cp.length ? cp.map(p => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--bd);font-size:12.5px">
+        <div><span style="font-weight:600;color:var(--t1)">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza}</span></div>
+        <div style="color:#dc2626;font-family:var(--fh)">$ ${fmtMoney(p.precio)}</div>
+      </div>`).join('') : '<div class="empty"><p>Sin cobros pendientes ✓</p></div>';
+
+    // Listos para entregar
+    const listos = d.data.listos;
+    const dL = document.getElementById('dashListos');
+    if (listos.length) {
+      dL.style.display = '';
+      document.getElementById('dashListosBody').innerHTML = listos.map(p => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--bd);font-size:12.5px">
+          <div><span style="font-weight:600;color:var(--t1)">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza}</span> <span style="color:var(--t3)">${p.cliente}</span></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-family:var(--fh);color:var(--ac)">$ ${fmtMoney(p.precio)}</span>
+            <button class="tbtn p" onclick="cambiarEstado(${p.id},'entregado',null,'presupuestos');loadDashboard()">Marcar entregado</button>
+          </div>
+        </div>`).join('');
+    } else { dL.style.display = 'none'; }
+
+    // Charts
+    buildLineChart(d.data.serie);
+    buildEstadosChart(d.data.estadosMes);
+    buildGastosChart(d.data.gastosCategorias);
+  } catch(e) { console.error(e); }
+}
+
+function buildLineChart(serie) {
+  const labels = serie.map(s => s.mes);
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Facturado', data: serie.map(s=>s.facturado), borderColor: '#d4601a', backgroundColor: 'rgba(212,96,26,.08)', tension: .3, fill: true },
+        { label: 'Cobrado',   data: serie.map(s=>s.cobrado),   borderColor: '#1a7a40', backgroundColor: 'rgba(26,122,64,.08)',  tension: .3, fill: true },
+        { label: 'Gastos',    data: serie.map(s=>s.gastos),    borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.06)',  tension: .3, fill: true }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { font: { size: 11 } } } }, scales: { y: { ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } } }
+  };
+  renderChart('chartLine', cfg);
+}
+
+function buildEstadosChart(data) {
+  const COLS = { borrador:'#aeaaa3',enviado:'#3b82f6',aprobado:'#059669',produccion:'#d4601a',listo:'#7c3aed',entregado:'#10b981',cobrado:'#1a7a40',cancelado:'#dc2626',rechazado:'#ef4444' };
+  renderChart('chartEstados', {
+    type: 'doughnut',
+    data: { labels: data.map(r=>r.estado), datasets: [{ data: data.map(r=>r.cnt), backgroundColor: data.map(r=>COLS[r.estado]||'#ccc'), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } } } }
+  });
+}
+
+function buildGastosChart(data) {
+  renderChart('chartGastos', {
+    type: 'doughnut',
+    data: { labels: data.map(r=>r.categoria), datasets: [{ data: data.map(r=>r.total), backgroundColor: ['#d4601a','#3b82f6','#7c3aed','#059669','#dc2626','#f59e0b','#aeaaa3'], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 12 } } } }
+  });
+}
+
+function renderChart(id, cfg) {
+  if (_chartInstances[id]) _chartInstances[id].destroy();
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  _chartInstances[id] = new Chart(canvas, cfg);
+}
+
+// ── PRESUPUESTOS ──────────────────────────────────────────────────────
+let _presCache = [];
+async function loadPresupuestos() {
+  const estado = document.getElementById('presEstado').value;
+  let url = '/api/presupuestos';
+  if (estado) url += '?estado=' + estado;
+  try {
+    const d = await apiGet(url);
+    if (!d.ok) return;
+    _presCache = d.data;
+    filterPresupuestos();
+  } catch(e) { console.error(e); }
+}
+
+function filterPresupuestos() {
+  const search = (document.getElementById('presSearch').value || '').toLowerCase();
+  const rows = _presCache.filter(p =>
+    !search || p.pieza.toLowerCase().includes(search) || (p.cliente||'').toLowerCase().includes(search)
+  );
+  const FLUJO = { borrador:['enviado','cancelado'], enviado:['aprobado','rechazado','cancelado'], aprobado:['produccion','cancelado'], produccion:['listo','cancelado'], listo:['entregado','cancelado'], entregado:['cobrado'], cobrado:[], rechazado:[], cancelado:[] };
+  const LABELS = { enviado:'Enviar',aprobado:'Aprobar',produccion:'Producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',cancelado:'Cancelar',rechazado:'Rechazar' };
+  document.getElementById('presTbody').innerHTML = rows.length ? rows.map(p => {
+    const num = String(p.numero||p.id).padStart(4,'0');
+    const estado = p.estado || 'borrador';
+    const siguientes = (FLUJO[estado]||[]);
+    const btnEst = siguientes.slice(0,2).map(s =>
+      `<button class="est-btn to-${s}" onclick="cambiarEstado(${p.id},'${s}',null,'presupuestos')">${LABELS[s]||s}</button>`
+    ).join('');
+    return `<tr>
+      <td class="b" style="font-family:var(--fh)">#${num}</td>
+      <td class="b">${p.pieza}</td>
+      <td>${p.cliente_nombre||p.cliente||'—'}</td>
+      <td><span class="bdg ${estado}">${estado}</span><div class="est-btns" style="margin-top:4px">${btnEst}</div></td>
+      <td style="font-family:var(--fh);color:var(--ac)">$ ${fmtMoney(p.precio)}</td>
+      <td style="color:var(--t3)">${p.fecha}</td>
+      <td><div class="tact">
+        <button class="tbtn" onclick="editarPresupuesto(${p.id})">Editar</button>
+        <button class="tbtn" onclick="registrarCobroDesde(${p.id})">Cobrar</button>
+        <button class="tbtn d" onclick="eliminarPresupuesto(${p.id})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" class="empty" style="padding:32px;text-align:center;color:var(--t3)">Sin presupuestos</td></tr>';
+}
+
+async function cambiarEstado(presId, nuevoEstado, nota, reloadPage) {
+  const d = await apiPut(`/api/presupuestos/${presId}/estado`, { estado_nuevo: nuevoEstado, nota });
+  if (d.ok) {
+    showToast('Estado actualizado: ' + nuevoEstado, 'ok');
+    if (reloadPage === 'presupuestos') loadPresupuestos();
+    if (reloadPage === 'dashboard') loadDashboard();
+  } else {
+    showToast(d.error || 'Error al cambiar estado', 'err');
+  }
+}
+
+function editarPresupuesto(id) {
+  const p = _presCache.find(x => x.id === id);
+  if (!p) return;
+  S.editingId = p.id;
+  S.editingNum = p.numero || p.id;
+  if (p.snap) restoreForm(p.snap);
+  updatePresBar();
+  showPage('calculadora');
+  setTimeout(calc, 100);
+}
+
+async function eliminarPresupuesto(id) {
+  if (!confirm('¿Eliminar este presupuesto? No se puede deshacer.')) return;
+  const d = await apiDelete('/api/presupuestos/' + id);
+  if (d.ok) { showToast('Presupuesto eliminado', 'ok'); loadPresupuestos(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+function registrarCobroDesde(presId) {
+  const p = _presCache.find(x => x.id === presId);
+  openCobroForm(p);
+}
+
+// ── CLIENTES ──────────────────────────────────────────────────────────
+let _cliCache = [];
+let _editingClienteId = null;
+
+async function loadClientes() {
+  const d = await apiGet('/api/clientes');
+  if (!d.ok) return;
+  _cliCache = d.data;
+  filterClientes();
+}
+
+function filterClientes() {
+  const s = (document.getElementById('cliSearch').value || '').toLowerCase();
+  const rows = _cliCache.filter(c => !s || c.nombre.toLowerCase().includes(s) || (c.email||'').toLowerCase().includes(s));
+  document.getElementById('cliTbody').innerHTML = rows.length ? rows.map(c => `<tr>
+    <td class="b">${c.nombre}</td>
+    <td>${c.email||'—'}</td>
+    <td>${c.telefono||'—'}</td>
+    <td>${c.total_presupuestos||0}</td>
+    <td style="font-family:var(--fh);color:var(--ac)">$ ${fmtMoney(c.total_facturado)}</td>
+    <td><div class="tact">
+      <button class="tbtn" onclick="editarCliente(${c.id})">Editar</button>
+      <button class="tbtn d" onclick="eliminarCliente(${c.id})">🗑</button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Sin clientes</td></tr>';
+}
+
+function openClienteForm(id) {
+  _editingClienteId = id || null;
+  document.getElementById('cliNombre').value = '';
+  document.getElementById('cliEmail').value = '';
+  document.getElementById('cliTel').value = '';
+  document.getElementById('cliNotas').value = '';
+  if (id) {
+    const c = _cliCache.find(x => x.id === id);
+    if (c) { document.getElementById('cliNombre').value = c.nombre; document.getElementById('cliEmail').value = c.email||''; document.getElementById('cliTel').value = c.telefono||''; document.getElementById('cliNotas').value = c.notas||''; }
+  }
+  openM('mCliente');
+}
+
+function editarCliente(id) { openClienteForm(id); }
+
+async function saveCliente() {
+  const body = { nombre: document.getElementById('cliNombre').value.trim(), email: document.getElementById('cliEmail').value.trim(), telefono: document.getElementById('cliTel').value.trim(), notas: document.getElementById('cliNotas').value.trim() };
+  if (!body.nombre) { showToast('El nombre es requerido', 'err'); return; }
+  let d;
+  if (_editingClienteId) d = await apiPut('/api/clientes/' + _editingClienteId, body);
+  else d = await apiPost('/api/clientes', body);
+  if (d.ok) { showToast('Cliente guardado', 'ok'); closeM(); loadClientes(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+async function eliminarCliente(id) {
+  if (!confirm('¿Eliminar cliente?')) return;
+  const d = await apiDelete('/api/clientes/' + id);
+  if (d.ok) { showToast('Cliente eliminado', 'ok'); loadClientes(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+// ── COBROS ────────────────────────────────────────────────────────────
+async function loadCobros() {
+  const mes = document.getElementById('cobroMes').value;
+  const medio = document.getElementById('cobroMedio').value;
+  let url = '/api/cobros?';
+  if (mes) url += 'mes=' + mes + '&';
+  if (medio) url += 'medio=' + medio;
+  const d = await apiGet(url);
+  if (!d.ok) return;
+  const rows = d.data;
+  const total = rows.reduce((s,r) => s + Number(r.monto||0), 0);
+  document.getElementById('cobroTotal').textContent = '$ ' + fmtMoney(total) + ' UYU';
+  document.getElementById('cobroTbody').innerHTML = rows.length ? rows.map(c => `<tr>
+    <td>${c.fecha}</td>
+    <td class="b" style="font-family:var(--fh)">#${String(c.pres_numero||c.presupuesto_id).padStart(4,'0')} ${c.pieza||''}</td>
+    <td>${c.cliente_nombre||'—'}</td>
+    <td style="font-family:var(--fh);color:var(--ok)">$ ${fmtMoney(c.monto)} ${c.moneda}</td>
+    <td>${c.medio_pago}</td>
+    <td style="color:var(--t3)">${c.nota||'—'}</td>
+    <td><button class="tbtn d" onclick="eliminarCobro(${c.id})">🗑</button></td>
+  </tr>`).join('') : '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--t3)">Sin cobros</td></tr>';
+}
+
+async function openCobroForm(presObj) {
+  // Cargar lista de presupuestos entregados
+  const d = await apiGet('/api/presupuestos?estado=entregado');
+  const sel = document.getElementById('cobroPres');
+  const all = d.ok ? d.data : [];
+  sel.innerHTML = all.map(p => `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza} — $ ${fmtMoney(p.precio)}</option>`).join('');
+  if (presObj) sel.value = presObj.id;
+  document.getElementById('cobroFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('cobroMonto').value = presObj ? presObj.precio : '';
+  document.getElementById('cobroNota').value = '';
+  openM('mCobro');
+}
+
+async function saveCobro() {
+  const body = {
+    presupuesto_id: Number(document.getElementById('cobroPres').value),
+    monto: parseFloat(document.getElementById('cobroMonto').value),
+    moneda: document.getElementById('cobroMoneda').value,
+    medio_pago: document.getElementById('cobroMedioPago').value,
+    fecha: document.getElementById('cobroFecha').value,
+    nota: document.getElementById('cobroNota').value.trim()
+  };
+  if (!body.presupuesto_id || !body.monto) { showToast('Presupuesto y monto requeridos', 'err'); return; }
+  const d = await apiPost('/api/cobros', body);
+  if (d.ok) { showToast('Cobro registrado', 'ok'); closeM(); loadCobros(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+async function eliminarCobro(id) {
+  if (!confirm('¿Eliminar este cobro?')) return;
+  const d = await apiDelete('/api/cobros/' + id);
+  if (d.ok) { showToast('Cobro eliminado', 'ok'); loadCobros(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+// ── GASTOS ────────────────────────────────────────────────────────────
+async function loadGastos() {
+  const mes = document.getElementById('gastoMes').value;
+  const cat = document.getElementById('gastoCat').value;
+  const tipo = document.getElementById('gastoTipo').value;
+  let url = '/api/gastos?';
+  if (mes) url += 'mes=' + mes + '&';
+  if (cat) url += 'categoria=' + cat + '&';
+  if (tipo) url += 'tipo=' + tipo;
+  const d = await apiGet(url);
+  if (!d.ok) return;
+  const rows = d.data;
+  const total = rows.reduce((s,r) => s + Number(r.monto||0), 0);
+  document.getElementById('gastoTotal').textContent = '$ ' + fmtMoney(total) + ' UYU';
+  const TIPO_LABELS = { manual:'Manual', fijo_mensual:'Fijo', produccion_automatico:'Producción' };
+  document.getElementById('gastoTbody').innerHTML = rows.length ? rows.map(g => `<tr>
+    <td>${g.fecha}</td>
+    <td><span class="bdg borrador">${g.categoria}</span></td>
+    <td class="b">${g.descripcion}</td>
+    <td style="font-family:var(--fh)">$ ${fmtMoney(g.monto)} ${g.moneda}</td>
+    <td style="color:var(--t3);font-size:11px">${TIPO_LABELS[g.tipo]||g.tipo}</td>
+    <td><button class="tbtn d" onclick="eliminarGasto(${g.id})">🗑</button></td>
+  </tr>`).join('') : '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Sin gastos</td></tr>';
+}
+
+function openGastoForm() {
+  document.getElementById('gastoDesc').value = '';
+  document.getElementById('gastoMonto').value = '';
+  document.getElementById('gastoFecha').value = new Date().toISOString().slice(0,10);
+  openM('mGasto');
+}
+
+async function saveGasto() {
+  const body = {
+    categoria: document.getElementById('gastoCatInput').value,
+    descripcion: document.getElementById('gastoDesc').value.trim(),
+    monto: parseFloat(document.getElementById('gastoMonto').value),
+    moneda: document.getElementById('gastoMoneda').value,
+    fecha: document.getElementById('gastoFecha').value
+  };
+  if (!body.descripcion || !body.monto) { showToast('Descripción y monto requeridos', 'err'); return; }
+  const d = await apiPost('/api/gastos', body);
+  if (d.ok) { showToast('Gasto guardado', 'ok'); closeM(); loadGastos(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+async function eliminarGasto(id) {
+  if (!confirm('¿Eliminar este gasto?')) return;
+  const d = await apiDelete('/api/gastos/' + id);
+  if (d.ok) { showToast('Gasto eliminado', 'ok'); loadGastos(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+async function generarGastosFijos() {
+  const d = await apiPost('/api/gastos-fijos/generar-mes', {});
+  if (d.ok) { showToast(`${d.data.generados} gastos generados para ${d.data.mes}`, 'ok'); loadGastos(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+// ── REPORTES ──────────────────────────────────────────────────────────
+async function loadReportes() {
+  const desde = document.getElementById('repDesde').value;
+  const hasta = document.getElementById('repHasta').value;
+  let url = '/api/reportes/rentabilidad?';
+  if (desde) url += 'desde=' + desde + '&';
+  if (hasta) url += 'hasta=' + hasta;
+  const d = await apiGet(url);
+  if (d.ok) {
+    document.getElementById('repIngresos').innerHTML = d.data.ingresos.length ?
+      `<table class="dtbl"><thead><tr><th>Moneda</th><th>Total cobrado</th></tr></thead><tbody>
+       ${d.data.ingresos.map(r=>`<tr><td class="b">${r.moneda}</td><td style="font-family:var(--fh);color:var(--ok)">$ ${fmtMoney(r.total)}</td></tr>`).join('')}
+       </tbody></table>` : '<div class="empty"><p>Sin datos</p></div>';
+    document.getElementById('repGastos').innerHTML = d.data.gastosPorCategoria.length ?
+      `<table class="dtbl"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody>
+       ${d.data.gastosPorCategoria.map(r=>`<tr><td class="b">${r.categoria}</td><td style="font-family:var(--fh);color:#dc2626">$ ${fmtMoney(r.total)}</td></tr>`).join('')}
+       </tbody></table>` : '<div class="empty"><p>Sin gastos</p></div>';
+  }
+  loadCobrosPendientes();
+}
+
+async function loadCobrosPendientes() {
+  const d = await apiGet('/api/reportes/cobros-pendientes');
+  if (!d.ok) return;
+  document.getElementById('repPendientes').innerHTML = d.data.items.length ?
+    `<table class="dtbl"><thead><tr><th>#</th><th>Pieza</th><th>Cliente</th><th>Precio</th><th>Cobrado</th><th>Pendiente</th></tr></thead><tbody>
+     ${d.data.items.map(p=>`<tr>
+       <td class="b" style="font-family:var(--fh)">#${String(p.numero||p.id).padStart(4,'0')}</td>
+       <td>${p.pieza}</td><td>${p.cliente||'—'}</td>
+       <td>$ ${fmtMoney(p.precio)}</td>
+       <td style="color:var(--ok)">$ ${fmtMoney(p.cobrado)}</td>
+       <td style="color:#dc2626;font-family:var(--fh)">$ ${fmtMoney(p.pendiente)}</td>
+     </tr>`).join('')}
+     </tbody></table>
+     <div style="text-align:right;padding:8px 14px;font-size:12.5px;color:var(--t2)">Total pendiente: <strong style="color:#dc2626;font-family:var(--fh)">$ ${fmtMoney(d.data.total)}</strong></div>` :
+    '<div class="empty"><p>Sin cobros pendientes ✓</p></div>';
+}
+
+// ── CONFIGURACIÓN ─────────────────────────────────────────────────────
+async function loadConfig() {
+  const [cfgD, usersD, fijosD] = await Promise.all([
+    apiGet('/api/configuracion'),
+    apiGet('/api/usuarios'),
+    apiGet('/api/gastos-fijos')
+  ]);
+
+  if (cfgD.ok) {
+    const c = cfgD.data;
+    document.getElementById('cfgEmpresa').value = c.nombre_empresa || '';
+    document.getElementById('cfgWA').value = c.whatsapp_numero || '';
+    document.getElementById('cfgTC').value = c.tipo_cambio_usd_uyu || '';
+    document.getElementById('cfgMargen').value = c.margen_default || '';
+  }
+
+  if (usersD.ok) {
+    const card = document.getElementById('cfgUsuariosCard');
+    if (_currentUser?.rol !== 'admin') { card.style.display = 'none'; }
+    else {
+      document.getElementById('cfgUsersTbody').innerHTML = usersD.data.map(u => `<tr>
+        <td class="b">${u.nombre}</td>
+        <td>${u.email}</td>
+        <td>${u.rol}</td>
+        <td>${u.activo ? '✓' : '—'}</td>
+        <td style="color:var(--t3);font-size:12px">${u.last_login ? u.last_login.slice(0,16) : '—'}</td>
+        <td><button class="tbtn d" onclick="desactivarUser(${u.id})">${u.activo ? 'Desactivar' : 'Activar'}</button></td>
+      </tr>`).join('');
+    }
+  }
+
+  if (fijosD.ok) {
+    document.getElementById('cfgFijosTbody').innerHTML = fijosD.data.map(f => `<tr>
+      <td class="b">${f.nombre}</td>
+      <td>${f.categoria}</td>
+      <td style="font-family:var(--fh)">$ ${fmtMoney(f.monto)} ${f.moneda}</td>
+      <td>Día ${f.dia_del_mes}</td>
+      <td>${f.activo ? '✓' : '—'}</td>
+      <td><button class="tbtn d" onclick="eliminarGastoFijo(${f.id})">🗑</button></td>
+    </tr>`).join('');
+  }
+}
+
+async function saveConfig() {
+  const body = {
+    nombre_empresa: document.getElementById('cfgEmpresa').value,
+    whatsapp_numero: document.getElementById('cfgWA').value,
+    tipo_cambio_usd_uyu: document.getElementById('cfgTC').value,
+    margen_default: document.getElementById('cfgMargen').value
+  };
+  const d = await apiPut('/api/configuracion', body);
+  if (d.ok) showToast('Configuración guardada', 'ok');
+  else showToast(d.error || 'Error', 'err');
+}
+
+let _editingUserId = null;
+function openUserForm(id) { _editingUserId = id||null; document.getElementById('userNombre').value=''; document.getElementById('userEmail').value=''; document.getElementById('userPass').value=''; openM('mUser'); }
+async function saveUser() {
+  const body = { nombre: document.getElementById('userNombre').value, email: document.getElementById('userEmail').value, password: document.getElementById('userPass').value, rol: document.getElementById('userRol').value };
+  const d = _editingUserId ? await apiPut('/api/usuarios/'+_editingUserId, body) : await apiPost('/api/usuarios', body);
+  if (d.ok) { showToast('Usuario guardado','ok'); closeM(); loadConfig(); }
+  else showToast(d.error||'Error','err');
+}
+async function desactivarUser(id) {
+  const u = await apiGet('/api/usuarios'); // get current state
+  const user = (u.data||[]).find(x=>x.id==id);
+  if (!user) return;
+  const d = await apiPut('/api/usuarios/'+id, {...user, activo: user.activo ? 0 : 1});
+  if (d.ok) { showToast('Usuario actualizado','ok'); loadConfig(); }
+}
+
+function openGastoFijoForm() { document.getElementById('gfNombre').value=''; document.getElementById('gfMonto').value=''; openM('mGastoFijo'); }
+async function saveGastoFijo() {
+  const body = { nombre: document.getElementById('gfNombre').value, categoria: document.getElementById('gfCat').value, monto: parseFloat(document.getElementById('gfMonto').value), moneda: document.getElementById('gfMoneda').value, dia_del_mes: parseInt(document.getElementById('gfDia').value)||1 };
+  const d = await apiPost('/api/gastos-fijos', body);
+  if (d.ok) { showToast('Gasto fijo guardado','ok'); closeM(); loadConfig(); }
+  else showToast(d.error||'Error','err');
+}
+async function eliminarGastoFijo(id) {
+  if (!confirm('¿Eliminar gasto fijo?')) return;
+  const d = await apiDelete('/api/gastos-fijos/'+id);
+  if (d.ok) { showToast('Eliminado','ok'); loadConfig(); }
+}
+
+// ── LOGS ──────────────────────────────────────────────────────────────
+async function loadLogs() {
+  const u = document.getElementById('logUser').value;
+  const a = document.getElementById('logAccion').value;
+  let url = '/api/logs?';
+  if (u) url += 'usuario=' + u + '&';
+  if (a) url += 'accion=' + a;
+  const d = await apiGet(url);
+  if (!d.ok) return;
+  document.getElementById('logTbody').innerHTML = d.data.length ? d.data.map(l => `<tr>
+    <td style="color:var(--t3);font-size:11.5px;white-space:nowrap">${l.created_at?.slice(0,16)||'—'}</td>
+    <td class="b">${l.usuario_nombre}</td>
+    <td><span class="bdg borrador" style="font-size:9px">${l.accion}</span></td>
+    <td style="color:var(--t3)">${l.entidad}${l.entidad_id?' #'+l.entidad_id:''}</td>
+    <td style="font-size:11.5px;color:var(--t3);max-width:200px;overflow:hidden;text-overflow:ellipsis">${l.detalle||'—'}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="padding:32px;text-align:center;color:var(--t3)">Sin registros</td></tr>';
+}
+
 // ── DATA ──────────────────────────────────────────────────────────────
 const DEF={PLA:800,PETG:1000,ABS:900,TPU:1400,ASA:1200,Nylon:1800,Resina:1600,Personalizado:800};
 const PR={
