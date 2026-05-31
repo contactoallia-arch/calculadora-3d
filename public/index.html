@@ -617,23 +617,11 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 .link{background:none;border:none;color:var(--brand);font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-family:var(--sans);transition:gap .14s}
 .link:hover{gap:6px}
 @media(max-width:880px){
-  .dash-kpi-grid{grid-template-columns:1fr 1fr}
   .dash-main-grid,.dash-bottom-grid{grid-template-columns:1fr}
-}
-@media(max-width:480px){
-  .dash-kpi-grid{grid-template-columns:1fr 1fr}
 }
 /* ===== Pantallas template: insumos/productos/proveedores/agenda/reportes ===== */
 .kpi-row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
 .kpi-row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
-@media(max-width:880px){.kpi-row-4{grid-template-columns:repeat(2,1fr)}.kpi-row-3{grid-template-columns:1fr}}
-@media(max-width:640px){
-  .kpi-row-4{grid-template-columns:1fr 1fr}
-  .kpi-row-3 .kpi,.kpi-row-4 .kpi{display:flex;align-items:center;gap:12px;padding:12px 14px}
-  .kpi-row-3 .k-top,.kpi-row-4 .k-top{margin-bottom:0}
-  .kpi-row-3 .k-val,.kpi-row-4 .k-val{font-size:19px;margin-left:auto;order:2}
-  .kpi-row-3 .k-label,.kpi-row-4 .k-label{order:1}
-}
 .lift{transition:transform .16s ease,box-shadow .18s ease}
 .lift:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
 /* chips bar genérica */
@@ -699,13 +687,6 @@ i.ag-leg.ag-info{background:var(--info)}i.ag-leg.ag-vio{background:var(--vio)}i.
 @media(max-width:880px){
   .gastos-main-grid{grid-template-columns:1fr}
 }
-@media(max-width:640px){
-  .gastos-kpi-grid{grid-template-columns:1fr;gap:10px}
-  .gastos-kpi-grid .kpi{display:flex;align-items:center;gap:12px;padding:12px 14px}
-  .gastos-kpi-grid .k-top{margin-bottom:0;order:0}
-  .gastos-kpi-grid .k-val{font-size:20px;order:2;margin-left:auto}
-  .gastos-kpi-grid .k-label{order:1}
-}
 /* Cobros layout */
 .cobros-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .cobros-main-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
@@ -713,12 +694,22 @@ i.ag-leg.ag-info{background:var(--info)}i.ag-leg.ag-vio{background:var(--vio)}i.
 @media(max-width:880px){
   .cobros-main-grid{grid-template-columns:1fr}
 }
-@media(max-width:640px){
-  .cobros-kpi-grid{grid-template-columns:1fr;gap:10px}
-  .cobros-kpi-grid .kpi{display:flex;align-items:center;gap:12px;padding:12px 14px}
-  .cobros-kpi-grid .k-top{margin-bottom:0;order:0}
-  .cobros-kpi-grid .k-val{font-size:20px;order:2;margin-left:auto}
-  .cobros-kpi-grid .k-label{order:1}
+
+/* ═══ REGLA MAESTRA: comportamiento mobile coherente para TODOS los grids de KPI ═══ */
+/* Tablet (≤880px): 2 columnas tipo card */
+@media(max-width:880px){
+  .dash-kpi-grid,.kpi-row-4,.kpi-row-3,.cobros-kpi-grid,.gastos-kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+/* Mobile (≤560px): 1 columna, cada KPI en fila horizontal compacta (ícono · label · valor) */
+@media(max-width:560px){
+  .dash-kpi-grid,.kpi-row-4,.kpi-row-3,.cobros-kpi-grid,.gastos-kpi-grid{grid-template-columns:1fr;gap:9px}
+  .dash-kpi-grid .kpi,.kpi-row-4 .kpi,.kpi-row-3 .kpi,.cobros-kpi-grid .kpi,.gastos-kpi-grid .kpi{
+    display:flex;align-items:center;gap:12px;padding:12px 14px
+  }
+  .dash-kpi-grid .k-top,.kpi-row-4 .k-top,.kpi-row-3 .k-top,.cobros-kpi-grid .k-top,.gastos-kpi-grid .k-top{margin-bottom:0;order:0}
+  .dash-kpi-grid .k-label,.kpi-row-4 .k-label,.kpi-row-3 .k-label,.cobros-kpi-grid .k-label,.gastos-kpi-grid .k-label{order:1;margin-bottom:0}
+  .dash-kpi-grid .k-val,.kpi-row-4 .k-val,.kpi-row-3 .k-val,.cobros-kpi-grid .k-val,.gastos-kpi-grid .k-val{order:2;margin-left:auto;font-size:18px;white-space:nowrap}
+  .dash-kpi-grid .k-sub,.kpi-row-4 .k-sub,.kpi-row-3 .k-sub{display:none}
 }
 .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:20px;margin-bottom:14px}
 .section-card-ttl{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
