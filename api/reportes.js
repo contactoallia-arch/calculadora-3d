@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   if (tipo === "cobros-pendientes") {
     const r = await db.execute(`
-      SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.precio, p.moneda, p.fecha,
+      SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.precio, p.moneda, p.fecha, p.fecha_entrega,
         COALESCE(SUM(c.monto),0) as cobrado,
         p.precio - COALESCE(SUM(c.monto),0) as pendiente
       FROM presupuestos p
