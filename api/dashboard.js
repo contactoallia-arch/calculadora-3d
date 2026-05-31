@@ -83,8 +83,11 @@ export default async function handler(req, res) {
     GROUP BY COALESCE(c.nombre, p.cliente) ORDER BY total DESC LIMIT 5
   `);
 
+  // En producción
+  const enProdR = await db.execute("SELECT id,COALESCE(numero,id) as numero,pieza,cliente,cliente_id,mat,precio,fecha,fecha_entrega,estado FROM presupuestos WHERE estado='produccion' ORDER BY fecha_entrega ASC,id DESC LIMIT 6");
+
   // Últimos presupuestos y cobros pendientes
-  const ultimosR = await db.execute("SELECT id,COALESCE(numero,id) as numero,pieza,cliente,estado,precio,moneda,fecha FROM presupuestos ORDER BY id DESC LIMIT 8");
+  const ultimosR = await db.execute("SELECT id,COALESCE(numero,id) as numero,pieza,cliente,estado,precio,moneda,fecha FROM presupuestos ORDER BY id DESC LIMIT 6");
   const pendientesR = await db.execute(`
     SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.precio, p.moneda, p.fecha
     FROM presupuestos p WHERE p.estado='entregado'
@@ -126,6 +129,7 @@ export default async function handler(req, res) {
       gastosCategorias: gastosCatR.rows,
       serie,
       topClientes: topClientesR.rows,
+      enProduccion: enProdR.rows,
       ultimosPresupuestos: ultimosR.rows,
       cobrosPendientes: pendientesR.rows,
       listos: listosR.rows,
