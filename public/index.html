@@ -623,6 +623,23 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 @media(max-width:480px){
   .dash-kpi-grid{grid-template-columns:1fr 1fr}
 }
+/* Gastos layout */
+.gastos-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.gastos-main-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+.gastos-legend{display:flex;flex-direction:column;gap:10px}
+.gastos-legend .lg{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)}
+.gastos-legend .sw{width:11px;height:11px;border-radius:4px;flex-shrink:0}
+.gastos-legend .lg b{margin-left:auto;font-family:var(--mono);color:var(--text)}
+@media(max-width:880px){
+  .gastos-main-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .gastos-kpi-grid{grid-template-columns:1fr;gap:10px}
+  .gastos-kpi-grid .kpi{display:flex;align-items:center;gap:12px;padding:12px 14px}
+  .gastos-kpi-grid .k-top{margin-bottom:0;order:0}
+  .gastos-kpi-grid .k-val{font-size:20px;order:2;margin-left:auto}
+  .gastos-kpi-grid .k-label{order:1}
+}
 /* Cobros layout */
 .cobros-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .cobros-main-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
@@ -1361,12 +1378,9 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-gastos" class="page">
   <div class="pg-hdr">
-    <div>
-      <div class="pg-title">Gastos</div>
-      <div class="pg-sub">Registro de egresos del negocio</div>
-    </div>
+    <h2 class="pg-title">Gastos</h2>
     <div style="display:flex;gap:8px">
-      <button class="btn btn--ghost" onclick="generarGastosFijos()" title="Genera los gastos fijos del mes actual">⚙ Gastos fijos del mes</button>
+      <button class="btn btn--ghost btn--sm" onclick="generarGastosFijos()" title="Genera los gastos fijos del mes actual">⚙ Fijos del mes</button>
       <button class="btn btn--primary" onclick="openGastoForm()">
         <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
         Nuevo gasto
@@ -1374,28 +1388,69 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
   </div>
   <div class="pg-body">
-    <div class="fil-bar">
-      <input type="month" id="gastoMes" onchange="loadGastos()" style="height:32px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--sf2);color:var(--t1);font-family:var(--fb);font-size:12.5px;padding:0 8px;outline:none">
-      <select id="gastoCat" onchange="loadGastos()">
-        <option value="">Todas las categorías</option>
-        <option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option>
-      </select>
-      <select id="gastoTipo" onchange="loadGastos()">
-        <option value="">Todos los tipos</option>
-        <option value="manual">Manual</option>
-        <option value="fijo_mensual">Fijo mensual</option>
-        <option value="produccion_automatico">Producción automático</option>
-      </select>
-      <button class="hbtn" onclick="loadGastos()">↻ Refrescar</button>
+    <!-- 3 KPIs -->
+    <div class="gastos-kpi-grid">
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/></svg></div></div>
+        <div class="k-val" id="gastoKpiTotal">—</div>
+        <div class="k-label" id="gastoKpiTotalLbl">Gastos · mes</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--vio-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vio-fg)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div></div>
+        <div class="k-val" id="gastoKpiFijos" style="color:var(--vio-fg)">—</div>
+        <div class="k-label">Gastos fijos mensuales</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--info-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info-fg)" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div></div>
+        <div class="k-val" id="gastoKpiVar" style="color:var(--info-fg)">—</div>
+        <div class="k-label">Variables</div>
+      </div>
     </div>
-    <div class="tbl-wrap">
-      <table class="dtbl">
-        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción / Para qué</th><th>Monto</th><th>Medio</th><th>Tipo</th><th></th></tr></thead>
-        <tbody id="gastoTbody"><tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
-      </table>
-    </div>
-    <div style="text-align:right;font-size:13px;color:var(--t2);padding:4px 8px">
-      Total período: <strong id="gastoTotal" style="color:var(--t1);font-family:var(--fh)">—</strong>
+
+    <!-- 2 columnas: movimientos + donut por categoría -->
+    <div class="gastos-main-grid">
+      <!-- Movimientos -->
+      <div class="card">
+        <div class="card-pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <h3 class="card-title">Movimientos</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="month" id="gastoMes" onchange="loadGastos()" style="height:32px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);font-size:12px;padding:0 8px;outline:none">
+            <button class="btn btn--primary btn--sm" onclick="openGastoForm()">
+              <svg class="icon" viewBox="0 0 18 18" style="width:15px;height:15px"><path d="M9 3v12M3 9h12"/></svg>
+              Nuevo gasto
+            </button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="dtbl" style="min-width:540px">
+            <thead><tr>
+              <th style="width:70px">Fecha</th>
+              <th>Categoría</th>
+              <th class="hide-m">Descripción</th>
+              <th>Tipo</th>
+              <th>Monto</th>
+              <th style="width:36px"></th>
+            </tr></thead>
+            <tbody id="gastoTbody"><tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Por categoría (donut) -->
+      <div class="card card-pad">
+        <h3 class="card-title" style="margin-bottom:18px">Por categoría</h3>
+        <div style="display:flex;justify-content:center;margin-bottom:20px">
+          <div id="gastoDonut" style="width:150px;height:150px;border-radius:50%;display:grid;place-items:center;position:relative;background:var(--border-2)">
+            <div style="width:96px;height:96px;border-radius:50%;background:var(--surface);display:grid;place-items:center;text-align:center">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);font-weight:700">TOTAL</div>
+                <div class="num" id="gastoDonutTotal" style="font-weight:800;font-size:15px">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="gastoLegend"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -3413,30 +3468,65 @@ async function eliminarCobro(id) {
 }
 
 // ── GASTOS ────────────────────────────────────────────────────────────
+const _CAT_COLOR = {
+  filamento:'#16A34A', materiales:'#16A34A', alquiler:'#0D9488', 'mano de obra':'#2563EB',
+  electricidad:'#D97706', software:'#DB2777', mantenimiento:'#7C3AED', maquinaria:'#7C3AED',
+  herramientas:'#2563EB', packaging:'#0D9488', marketing:'#DB2777', otros:'#8A93A3'
+};
+function _catColor(cat){ return _CAT_COLOR[(cat||'').toLowerCase()] || '#8A93A3'; }
+
 async function loadGastos() {
-  const mes = document.getElementById('gastoMes').value;
-  const cat = document.getElementById('gastoCat').value;
-  const tipo = document.getElementById('gastoTipo').value;
-  let url = '/api/gastos?';
-  if (mes) url += 'mes=' + mes + '&';
-  if (cat) url += 'categoria=' + cat + '&';
-  if (tipo) url += 'tipo=' + tipo;
+  const mes = document.getElementById('gastoMes')?.value || '';
+  let url = '/api/gastos';
+  if (mes) url += '?mes=' + mes;
   const d = await apiGet(url);
   if (!d.ok) return;
   const rows = d.data;
   const total = rows.reduce((s,r) => s + Number(r.monto||0), 0);
-  document.getElementById('gastoTotal').textContent = '$ ' + fmtMoney(total) + ' UYU';
-  const TIPO_LABELS = { manual:'Manual', fijo_mensual:'Fijo', produccion_automatico:'Producción' };
-  const MEDIO_ICONS = { efectivo:'💵', transferencia:'🏦', tarjeta_debito:'💳', tarjeta_credito:'💳', mercadopago:'📱', paypal:'🌐', otro:'•' };
-  document.getElementById('gastoTbody').innerHTML = rows.length ? rows.map(g => `<tr>
-    <td>${g.fecha}</td>
-    <td><span class="badge" style="background:var(--brand-soft);color:var(--brand-strong)">${g.categoria}</span></td>
-    <td class="b">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${g.para_que}</div>`:''}${g.proveedor_nombre?`<div style="font-size:11px;color:var(--ac);margin-top:2px">🏭 ${g.proveedor_nombre}</div>`:''}</td>
-    <td style="font-family:var(--fh)">$ ${fmtMoney(g.monto)} ${g.moneda}</td>
-    <td style="color:var(--t3);font-size:12px">${MEDIO_ICONS[g.medio_pago]||'•'} ${g.medio_pago||'efectivo'}</td>
-    <td style="color:var(--t3);font-size:11px">${TIPO_LABELS[g.tipo]||g.tipo}</td>
-    <td><button class="tbtn d" onclick="eliminarGasto(${g.id})">🗑</button></td>
-  </tr>`).join('') : '<tr><td colspan="7" style="padding:32px;text-align:center;color:var(--t3)">Sin gastos</td></tr>';
+  const fijos = rows.filter(g=>g.tipo==='fijo_mensual').reduce((s,r)=>s+Number(r.monto||0),0);
+  const variables = total - fijos;
+
+  // KPIs
+  const mesLbl = mes ? new Date(mes+'-01').toLocaleString('es-UY',{month:'long'}) : 'total';
+  const t1=document.getElementById('gastoKpiTotal'); if(t1) t1.textContent='$ '+fmtMoney(total);
+  const tl=document.getElementById('gastoKpiTotalLbl'); if(tl) tl.textContent='Gastos · '+mesLbl;
+  const t2=document.getElementById('gastoKpiFijos'); if(t2) t2.textContent='$ '+fmtMoney(fijos);
+  const t3=document.getElementById('gastoKpiVar'); if(t3) t3.textContent='$ '+fmtMoney(variables);
+
+  const TIPO_LABELS = { manual:'Variable', fijo_mensual:'Fijo', produccion_automatico:'Producción' };
+  document.getElementById('gastoTbody').innerHTML = rows.length ? rows.map(g => {
+    const color = _catColor(g.categoria);
+    const esFijo = g.tipo==='fijo_mensual';
+    const tipoCell = esFijo
+      ? `<span class="chip" style="padding:3px 9px;font-size:11px;color:var(--vio-fg);background:var(--vio-soft);border-color:transparent">📅 Fijo</span>`
+      : `<span style="font-size:11.5px;color:var(--text-3)">${TIPO_LABELS[g.tipo]||'Variable'}</span>`;
+    return `<tr>
+      <td class="mono" style="color:var(--text-3);font-size:12px">${g.fecha}</td>
+      <td><span class="badge" style="background:var(--surface-2);color:${color};border:1px solid var(--border)"><span class="bdot" style="background:${color}"></span>${g.categoria}</span></td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${g.para_que}</div>`:''}</td>
+      <td>${tipoCell}</td>
+      <td class="num" style="font-weight:700;color:var(--bad-fg)">−$ ${fmtMoney(g.monto)}</td>
+      <td><button class="icon-btn" style="width:28px;height:28px" onclick="eliminarGasto(${g.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin gastos</td></tr>';
+
+  // Donut por categoría
+  const porCat = {};
+  rows.forEach(g => { const c=(g.categoria||'otros'); porCat[c]=(porCat[c]||0)+Number(g.monto||0); });
+  const cats = Object.entries(porCat).map(([cat,monto])=>({cat,monto,color:_catColor(cat)})).sort((a,b)=>b.monto-a.monto);
+  document.getElementById('gastoDonutTotal').textContent = '$ '+fmtMoney(total);
+  const donut = document.getElementById('gastoDonut');
+  if (total > 0 && cats.length) {
+    let acc=0;
+    const segs = cats.map(c=>{ const start=(acc/total)*360; acc+=c.monto; const end=(acc/total)*360; return `${c.color} ${start}deg ${end}deg`; }).join(',');
+    donut.style.background = `conic-gradient(${segs})`;
+  } else {
+    donut.style.background = 'var(--border-2)';
+  }
+  document.getElementById('gastoLegend').className = 'gastos-legend';
+  document.getElementById('gastoLegend').innerHTML = cats.length ? cats.map(c=>`
+    <div class="lg"><span class="sw" style="background:${c.color}"></span>${c.cat}<b>${total>0?Math.round(c.monto/total*100):0}%</b></div>
+  `).join('') : '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:10px">Sin datos</div>';
 }
 
 async function openGastoForm() {
