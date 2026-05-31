@@ -508,6 +508,11 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 .cal-day-panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cal-day-panel-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text)}
 @media(max-width:680px){.cal-cell{min-height:52px}.cal-event-tag{display:none}.cal-cell-day{font-size:10px}}
+/* Theme toggle segmentado (igual al template) */
+.theme-toggle{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:99px;padding:3px;gap:2px}
+.theme-toggle button{width:30px;height:30px;border-radius:99px;border:none;background:transparent;display:grid;place-items:center;color:var(--text-3);cursor:pointer;transition:all .16s;font-size:14px;line-height:1}
+.theme-toggle button.on{background:var(--brand);color:#fff}
+.theme-toggle button:not(.on):hover{color:var(--text)}
 /* Pipeline steps */
 .step{display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:var(--text-faint);padding:5px 10px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border-2);white-space:nowrap}
 .step.done{color:var(--ok-fg);background:var(--ok-soft);border-color:transparent}
@@ -682,7 +687,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div style="font-family:var(--display);font-weight:700;font-size:15px">Arte<b style="color:var(--brand)">Lab</b> UY</div>
   </div>
   <div class="m-spacer"></div>
-  <button class="icon-btn" id="mThemeBtn" onclick="toggleTheme()" style="width:36px;height:36px">🌙</button>
+  <div class="theme-toggle" id="mThemeToggle" role="group" title="Tema">
+    <button data-theme-set="light" onclick="setTheme('light')" title="Claro">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+    <button data-theme-set="dark" onclick="setTheme('dark')" title="Oscuro">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </div>
   <button class="hamb" onclick="openDrawer()">
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2"><line x1="2" y1="5" x2="16" y2="5"/><line x1="2" y1="9" x2="16" y2="9"/><line x1="2" y1="13" x2="16" y2="13"/></svg>
   </button>
@@ -955,7 +967,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       <span id="bellBadge" style="display:none;position:absolute;top:3px;right:3px;width:8px;height:8px;background:var(--bad);border-radius:50%;border:1.5px solid var(--surface)"></span>
     </button>
-    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    <div class="theme-toggle" id="themeToggle" role="group" title="Tema claro / oscuro">
+      <button data-theme-set="light" onclick="setTheme('light')" title="Claro">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button data-theme-set="dark" onclick="setTheme('dark')" title="Oscuro">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+    </div>
     <div id="topbarUser" style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-2)"></div>
   </div>
 </div>
@@ -2576,16 +2595,21 @@ function closeDrawer() {
   if (s) s.classList.remove('open');
   document.body.style.overflow = '';
 }
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('al-theme', theme);
+  syncThemeToggle();
+}
+function syncThemeToggle() {
+  const th = document.documentElement.getAttribute('data-theme') || 'light';
+  document.querySelectorAll('#themeToggle button, #mThemeToggle button').forEach(b => {
+    b.classList.toggle('on', b.getAttribute('data-theme-set') === th);
+  });
+}
+// Compat: por si algo viejo llama toggleTheme()
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('al-theme', next);
-  const icon = next === 'dark' ? '☀️' : '🌙';
-  const btn = document.getElementById('themeBtn');
-  const mBtn = document.getElementById('mThemeBtn');
-  if (btn) btn.textContent = icon;
-  if (mBtn) mBtn.textContent = icon;
+  setTheme(current === 'dark' ? 'light' : 'dark');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────
@@ -4501,15 +4525,8 @@ let S={
 };
 try{const p=JSON.parse(localStorage.getItem('al-prices'));if(p)S.prices={...DEF,...p}}catch(e){}
 
-// ── THEME (handled by toggleTheme() function + head script) ───────────
-(function(){
-  const th = document.documentElement.getAttribute('data-theme') || 'light';
-  const icon = th === 'dark' ? '☀️' : '🌙';
-  const tBtn = document.getElementById('themeBtn');
-  const mBtn = document.getElementById('mThemeBtn');
-  if (tBtn) tBtn.textContent = icon;
-  if (mBtn) mBtn.textContent = icon;
-})();
+// ── THEME (control segmentado claro/oscuro) ───────────────────────────
+syncThemeToggle();
 
 // ── STEPPER ───────────────────────────────────────────────────────────
 function step(id,d){
