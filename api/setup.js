@@ -165,6 +165,92 @@ export default async function handler(req, res) {
     )
   `);
 
+  // Proveedores
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS proveedores (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre     TEXT NOT NULL,
+      rubro      TEXT,
+      contacto   TEXT,
+      telefono   TEXT,
+      email      TEXT,
+      rut        TEXT,
+      direccion  TEXT,
+      notas      TEXT,
+      activo     INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Insumos
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS insumos (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre       TEXT NOT NULL,
+      categoria    TEXT NOT NULL DEFAULT 'otros',
+      tipo         TEXT,
+      proveedor_id INTEGER,
+      precio       REAL NOT NULL DEFAULT 0,
+      moneda       TEXT NOT NULL DEFAULT 'UYU',
+      unidad       TEXT NOT NULL DEFAULT 'kg',
+      stock        REAL NOT NULL DEFAULT 0,
+      notas        TEXT,
+      activo       INTEGER NOT NULL DEFAULT 1,
+      created_at   TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  for (const col of ["ADD COLUMN stock_min REAL DEFAULT 1"]) { try { await db.execute(`ALTER TABLE insumos ${col}`); } catch {} }
+
+  // Productos (catálogo reutilizable)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS productos (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre      TEXT NOT NULL,
+      descripcion TEXT,
+      precio_base REAL NOT NULL DEFAULT 0,
+      moneda      TEXT NOT NULL DEFAULT 'UYU',
+      mat         TEXT,
+      notas       TEXT,
+      activo      INTEGER NOT NULL DEFAULT 1,
+      created_at  TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Agenda
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS agenda (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      titulo         TEXT NOT NULL,
+      descripcion    TEXT,
+      tipo           TEXT NOT NULL DEFAULT 'tarea',
+      fecha          TEXT NOT NULL,
+      hora           TEXT,
+      presupuesto_id INTEGER,
+      cliente_id     INTEGER,
+      asignado_a     INTEGER,
+      prioridad      TEXT NOT NULL DEFAULT 'normal',
+      notas          TEXT,
+      completado     INTEGER NOT NULL DEFAULT 0,
+      creado_por     INTEGER,
+      created_at     TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Notificaciones
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS notificaciones (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      titulo     TEXT NOT NULL,
+      mensaje    TEXT,
+      tipo       TEXT DEFAULT 'info',
+      link_tipo  TEXT,
+      link_id    INTEGER,
+      leida      INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Configuracion
   await db.execute(`
     CREATE TABLE IF NOT EXISTS configuracion (

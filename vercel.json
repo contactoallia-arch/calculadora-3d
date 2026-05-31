@@ -7,12 +7,23 @@
     { "source": "/api/clientes/:id", "destination": "/api/clientes?id=:id" },
     { "source": "/api/cobros/:id",   "destination": "/api/cobros?id=:id" },
     { "source": "/api/gastos/:id",   "destination": "/api/gastos?id=:id" },
-    { "source": "/api/gastos-fijos/generar-mes", "destination": "/api/gastos-fijos?action=generar-mes" },
-    { "source": "/api/gastos-fijos/:id",         "destination": "/api/gastos-fijos?id=:id" },
+    { "source": "/api/gastos-fijos/generar-mes", "destination": "/api/gastos?recurso=fijos&action=generar-mes" },
+    { "source": "/api/gastos-fijos/:id",         "destination": "/api/gastos?recurso=fijos&id=:id" },
+    { "source": "/api/gastos-fijos",             "destination": "/api/gastos?recurso=fijos" },
     { "source": "/api/presupuestos/:id/estado",  "destination": "/api/presupuestos?id=:id&action=estado" },
     { "source": "/api/presupuestos/:id/estados", "destination": "/api/presupuestos?id=:id&action=estados" },
     { "source": "/api/presupuestos/:id",         "destination": "/api/presupuestos?id=:id" },
     { "source": "/api/reportes/:tipo",           "destination": "/api/reportes?tipo=:tipo" },
-    { "source": "/api/usuarios/:id",             "destination": "/api/usuarios?id=:id" }
+    { "source": "/api/usuarios/:id",             "destination": "/api/usuarios?id=:id" },
+    { "source": "/api/insumos/:id",          "destination": "/api/catalogo?recurso=insumos&id=:id" },
+    { "source": "/api/insumos",              "destination": "/api/catalogo?recurso=insumos" },
+    { "source": "/api/productos/:id",        "destination": "/api/catalogo?recurso=productos&id=:id" },
+    { "source": "/api/productos",            "destination": "/api/catalogo?recurso=productos" },
+    { "source": "/api/proveedores/:id",      "destination": "/api/catalogo?recurso=proveedores&id=:id" },
+    { "source": "/api/proveedores",          "destination": "/api/catalogo?recurso=proveedores" },
+    { "source": "/api/agenda/:id",           "destination": "/api/catalogo?recurso=agenda&id=:id" },
+    { "source": "/api/agenda",               "destination": "/api/catalogo?recurso=agenda" },
+    { "source": "/api/notificaciones/:id",   "destination": "/api/catalogo?recurso=notificaciones&id=:id" },
+    { "source": "/api/notificaciones",       "destination": "/api/catalogo?recurso=notificaciones" }
   ]
 }

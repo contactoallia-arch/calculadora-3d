@@ -1,0 +1,208 @@
+import { getDB } from "./_lib/db.js";
+import { requireAuth, logAction } from "./_lib/auth.js";
+
+// Router consolidado: insumos, productos, proveedores, agenda, notificaciones
+// Se accede vía /api/<recurso> (rewrites en vercel.json → /api/catalogo?recurso=<recurso>)
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Content-Type", "application/json");
+  if (req.method === "OPTIONS") return res.status(200).end();
+
+  const db = getDB();
+  const user = await requireAuth(req, res, db);
+  if (!user) return;
+
+  const recurso = req.query.recurso;
+  const id = req.query.id;
+  const m = req.method;
+
+  try {
+    // ───────────────────────── INSUMOS ─────────────────────────
+    if (recurso === "insumos") {
+      if (m === "GET") {
+        const categoria = req.query.categoria;
+        let sql = `SELECT i.*, p.nombre as proveedor_nombre FROM insumos i
+          LEFT JOIN proveedores p ON p.id=i.proveedor_id WHERE i.activo=1`;
+        const args = [];
+        if (categoria) { sql += " AND i.categoria=?"; args.push(categoria); }
+        sql += " ORDER BY i.categoria, i.nombre";
+        const r = await db.execute({ sql, args });
+        return res.status(200).json({ ok: true, data: r.rows });
+      }
+      if (m === "POST") {
+        const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, notas } = req.body || {};
+        if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
+        const dupArgs = [nombre, precio || 0];
+        let dupSql = "SELECT id,nombre FROM insumos WHERE LOWER(nombre)=LOWER(?) AND precio=? AND activo=1";
+        if (proveedor_id) { dupSql += " AND proveedor_id=?"; dupArgs.push(proveedor_id); }
+        else dupSql += " AND proveedor_id IS NULL";
+        const dup = await db.execute({ sql: dupSql, args: dupArgs });
+        if (dup.rows.length) return res.status(409).json({ ok: false, error: `Ya existe "${dup.rows[0].nombre}" con ese proveedor y precio`, duplicate: true, existing_id: Number(dup.rows[0].id) });
+        const r = await db.execute({
+          sql: "INSERT INTO insumos (nombre,categoria,tipo,proveedor_id,precio,moneda,unidad,stock,notas) VALUES (?,?,?,?,?,?,?,?,?)",
+          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, notas||null]
+        });
+        const nid = Number(r.lastInsertRowid);
+        await logAction(db, user, "CREAR_INSUMO", "insumo", nid);
+        return res.status(200).json({ ok: true, data: { id: nid } });
+      }
+      if (m === "PUT" && id) {
+        const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, notas } = req.body || {};
+        await db.execute({
+          sql: "UPDATE insumos SET nombre=?,categoria=?,tipo=?,proveedor_id=?,precio=?,moneda=?,unidad=?,stock=?,notas=? WHERE id=?",
+          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, notas||null, id]
+        });
+        await logAction(db, user, "EDITAR_INSUMO", "insumo", id);
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "UPDATE insumos SET activo=0 WHERE id=?", args: [id] });
+        await logAction(db, user, "ELIMINAR_INSUMO", "insumo", id);
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    // ───────────────────────── PRODUCTOS ─────────────────────────
+    if (recurso === "productos") {
+      if (m === "GET") {
+        const r = await db.execute("SELECT * FROM productos WHERE activo=1 ORDER BY nombre");
+        return res.status(200).json({ ok: true, data: r.rows });
+      }
+      if (m === "POST") {
+        const { nombre, descripcion, precio_base, moneda, mat, notas } = req.body || {};
+        if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
+        const r = await db.execute({
+          sql: "INSERT INTO productos (nombre,descripcion,precio_base,moneda,mat,notas) VALUES (?,?,?,?,?,?)",
+          args: [nombre, descripcion||null, precio_base||0, moneda||"UYU", mat||null, notas||null]
+        });
+        await logAction(db, user, "CREAR_PRODUCTO", "producto", Number(r.lastInsertRowid));
+        return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
+      }
+      if (m === "PUT" && id) {
+        const { nombre, descripcion, precio_base, moneda, mat, notas } = req.body || {};
+        await db.execute({
+          sql: "UPDATE productos SET nombre=?,descripcion=?,precio_base=?,moneda=?,mat=?,notas=? WHERE id=?",
+          args: [nombre, descripcion||null, precio_base||0, moneda||"UYU", mat||null, notas||null, id]
+        });
+        await logAction(db, user, "EDITAR_PRODUCTO", "producto", id);
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "UPDATE productos SET activo=0 WHERE id=?", args: [id] });
+        await logAction(db, user, "ELIMINAR_PRODUCTO", "producto", id);
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    // ───────────────────────── PROVEEDORES ─────────────────────────
+    if (recurso === "proveedores") {
+      if (m === "GET") {
+        const r = await db.execute(`
+          SELECT pr.*,
+            (SELECT COUNT(*) FROM insumos i WHERE i.proveedor_id=pr.id AND i.activo=1) as total_pedidos,
+            (SELECT COALESCE(SUM(i.precio*i.stock),0) FROM insumos i WHERE i.proveedor_id=pr.id AND i.activo=1) as total_comprado
+          FROM proveedores pr WHERE pr.activo=1 ORDER BY pr.nombre`);
+        return res.status(200).json({ ok: true, data: r.rows });
+      }
+      if (m === "POST") {
+        const { nombre, rubro, contacto, telefono, email, rut, direccion, notas } = req.body || {};
+        if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
+        const r = await db.execute({
+          sql: "INSERT INTO proveedores (nombre,rubro,contacto,telefono,email,rut,direccion,notas) VALUES (?,?,?,?,?,?,?,?)",
+          args: [nombre, rubro||null, contacto||null, telefono||null, email||null, rut||null, direccion||null, notas||null]
+        });
+        await logAction(db, user, "CREAR_PROVEEDOR", "proveedor", Number(r.lastInsertRowid));
+        return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
+      }
+      if (m === "PUT" && id) {
+        const { nombre, rubro, contacto, telefono, email, rut, direccion, notas } = req.body || {};
+        await db.execute({
+          sql: "UPDATE proveedores SET nombre=?,rubro=?,contacto=?,telefono=?,email=?,rut=?,direccion=?,notas=? WHERE id=?",
+          args: [nombre, rubro||null, contacto||null, telefono||null, email||null, rut||null, direccion||null, notas||null, id]
+        });
+        await logAction(db, user, "EDITAR_PROVEEDOR", "proveedor", id);
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "UPDATE proveedores SET activo=0 WHERE id=?", args: [id] });
+        await logAction(db, user, "ELIMINAR_PROVEEDOR", "proveedor", id);
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    // ───────────────────────── AGENDA ─────────────────────────
+    if (recurso === "agenda") {
+      if (m === "GET") {
+        const { solo_mios, completados, desde, hasta } = req.query;
+        let sql = `SELECT a.*, u.nombre as asignado_nombre,
+          p.pieza as presupuesto_pieza, c.nombre as cliente_nombre
+          FROM agenda a
+          LEFT JOIN usuarios u ON u.id=a.asignado_a
+          LEFT JOIN presupuestos p ON p.id=a.presupuesto_id
+          LEFT JOIN clientes c ON c.id=a.cliente_id WHERE 1=1`;
+        const args = [];
+        if (solo_mios === "1") { sql += " AND a.asignado_a=?"; args.push(user.id); }
+        if (!completados || completados === "0") sql += " AND a.completado=0";
+        if (desde) { sql += " AND a.fecha >= ?"; args.push(desde); }
+        if (hasta) { sql += " AND a.fecha <= ?"; args.push(hasta); }
+        sql += " ORDER BY a.fecha ASC, a.hora ASC";
+        const r = await db.execute({ sql, args });
+        return res.status(200).json({ ok: true, data: r.rows });
+      }
+      if (m === "POST") {
+        const { titulo, descripcion, tipo, fecha, hora, presupuesto_id, cliente_id, asignado_a, prioridad, notas } = req.body || {};
+        if (!titulo || !fecha) return res.status(400).json({ ok: false, error: "Título y fecha requeridos" });
+        const r = await db.execute({
+          sql: "INSERT INTO agenda (titulo,descripcion,tipo,fecha,hora,presupuesto_id,cliente_id,asignado_a,prioridad,notas,creado_por) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          args: [titulo, descripcion||null, tipo||"tarea", fecha, hora||null, presupuesto_id||null, cliente_id||null, asignado_a||user.id, prioridad||"normal", notas||null, user.id]
+        });
+        const nid = Number(r.lastInsertRowid);
+        if (asignado_a && Number(asignado_a) !== Number(user.id)) {
+          try { await db.execute({ sql: "INSERT INTO notificaciones (usuario_id,titulo,mensaje,tipo,link_tipo,link_id) VALUES (?,?,?,?,?,?)", args: [asignado_a, `Nueva tarea: ${titulo}`, `${user.nombre} te asignó una tarea para el ${fecha}`, "tarea", "agenda", nid] }); } catch {}
+        }
+        await logAction(db, user, "CREAR_AGENDA", "agenda", nid);
+        return res.status(200).json({ ok: true, data: { id: nid } });
+      }
+      if (m === "PUT" && id) {
+        const { titulo, descripcion, tipo, fecha, hora, presupuesto_id, cliente_id, asignado_a, prioridad, notas, completado } = req.body || {};
+        // Update parcial si solo viene completado
+        if (titulo === undefined && completado !== undefined) {
+          await db.execute({ sql: "UPDATE agenda SET completado=? WHERE id=?", args: [completado?1:0, id] });
+          return res.status(200).json({ ok: true });
+        }
+        await db.execute({
+          sql: "UPDATE agenda SET titulo=?,descripcion=?,tipo=?,fecha=?,hora=?,presupuesto_id=?,cliente_id=?,asignado_a=?,prioridad=?,notas=?,completado=? WHERE id=?",
+          args: [titulo, descripcion||null, tipo||"tarea", fecha, hora||null, presupuesto_id||null, cliente_id||null, asignado_a||user.id, prioridad||"normal", notas||null, completado?1:0, id]
+        });
+        await logAction(db, user, "EDITAR_AGENDA", "agenda", id);
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "DELETE FROM agenda WHERE id=?", args: [id] });
+        await logAction(db, user, "ELIMINAR_AGENDA", "agenda", id);
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    // ───────────────────────── NOTIFICACIONES ─────────────────────────
+    if (recurso === "notificaciones") {
+      if (m === "GET") {
+        const r = await db.execute({ sql: "SELECT * FROM notificaciones WHERE usuario_id=? ORDER BY created_at DESC LIMIT 50", args: [user.id] });
+        const noLeidas = r.rows.filter(n => !n.leida).length;
+        return res.status(200).json({ ok: true, data: r.rows, noLeidas });
+      }
+      if (m === "PUT" && id) {
+        await db.execute({ sql: "UPDATE notificaciones SET leida=1 WHERE id=? AND usuario_id=?", args: [id, user.id] });
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "DELETE FROM notificaciones WHERE id=? AND usuario_id=?", args: [id, user.id] });
+        return res.status(200).json({ ok: true });
+      }
+    }
+
+    return res.status(400).json({ ok: false, error: "Recurso o método no soportado" });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+}
