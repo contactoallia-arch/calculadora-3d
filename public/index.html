@@ -520,8 +520,26 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 .av-ini{display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0;font-family:var(--display);letter-spacing:-.02em}
 /* Filter bar */
 .fil-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
-/* Presupuesto stats mobile */
-@media(max-width:640px){#presStats{grid-template-columns:1fr 1fr!important}#presStats>div:last-child{grid-column:1/-1}}
+/* Presupuesto stats */
+.pres-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.pres-stat-card{padding:12px 14px!important}
+.pres-stat-lbl{font-size:11.5px;color:var(--text-3);font-weight:600;margin-bottom:5px;line-height:1.3}
+.pres-stat-val{font-size:clamp(18px,4vw,28px);font-weight:800;color:var(--text);line-height:1}
+/* Chips bar */
+.pres-chip-bar{padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border-2);flex-wrap:nowrap}
+.pres-chips{display:flex;gap:5px;flex-wrap:wrap;flex:1;min-width:0}
+.pres-search-wrap{flex-shrink:0;display:flex;align-items:center}
+.pres-search-inp{height:32px;width:180px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);padding:0 10px;font-size:12.5px;color:var(--text);outline:none;font-family:var(--sans);transition:border-color .16s}
+.pres-search-inp:focus{border-color:var(--brand)}
+.pres-filter-ico{display:none}
+@media(max-width:680px){
+  .pres-stats-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+  .pres-stat-card{padding:10px 10px!important}
+  .pres-stat-lbl{font-size:10px}
+  .pres-search-inp{display:none}
+  .pres-filter-ico{display:flex}
+  .pres-chip-bar{padding:8px 10px;gap:6px}
+}
 .fil-bar input,.fil-bar select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:13px;padding:0 12px;outline:none}
 .fil-bar select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A93A3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
 .fil-bar input:focus,.fil-bar select:focus{border-color:var(--brand)}
@@ -1056,36 +1074,45 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </button>
   </div>
   <div class="pg-body">
-    <!-- Stats top -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px" id="presStats">
-      <div class="card card-pad" style="padding:14px 18px">
-        <div style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:6px">Presupuestos del mes</div>
-        <div class="num" id="presStatMes" style="font-size:28px;font-weight:800;color:var(--text)">—</div>
+    <!-- Stats top — 3 columnas desktop, 3 columnas mobile con fuente adaptable -->
+    <div class="pres-stats-grid" id="presStats">
+      <div class="card card-pad pres-stat-card">
+        <div class="pres-stat-lbl">Presupuestos del mes</div>
+        <div class="num pres-stat-val" id="presStatMes">—</div>
       </div>
-      <div class="card card-pad" style="padding:14px 18px">
-        <div style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:6px">Tasa de aprobación</div>
-        <div class="num" id="presStatTasa" style="font-size:28px;font-weight:800;color:var(--ok-fg)">—</div>
+      <div class="card card-pad pres-stat-card">
+        <div class="pres-stat-lbl">Tasa de aprobación</div>
+        <div class="num pres-stat-val" id="presStatTasa" style="color:var(--ok-fg)">—</div>
       </div>
-      <div class="card card-pad" style="padding:14px 18px">
-        <div style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:6px">En curso (no cerrados)</div>
-        <div class="num" id="presStatCurso" style="font-size:28px;font-weight:800;color:var(--brand)">—</div>
+      <div class="card card-pad pres-stat-card">
+        <div class="pres-stat-lbl">En curso (no cerrados)</div>
+        <div class="num pres-stat-val" id="presStatCurso" style="color:var(--brand)">—</div>
       </div>
     </div>
     <!-- Main card -->
     <div class="card">
-      <!-- Chips + search -->
-      <div style="padding:12px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border-2)">
-        <button class="chip on" id="pchip-" onclick="setPresChip('')">Todos</button>
-        <button class="chip" id="pchip-sin_enviar" onclick="setPresChip('sin_enviar')">Sin enviar</button>
-        <button class="chip" id="pchip-enviado" onclick="setPresChip('enviado')">Enviado</button>
-        <button class="chip" id="pchip-aprobado" onclick="setPresChip('aprobado')">Aprobado</button>
-        <button class="chip" id="pchip-produccion" onclick="setPresChip('produccion')">En producción</button>
-        <button class="chip" id="pchip-listo" onclick="setPresChip('listo')">Listo</button>
-        <button class="chip" id="pchip-cobrado" onclick="setPresChip('cobrado')">Cobrado</button>
-        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-          <input id="presSearch" placeholder="Buscar…" oninput="filterPresupuestos()" style="height:32px;min-width:150px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);padding:0 10px;font-size:12.5px;color:var(--text);outline:none;font-family:var(--sans)">
-          <button class="btn btn--ghost btn--sm" onclick="loadPresupuestos()" title="Refrescar">↻</button>
+      <!-- Chips + buscador desktop / ícono filtro mobile -->
+      <div class="pres-chip-bar">
+        <div class="pres-chips">
+          <button class="chip on" id="pchip-" onclick="setPresChip('')">Todos</button>
+          <button class="chip" id="pchip-sin_enviar" onclick="setPresChip('sin_enviar')">Sin enviar</button>
+          <button class="chip" id="pchip-enviado" onclick="setPresChip('enviado')">Enviado</button>
+          <button class="chip" id="pchip-aprobado" onclick="setPresChip('aprobado')">Aprobado</button>
+          <button class="chip" id="pchip-produccion" onclick="setPresChip('produccion')">En producción</button>
+          <button class="chip" id="pchip-listo" onclick="setPresChip('listo')">Listo</button>
+          <button class="chip" id="pchip-cobrado" onclick="setPresChip('cobrado')">Cobrado</button>
         </div>
+        <!-- Desktop: input visible | Mobile: ícono toggle -->
+        <div class="pres-search-wrap">
+          <input id="presSearch" placeholder="Buscar…" oninput="filterPresupuestos()" class="pres-search-inp">
+          <button class="icon-btn pres-filter-ico" onclick="togglePresSearch()" title="Buscar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- Mobile search expandida -->
+      <div id="presSearchExpand" style="display:none;padding:0 12px 10px">
+        <input id="presSearchM" placeholder="Buscar pieza o cliente…" oninput="document.getElementById('presSearch').value=this.value;filterPresupuestos()" style="width:100%;height:36px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);padding:0 12px;font-size:13px;color:var(--text);outline:none;font-family:var(--sans)">
       </div>
       <!-- Table -->
       <div style="overflow-x:auto">
@@ -2722,8 +2749,18 @@ function setPresChip(val) {
   filterPresupuestos();
 }
 
+function togglePresSearch() {
+  const wrap = document.getElementById('presSearchExpand');
+  if (!wrap) return;
+  const open = wrap.style.display === 'none';
+  wrap.style.display = open ? 'block' : 'none';
+  if (open) document.getElementById('presSearchM')?.focus();
+}
+
 function filterPresupuestos() {
-  const search = (document.getElementById('presSearch')?.value||'').toLowerCase();
+  const v1 = document.getElementById('presSearch')?.value||'';
+  const v2 = document.getElementById('presSearchM')?.value||'';
+  const search = (v1||v2).toLowerCase();
   const rows = _presCache.filter(p => {
     const est = p.estado||'sin_enviar';
     if(_presChip && est !== _presChip) return false;
