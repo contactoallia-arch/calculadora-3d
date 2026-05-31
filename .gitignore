@@ -2,12 +2,6 @@
 .vscode/
 .claude/
 
-# Archivos temporales
-*.zip
-SUBIR_A_HOSTINGER.md
-uploads/
-setup/
-
 # Node.js
 node_modules/
 .env
@@ -17,15 +11,7 @@ node_modules/
 # Vercel
 .vercel/
 
-# Next.js (no usado — app es HTML estático + Vercel serverless)
-.next/
-app/
-next.config.js
-.vercelignore
-
-# Archivos de desarrollo local
-tweaks-panel.jsx
-index.html
-fix-git.bat
-PLAN_SISTEMA_GESTION.md
-Plan/
+# Temporales / referencia de diseño (no se despliega)
+*.zip
+uploads/
+Template/
