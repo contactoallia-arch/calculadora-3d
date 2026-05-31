@@ -508,8 +508,20 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 .cal-day-panel-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cal-day-panel-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text)}
 @media(max-width:680px){.cal-cell{min-height:52px}.cal-event-tag{display:none}.cal-cell-day{font-size:10px}}
+/* Pipeline steps */
+.step{display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:var(--text-faint);padding:5px 10px;border-radius:99px;background:var(--surface-2);border:1px solid var(--border-2);white-space:nowrap}
+.step.done{color:var(--ok-fg);background:var(--ok-soft);border-color:transparent}
+.step.cur{color:#fff;background:var(--brand);border-color:transparent;box-shadow:var(--shadow-brand)}
+/* Chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);padding:5px 12px;border-radius:99px;transition:all .14s;cursor:pointer;font-family:var(--sans);white-space:nowrap}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:var(--shadow-brand)}
+/* Client avatar */
+.av-ini{display:inline-flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0;font-family:var(--display);letter-spacing:-.02em}
 /* Filter bar */
 .fil-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+/* Presupuesto stats mobile */
+@media(max-width:640px){#presStats{grid-template-columns:1fr 1fr!important}#presStats>div:last-child{grid-column:1/-1}}
 .fil-bar input,.fil-bar select{height:34px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:13px;padding:0 12px;outline:none}
 .fil-bar select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A93A3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
 .fil-bar input:focus,.fil-bar select:focus{border-color:var(--brand)}
@@ -1037,43 +1049,100 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-presupuestos" class="page">
   <div class="pg-hdr">
-    <div>
-      <h2 class="pg-title">Presupuestos</h2>
-      <p class="pg-sub">Gestión y seguimiento de presupuestos</p>
-    </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn--ghost" onclick="showPage('calculadora')">
-        <svg class="icon" viewBox="0 0 18 18"><rect x="3" y="2" width="12" height="14" rx="2"/><path d="M6 6h6M6 9h4"/></svg>
-        Calculador
-      </button>
-      <button class="btn btn--primary" onclick="abrirEditPres(null)">
-        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
-        Nuevo presupuesto
-      </button>
-    </div>
+    <h2 class="pg-title">Presupuestos</h2>
+    <button class="btn btn--primary" onclick="abrirEditPres(null)">
+      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+      Nuevo presupuesto
+    </button>
   </div>
   <div class="pg-body">
-    <div class="fil-bar">
-      <select id="presEstado" onchange="loadPresupuestos()">
-        <option value="">Todos los estados</option>
-        <option value="sin_enviar">Sin enviar</option>
-        <option value="enviado">Enviado</option>
-        <option value="aprobado">Aprobado</option>
-        <option value="rechazado">Rechazado</option>
-        <option value="cobrado">Cobrado</option>
-      </select>
-      <input id="presSearch" placeholder="Buscar pieza o cliente…" oninput="filterPresupuestos()" style="min-width:180px">
-      <button class="hbtn" onclick="loadPresupuestos()">↻ Refrescar</button>
+    <!-- Stats top -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px" id="presStats">
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:6px">Presupuestos del mes</div>
+        <div class="num" id="presStatMes" style="font-size:28px;font-weight:800;color:var(--text)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:6px">Tasa de aprobación</div>
+        <div class="num" id="presStatTasa" style="font-size:28px;font-weight:800;color:var(--ok-fg)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:6px">En curso (no cerrados)</div>
+        <div class="num" id="presStatCurso" style="font-size:28px;font-weight:800;color:var(--brand)">—</div>
+      </div>
     </div>
-    <div class="tbl-wrap">
-      <table class="dtbl">
-        <thead><tr>
-          <th>#</th><th>Pieza</th><th>Cliente</th><th>Estado</th>
-          <th>Precio</th><th>Fecha</th><th>Acciones</th>
-        </tr></thead>
-        <tbody id="presTbody"><tr><td colspan="7" class="empty" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
-      </table>
+    <!-- Main card -->
+    <div class="card">
+      <!-- Chips + search -->
+      <div style="padding:12px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border-2)">
+        <button class="chip on" id="pchip-" onclick="setPresChip('')">Todos</button>
+        <button class="chip" id="pchip-sin_enviar" onclick="setPresChip('sin_enviar')">Sin enviar</button>
+        <button class="chip" id="pchip-enviado" onclick="setPresChip('enviado')">Enviado</button>
+        <button class="chip" id="pchip-aprobado" onclick="setPresChip('aprobado')">Aprobado</button>
+        <button class="chip" id="pchip-produccion" onclick="setPresChip('produccion')">En producción</button>
+        <button class="chip" id="pchip-listo" onclick="setPresChip('listo')">Listo</button>
+        <button class="chip" id="pchip-cobrado" onclick="setPresChip('cobrado')">Cobrado</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <input id="presSearch" placeholder="Buscar…" oninput="filterPresupuestos()" style="height:32px;min-width:150px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);padding:0 10px;font-size:12.5px;color:var(--text);outline:none;font-family:var(--sans)">
+          <button class="btn btn--ghost btn--sm" onclick="loadPresupuestos()" title="Refrescar">↻</button>
+        </div>
+      </div>
+      <!-- Table -->
+      <div style="overflow-x:auto">
+        <table class="dtbl" style="min-width:580px">
+          <thead><tr>
+            <th style="width:72px">N°</th>
+            <th>Cliente</th>
+            <th class="hide-m">Trabajo</th>
+            <th>Monto</th>
+            <th class="hide-m" style="width:80px">Fecha</th>
+            <th style="width:130px">Estado</th>
+          </tr></thead>
+          <tbody id="presTbody"><tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- Slide-over: detalle de presupuesto -->
+<div id="presSlideScrim" onclick="cerrarPresSlideover()" style="display:none;position:fixed;inset:0;background:rgba(8,11,16,.45);z-index:70;backdrop-filter:blur(3px)"></div>
+<div id="presSlideover" style="display:none;position:fixed;right:0;top:0;bottom:0;width:460px;max-width:92vw;background:var(--surface);border-left:1px solid var(--border);box-shadow:var(--shadow-lg);z-index:71;overflow-y:auto;flex-direction:column;transition:transform .28s cubic-bezier(.3,.8,.3,1)">
+  <div style="padding:18px 22px;border-bottom:1px solid var(--border-2);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--surface);z-index:2">
+    <div style="flex:1;min-width:0">
+      <div class="mono" id="slNum" style="font-size:11.5px;color:var(--text-faint);font-weight:700;letter-spacing:.08em"></div>
+      <div id="slCliente" style="font-family:var(--display);font-size:19px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+    </div>
+    <button class="icon-btn" onclick="cerrarPresSlideover()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div style="padding:20px 22px">
+    <!-- badge + monto -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <span id="slBadge"></span>
+      <span class="num" id="slMonto" style="font-size:26px;font-weight:800;color:var(--brand)"></span>
+    </div>
+    <!-- pipeline -->
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px">Ciclo de vida</div>
+    <div id="slPipe" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:20px"></div>
+    <!-- detalles -->
+    <div id="slDetails" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:18px"></div>
+    <!-- acciones -->
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn--ghost" style="flex:1" onclick="cerrarPresSlideover();setTimeout(()=>abrirEditPres(_slPresId),80)">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M12 2l4 4-9 9H3v-4z"/><path d="M11 3l4 4"/></svg>
+        Editar
+      </button>
+      <button class="btn btn--ghost btn--sm" title="Registrar cobro" onclick="cerrarPresSlideover();setTimeout(()=>registrarCobroDesde(_slPresId),80)">
+        <svg class="icon" viewBox="0 0 18 18"><line x1="9" y1="1" x2="9" y2="17"/><path d="M13 4H7a3 3 0 000 6h4a3 3 0 010 6H5"/></svg>
+      </button>
+      <button class="btn btn--danger btn--sm" title="Eliminar" onclick="cerrarPresSlideover();setTimeout(()=>eliminarPresupuesto(_slPresId),80)">
+        <svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 5 5 15 5"/><path d="M14 5l-1 11H5L4 5"/><path d="M7 5V3h4v2"/></svg>
+      </button>
+    </div>
+    <!-- botones de estado -->
+    <div id="slEstBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   </div>
 </div>
 
@@ -2613,62 +2682,150 @@ function renderChart(id, cfg) {
 
 // ── PRESUPUESTOS ──────────────────────────────────────────────────────
 let _presCache = [];
+let _presChip = '';
+
+// Colores y utilidades para avatar
+const _AV_COLORS = ["#F26A21","#2563EB","#16A34A","#7C3AED","#0D9488","#DB2777","#D97706","#4F46E5"];
+function _avColor(name){ let h=0; for(let i=0;i<(name||'').length;i++) h=((h<<5)-h+name.charCodeAt(i))|0; return _AV_COLORS[Math.abs(h)%_AV_COLORS.length]; }
+function _avIni(name){ const p=(name||'?').trim().split(/\s+/); return (p[0][0]+(p[1]?.[0]||'')).toUpperCase(); }
+
 async function loadPresupuestos() {
-  const estado = document.getElementById('presEstado').value;
-  let url = '/api/presupuestos';
-  if (estado) url += '?estado=' + estado;
   try {
-    const d = await apiGet(url);
+    const d = await apiGet('/api/presupuestos');
     if (!d.ok) return;
     _presCache = d.data;
+    updatePresStats();
     filterPresupuestos();
   } catch(e) { console.error(e); }
 }
 
+function updatePresStats() {
+  const mes = new Date().toLocaleDateString('es-UY',{month:'2-digit',year:'numeric'}).split('/').reverse().join('-').slice(0,7);
+  const delMes = _presCache.filter(p => (p.fecha||'').includes(mes.split('-')[1]+'/'+mes.split('-')[0]) || (p.created_at||'').startsWith(mes));
+  const total = _presCache.length;
+  const aprobados = _presCache.filter(p=>p.estado==='aprobado'||p.estado==='produccion'||p.estado==='listo'||p.estado==='entregado'||p.estado==='cobrado').length;
+  const cerrados = ['cobrado','rechazado','cancelado'];
+  const enCurso = _presCache.filter(p=>!cerrados.includes(p.estado||'sin_enviar')).reduce((a,p)=>a+Number(p.precio||0),0);
+  const base = _presCache.filter(p=>['aprobado','rechazado'].some(s=>_presCache.find(x=>x.id===p.id))||true);
+  const aprobRech = _presCache.filter(p=>p.estado==='aprobado'||p.estado==='rechazado'||p.estado==='produccion'||p.estado==='listo'||p.estado==='entregado'||p.estado==='cobrado');
+  const tasa = total ? Math.round(aprobados/total*100) : 0;
+  const el1 = document.getElementById('presStatMes'); if(el1) el1.textContent = total;
+  const el2 = document.getElementById('presStatTasa'); if(el2) el2.textContent = tasa+'%';
+  const el3 = document.getElementById('presStatCurso'); if(el3) el3.textContent = '$ '+fmtMoney(enCurso);
+}
+
+function setPresChip(val) {
+  _presChip = val;
+  document.querySelectorAll('[id^="pchip-"]').forEach(b => b.classList.remove('on'));
+  const active = document.getElementById('pchip-'+val);
+  if(active) active.classList.add('on');
+  filterPresupuestos();
+}
+
 function filterPresupuestos() {
-  const search = (document.getElementById('presSearch').value || '').toLowerCase();
-  const rows = _presCache.filter(p =>
-    !search || p.pieza.toLowerCase().includes(search) || (p.cliente||'').toLowerCase().includes(search)
-  );
-  const FLUJO_FRONT = {
-    sin_enviar:['enviado'], borrador:['enviado','sin_enviar'],
-    enviado:['aprobado','rechazado'],
-    rechazado:['enviado','sin_enviar'],
-    aprobado:['cobrado','rechazado'],
-    cobrado:[], cancelado:['sin_enviar'],
-    produccion:['cobrado'], listo:['cobrado'], entregado:['cobrado']
-  };
-  const LABELS_EST = { sin_enviar:'Sin enviar', borrador:'Sin enviar', enviado:'Enviado', aprobado:'Aprobado', rechazado:'Rechazado', cobrado:'Cobrado', cancelado:'Cancelado', produccion:'Producción', listo:'Listo', entregado:'Entregado' };
-  const LABELS_BTN = { sin_enviar:'Sin enviar', enviado:'Marcar enviado', aprobado:'Aprobar', rechazado:'Rechazar', cobrado:'Cobrar', cancelado:'Cancelar' };
-  document.getElementById('presTbody').innerHTML = rows.length ? rows.map(p => {
+  const search = (document.getElementById('presSearch')?.value||'').toLowerCase();
+  const rows = _presCache.filter(p => {
+    const est = p.estado||'sin_enviar';
+    if(_presChip && est !== _presChip) return false;
+    if(search && !(p.pieza||'').toLowerCase().includes(search) && !(p.cliente_nombre||p.cliente||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const LABELS_EST = { sin_enviar:'Sin enviar', borrador:'Sin enviar', enviado:'Enviado', aprobado:'Aprobado', rechazado:'Rechazado', cobrado:'Cobrado', cancelado:'Cancelado', produccion:'En producción', listo:'Listo', entregado:'Entregado' };
+  const tbody = document.getElementById('presTbody');
+  if(!tbody) return;
+  tbody.innerHTML = rows.length ? rows.map(p => {
     const num = String(p.numero||p.id).padStart(4,'0');
-    const estado = p.estado || 'sin_enviar';
-    const pendienteAprobacion = estado === 'borrador' || estado === 'sin_enviar' || estado === 'enviado';
-    const aprobBtns = pendienteAprobacion
-      ? `<div class="est-btns" style="margin-top:5px">
-          <button class="est-btn to-aprobado" style="font-size:11px;height:26px;padding:0 11px" onclick="cambiarEstado(${p.id},'aprobado',null,'presupuestos')">✓ Aprobado</button>
-          <button class="est-btn to-rechazado" style="font-size:11px;height:26px;padding:0 11px" onclick="cambiarEstado(${p.id},'rechazado',null,'presupuestos')">✗ Rechazado</button>
-        </div>`
-      : (() => {
-          const siguientes = (FLUJO_FRONT[estado]||[]);
-          return siguientes.length
-            ? `<div class="est-btns" style="margin-top:4px">${siguientes.slice(0,2).map(s=>`<button class="est-btn to-${s}" onclick="cambiarEstado(${p.id},'${s}',null,'presupuestos')">${LABELS_BTN[s]||s}</button>`).join('')}</div>`
-            : '';
-        })();
-    return `<tr>
-      <td class="b mono">#${num}</td>
-      <td class="b">${p.pieza}</td>
-      <td>${p.cliente_nombre||p.cliente||'—'}</td>
-      <td><span class="badge b-${estado}"><span class="bdot"></span>${LABELS_EST[estado]||estado}</span>${aprobBtns}</td>
-      <td class="mono" style="color:var(--brand)">$ ${fmtMoney(p.precio)} ${p.moneda||'UYU'}</td>
-      <td style="color:var(--text-3)">${p.fecha}</td>
-      <td><div class="tact">
-        <button class="tbtn" onclick="abrirEditPres(${p.id})">Editar</button>
-        <button class="tbtn" onclick="registrarCobroDesde(${p.id})">Cobrar</button>
-        <button class="tbtn d" onclick="eliminarPresupuesto(${p.id})">🗑</button>
-      </div></td>
+    const estado = p.estado||'sin_enviar';
+    const nombre = p.cliente_nombre||p.cliente||'—';
+    const color = _avColor(nombre);
+    const ini = _avIni(nombre);
+    const pieza = p.pieza||'Sin nombre';
+    const qty = p.qty>1 ? ` ×${p.qty}` : '';
+    return `<tr style="cursor:pointer" onclick="abrirPresSlideover(${p.id})">
+      <td class="mono" style="color:var(--text-faint);font-weight:700;font-size:13px">#${num}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="av-ini" style="width:32px;height:32px;border-radius:9px;font-size:11.5px;background:linear-gradient(150deg,${color},color-mix(in srgb,${color} 70%,#000))">${ini}</div>
+          <b style="font-size:13.5px">${nombre}</b>
+        </div>
+      </td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px">${pieza}${qty}</td>
+      <td class="mono" style="font-weight:700;font-size:13.5px">$ ${fmtMoney(p.precio)}</td>
+      <td class="hide-m mono" style="color:var(--text-3);font-size:12.5px">${p.fecha}</td>
+      <td><span class="badge b-${estado}"><span class="bdot"></span>${LABELS_EST[estado]||estado}</span></td>
     </tr>`;
-  }).join('') : '<tr><td colspan="7" class="empty" style="padding:32px;text-align:center;color:var(--t3)">Sin presupuestos</td></tr>';
+  }).join('') : `<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin presupuestos</td></tr>`;
+}
+
+// ── SLIDE-OVER DE DETALLE ──────────────────────────────────────────────
+let _slPresId = null;
+const _FLOW_STEPS = ['sin_enviar','enviado','aprobado','produccion','listo','entregado','cobrado'];
+const _FLOW_LBL = {sin_enviar:'Sin enviar',enviado:'Enviado',aprobado:'Aprobado',produccion:'En producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',rechazado:'Rechazado',cancelado:'Cancelado'};
+const _FLUJO_NEXT = {
+  sin_enviar:['enviado','aprobado','rechazado'],
+  borrador:['enviado','aprobado','rechazado'],
+  enviado:['aprobado','rechazado'],
+  aprobado:['produccion','cancelado'],
+  produccion:['listo','cancelado'],
+  listo:['entregado','cancelado'],
+  entregado:['cobrado'],
+  cobrado:[],rechazado:[],cancelado:[]
+};
+
+function abrirPresSlideover(id) {
+  const p = _presCache.find(x=>Number(x.id)===Number(id));
+  if(!p) return;
+  _slPresId = Number(id);
+  const LABELS_EST = {sin_enviar:'Sin enviar',borrador:'Sin enviar',enviado:'Enviado',aprobado:'Aprobado',rechazado:'Rechazado',cobrado:'Cobrado',cancelado:'Cancelado',produccion:'En producción',listo:'Listo',entregado:'Entregado'};
+  const estado = p.estado||'sin_enviar';
+  document.getElementById('slNum').textContent = 'PRESUPUESTO #'+String(p.numero||p.id).padStart(4,'0');
+  document.getElementById('slCliente').textContent = p.cliente_nombre||p.cliente||'—';
+  document.getElementById('slMonto').textContent = '$ '+fmtMoney(p.precio);
+  document.getElementById('slBadge').innerHTML = `<span class="badge b-${estado}"><span class="bdot"></span>${LABELS_EST[estado]||estado}</span>`;
+  // Pipeline
+  const pipe = document.getElementById('slPipe');
+  if(estado==='rechazado'||estado==='cancelado') {
+    pipe.innerHTML = `<span class="step done">Borrador</span><span style="color:var(--text-faint);font-size:10px">→</span><span class="step done">Enviado</span><span style="color:var(--text-faint);font-size:10px">→</span><span class="step" style="background:var(--bad-soft);color:var(--bad-fg);border-color:transparent">${_FLOW_LBL[estado]}</span>`;
+  } else {
+    const idx = _FLOW_STEPS.indexOf(estado);
+    pipe.innerHTML = _FLOW_STEPS.map((s,i)=>{
+      const cls = i<idx?'done':i===idx?'cur':'';
+      const sep = i>0?`<span style="color:var(--text-faint);font-size:10px">→</span>`:'';
+      return sep+`<span class="step ${cls}">${_FLOW_LBL[s]}</span>`;
+    }).join('');
+  }
+  // Detalles
+  const rows = [
+    ['Pieza', p.pieza||'—'],
+    ['Material', p.mat||'—'],
+    ['Cantidad', p.qty||1],
+    ['Fecha', p.fecha||'—'],
+    ['Margen', (p.margen||0)+'%'],
+  ];
+  document.getElementById('slDetails').innerHTML = rows.map(([k,v],i)=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;${i?'border-top:1px solid var(--border-2)':''};font-size:13.5px">
+      <span style="color:var(--text-3)">${k}</span><b>${v}</b>
+    </div>`
+  ).join('');
+  // Botones de estado
+  const siguientes = (_FLUJO_NEXT[estado]||[]);
+  const BTN_LBL = {enviado:'Marcar enviado',aprobado:'✓ Aprobado',rechazado:'✗ Rechazado',produccion:'→ Producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',cancelado:'Cancelar'};
+  document.getElementById('slEstBtns').innerHTML = siguientes.map(s=>
+    `<button class="est-btn to-${s}" onclick="cambiarEstado(${id},'${s}',null,'presupuestos');cerrarPresSlideover()">${BTN_LBL[s]||s}</button>`
+  ).join('');
+  // Mostrar
+  document.getElementById('presSlideScrim').style.display='block';
+  const sl = document.getElementById('presSlideover');
+  sl.style.display='flex';
+  sl.style.transform='translateX(100%)';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ sl.style.transition='transform .28s cubic-bezier(.3,.8,.3,1)'; sl.style.transform='translateX(0)'; }));
+}
+
+function cerrarPresSlideover() {
+  const sl = document.getElementById('presSlideover');
+  if(!sl) return;
+  sl.style.transform='translateX(100%)';
+  setTimeout(()=>{ sl.style.display='none'; document.getElementById('presSlideScrim').style.display='none'; },280);
 }
 
 async function cambiarEstado(presId, nuevoEstado, nota, reloadPage) {
