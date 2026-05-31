@@ -623,6 +623,72 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 @media(max-width:480px){
   .dash-kpi-grid{grid-template-columns:1fr 1fr}
 }
+/* ===== Pantallas template: insumos/productos/proveedores/agenda/reportes ===== */
+.kpi-row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.kpi-row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:880px){.kpi-row-4{grid-template-columns:repeat(2,1fr)}.kpi-row-3{grid-template-columns:1fr}}
+@media(max-width:640px){
+  .kpi-row-4{grid-template-columns:1fr 1fr}
+  .kpi-row-3 .kpi,.kpi-row-4 .kpi{display:flex;align-items:center;gap:12px;padding:12px 14px}
+  .kpi-row-3 .k-top,.kpi-row-4 .k-top{margin-bottom:0}
+  .kpi-row-3 .k-val,.kpi-row-4 .k-val{font-size:19px;margin-left:auto;order:2}
+  .kpi-row-3 .k-label,.kpi-row-4 .k-label{order:1}
+}
+.lift{transition:transform .16s ease,box-shadow .18s ease}
+.lift:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+/* chips bar genérica */
+.chips-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+/* Product cards */
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.prod-card{overflow:hidden;transition:transform .16s ease,box-shadow .18s ease}
+.prod-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.prod-thumb{height:120px;display:grid;place-items:center;position:relative;border-bottom:1px solid var(--border-2)}
+.prod-cat{position:absolute;top:12px;left:12px;font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:99px;box-shadow:var(--shadow-sm)}
+/* Proveedor cards */
+.prov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+/* Agenda semanal */
+.agenda-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.agenda-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:10px 8px;min-height:320px;box-shadow:var(--shadow)}
+.agenda-col.hoy{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand),var(--shadow)}
+.agenda-head{display:flex;flex-direction:column;align-items:center;gap:4px;padding-bottom:10px;border-bottom:1px solid var(--border-2);margin-bottom:10px}
+.agenda-dia{font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px}
+.agenda-num{font-family:var(--display);font-size:18px;font-weight:700;width:32px;height:32px;display:grid;place-items:center;border-radius:9px}
+.agenda-num.hoy{background:var(--brand);color:#fff}
+.agenda-events{display:flex;flex-direction:column;gap:7px}
+.agenda-empty{text-align:center;color:var(--text-faint);font-size:14px;padding:14px 0}
+.ag-event{border-radius:9px;padding:8px 9px;border-left:3px solid;cursor:pointer;transition:transform .12s ease}
+.ag-event:hover{transform:translateX(2px)}
+.ag-leg{width:11px;height:11px;border-radius:4px;display:inline-block}
+.ag-brand{background:var(--brand-soft);border-color:var(--brand);color:var(--brand-strong)}
+.ag-ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok-fg)}
+.ag-info{background:var(--info-soft);border-color:var(--info);color:var(--info-fg)}
+.ag-vio{background:var(--vio-soft);border-color:var(--vio);color:var(--vio-fg)}
+.ag-teal{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-fg)}
+i.ag-leg.ag-brand{background:var(--brand)}i.ag-leg.ag-ok{background:var(--ok)}
+i.ag-leg.ag-info{background:var(--info)}i.ag-leg.ag-vio{background:var(--vio)}i.ag-leg.ag-teal{background:var(--teal)}
+@media(max-width:880px){
+  .agenda-grid{grid-template-columns:1fr;gap:8px}
+  .agenda-col{min-height:0}
+  .agenda-col .agenda-head{flex-direction:row;justify-content:flex-start;gap:10px}
+}
+/* Bars chart (reportes) */
+.bars{display:flex;align-items:flex-end;gap:12px;height:200px}
+.bars .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bars .bar{width:100%;max-width:42px;border-radius:6px 6px 0 0;min-height:3px;background:linear-gradient(180deg,color-mix(in srgb,var(--brand) 55%,var(--surface)),var(--brand));transition:height .5s cubic-bezier(.2,.7,.3,1)}
+.bars .bar.muted{background:var(--border)}
+.bars .cap{font-size:10.5px;color:var(--text-3)}
+.bars .val{font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--text-2)}
+/* Legend (reportes/gastos) */
+.legend{display:flex;flex-direction:column;gap:10px}
+.legend .lg{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)}
+.legend .sw{width:11px;height:11px;border-radius:4px;flex-shrink:0}
+.legend .lg b{margin-left:auto;font-family:var(--mono);color:var(--text)}
+/* Stock progress */
+.stock-bar{height:6px;border-radius:99px;background:var(--border-2);overflow:hidden;max-width:120px;margin-top:4px}
+.stock-bar>i{display:block;height:100%;border-radius:99px}
+/* Reportes 2col */
+.rep-main-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px}
+@media(max-width:880px){.rep-main-grid{grid-template-columns:1fr}}
 /* Gastos layout */
 .gastos-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
 .gastos-main-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
@@ -1545,30 +1611,55 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-insumos" class="page">
   <div class="pg-hdr">
-    <div><div class="pg-title">Insumos</div><div class="pg-sub">Materiales y consumibles con precios actualizados</div></div>
+    <h2 class="pg-title">Insumos</h2>
     <button class="btn btn--primary" onclick="abrirInsumoForm(null)">
       <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
       Nuevo insumo
     </button>
   </div>
   <div class="pg-body">
-    <div class="fil-bar">
-      <select id="insumoFiltCat" onchange="loadInsumos()">
-        <option value="">Todas las categorías</option>
-        <option value="filamento">Filamento</option>
-        <option value="resina">Resina</option>
-        <option value="componentes">Componentes</option>
-        <option value="packaging">Packaging</option>
-        <option value="herramientas">Herramientas</option>
-        <option value="otros">Otros</option>
-      </select>
-      <button class="hbtn" onclick="loadInsumos()">↻ Refrescar</button>
+    <!-- 4 KPIs -->
+    <div class="kpi-row-4">
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div></div>
+        <div class="k-val" id="insKpiValor">—</div>
+        <div class="k-label">Valor en stock</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--warn-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn-fg)" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div></div>
+        <div class="k-val" id="insKpiBajo" style="color:var(--warn-fg)">—</div>
+        <div class="k-label">Bajo mínimo</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--bad-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div></div>
+        <div class="k-val" id="insKpiAgot" style="color:var(--bad-fg)">—</div>
+        <div class="k-label">Agotados</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--info-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info-fg)" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div></div>
+        <div class="k-val" id="insKpiSku" style="color:var(--info-fg)">—</div>
+        <div class="k-label">Ítems (SKU)</div>
+      </div>
     </div>
-    <div class="tbl-wrap">
-      <table class="dtbl">
-        <thead><tr><th>Nombre</th><th>Categoría</th><th>Tipo</th><th>Proveedor</th><th>Precio</th><th>Unidad</th><th>Stock</th><th>Notas</th><th></th></tr></thead>
-        <tbody id="insumosTbody"><tr><td colspan="9" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
-      </table>
+    <!-- Card con chips + tabla -->
+    <div class="card">
+      <div class="card-pad" style="padding-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border-2)">
+        <button class="chip on" id="ichip-" onclick="setInsumoChip('')">Todos</button>
+        <button class="chip" id="ichip-filamento" onclick="setInsumoChip('filamento')">Filamento</button>
+        <button class="chip" id="ichip-resina" onclick="setInsumoChip('resina')">Resina</button>
+        <button class="chip" id="ichip-componentes" onclick="setInsumoChip('componentes')">Componentes</button>
+        <button class="chip" id="ichip-packaging" onclick="setInsumoChip('packaging')">Packaging</button>
+        <button class="chip" id="ichip-herramientas" onclick="setInsumoChip('herramientas')">Herramientas</button>
+        <button class="btn btn--primary btn--sm" style="margin-left:auto" onclick="abrirInsumoForm(null)">
+          <svg class="icon" viewBox="0 0 18 18" style="width:15px;height:15px"><path d="M9 3v12M3 9h12"/></svg> Nuevo insumo
+        </button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="dtbl" style="min-width:680px">
+          <thead><tr><th>Insumo</th><th class="hide-m">Tipo</th><th>Stock</th><th class="hide-m">Proveedor</th><th>Costo</th><th>Estado</th><th style="width:36px"></th></tr></thead>
+          <tbody id="insumosTbody"><tr><td colspan="7" style="padding:36px;text-align:center;color:var(--text-3)">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -1647,19 +1738,33 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-productos" class="page">
   <div class="pg-hdr">
-    <div><div class="pg-title">Productos</div><div class="pg-sub">Catálogo de productos reutilizables para presupuestos</div></div>
+    <h2 class="pg-title">Productos</h2>
     <button class="btn btn--primary" onclick="abrirProductoForm()">
       <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
       Nuevo producto
     </button>
   </div>
   <div class="pg-body">
-    <div class="tbl-wrap">
-      <table class="dtbl">
-        <thead><tr><th>Nombre</th><th>Descripción</th><th>Precio base</th><th>Material</th><th>Notas</th><th></th></tr></thead>
-        <tbody id="productosTbody"><tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
-      </table>
+    <!-- 3 KPIs -->
+    <div class="kpi-row-3">
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div></div>
+        <div class="k-val" id="prodKpiCount">—</div>
+        <div class="k-label">Productos activos</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--ok-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok-fg)" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div></div>
+        <div class="k-val" id="prodKpiTop" style="color:var(--ok-fg);font-size:18px">—</div>
+        <div class="k-label">Más caro</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--info-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info-fg)" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div></div>
+        <div class="k-val" id="prodKpiSum" style="color:var(--info-fg)">—</div>
+        <div class="k-label">Catálogo (precio sum.)</div>
+      </div>
     </div>
+    <!-- Grid de tarjetas -->
+    <div class="prod-grid" id="productosTbody"><div class="empty"><p>Cargando…</p></div></div>
   </div>
 </div>
 
@@ -1763,22 +1868,33 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-proveedores" class="page">
   <div class="pg-hdr">
-    <div>
-      <div class="pg-title">Proveedores</div>
-      <div class="pg-sub">Empresas y personas de quienes comprás</div>
-    </div>
+    <h2 class="pg-title">Proveedores</h2>
     <button class="btn btn--primary" onclick="openProveedorForm()">
       <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
       Nuevo proveedor
     </button>
   </div>
   <div class="pg-body">
-    <div class="tbl-wrap">
-      <table class="dtbl">
-        <thead><tr><th>Nombre</th><th>Rubro</th><th>RUT</th><th>Teléfono</th><th>Email</th><th>Dirección</th><th>Notas</th><th></th></tr></thead>
-        <tbody id="provTbody"><tr><td colspan="8" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
-      </table>
+    <!-- 3 KPIs -->
+    <div class="kpi-row-3">
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div></div>
+        <div class="k-val" id="provKpiCount">—</div>
+        <div class="k-label">Proveedores</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--info-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--info-fg)" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div></div>
+        <div class="k-val" id="provKpiCompras" style="color:var(--info-fg)">—</div>
+        <div class="k-label">Compras (acumulado)</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--vio-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vio-fg)" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div></div>
+        <div class="k-val" id="provKpiPedidos" style="color:var(--vio-fg)">—</div>
+        <div class="k-label">Pedidos totales</div>
+      </div>
     </div>
+    <!-- Grid de tarjetas -->
+    <div class="prov-grid" id="provTbody"><div class="empty"><p>Cargando…</p></div></div>
   </div>
 </div>
 
@@ -1813,31 +1929,30 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-agenda" class="page">
   <div class="pg-hdr">
-    <div><div class="pg-title">Agenda</div><div class="pg-sub">Entregas, tareas y plazos</div></div>
+    <h2 class="pg-title">Agenda</h2>
     <button class="btn btn--primary" onclick="abrirAgendaForm(null)">
       <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
       Nueva tarea
     </button>
   </div>
   <div class="pg-body">
-    <div class="fil-bar">
-      <select id="agendaTipo" onchange="loadAgenda()">
-        <option value="">Todos los tipos</option>
-        <option value="entrega">Entregas</option>
-        <option value="tarea">Tareas</option>
-        <option value="reunion">Reuniones</option>
-        <option value="plazo">Plazos</option>
-      </select>
-      <select id="agendaAsignado" onchange="loadAgenda()">
-        <option value="">Todos</option>
-        <option value="1">Solo los míos</option>
-      </select>
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--t2)">
-        <input type="checkbox" id="agendaCompletados" onchange="loadAgenda()"> Ver completados
-      </label>
-      <button class="hbtn" onclick="loadAgenda()">↻ Refrescar</button>
+    <!-- Barra navegación semana + leyenda -->
+    <div class="card card-pad" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="icon-btn" style="width:36px;height:36px" onclick="agWeek(-1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <h3 class="card-title" id="agWeekLabel" style="font-size:17px">—</h3>
+        <button class="icon-btn" style="width:36px;height:36px" onclick="agWeek(1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button class="btn btn--ghost btn--sm" onclick="agWeekToday()">Hoy</button>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><i class="ag-leg ag-brand"></i> Impresión / tarea</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><i class="ag-leg ag-ok"></i> Entrega</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><i class="ag-leg ag-vio"></i> Plazo</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)"><i class="ag-leg ag-teal"></i> Reunión</span>
+      </div>
     </div>
-    <div id="agendaLista"></div>
+    <!-- Grid semanal -->
+    <div class="agenda-grid" id="agendaGrid"></div>
   </div>
 </div>
 
@@ -1884,30 +1999,61 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-reportes" class="page">
   <div class="pg-hdr">
-    <div>
-      <div class="pg-title">Reportes</div>
-      <div class="pg-sub">Análisis de rentabilidad</div>
-    </div>
-    <button class="btn btn--primary" onclick="loadReportes()">Actualizar</button>
+    <h2 class="pg-title">Reportes</h2>
+    <button class="btn btn--ghost btn--sm" onclick="loadReportes()">↻ Actualizar</button>
   </div>
   <div class="pg-body">
-    <div class="fil-bar">
-      <input type="date" id="repDesde">
-      <span style="font-size:12px;color:var(--t3)">hasta</span>
-      <input type="date" id="repHasta">
-      <button class="hbtn" onclick="loadReportes()">Consultar</button>
+    <!-- 4 KPIs -->
+    <div class="kpi-row-4">
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--ok-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok-fg)" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div></div>
+        <div class="k-val" id="repKpiIng" style="color:var(--ok-fg)">—</div>
+        <div class="k-label" id="repKpiIngLbl">Ingresos · mes</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--bad-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2" stroke-linecap="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2"/><line x1="8" y1="7" x2="16" y2="7"/></svg></div></div>
+        <div class="k-val" id="repKpiGas" style="color:var(--bad-fg)">—</div>
+        <div class="k-label" id="repKpiGasLbl">Gastos · mes</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div></div>
+        <div class="k-val" id="repKpiGan" style="color:var(--brand)">—</div>
+        <div class="k-label">Ganancia neta</div>
+      </div>
+      <div class="kpi">
+        <div class="k-top"><div class="k-ico" style="background:var(--vio-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--vio-fg)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div></div>
+        <div class="k-val" id="repKpiMargen" style="color:var(--vio-fg)">—</div>
+        <div class="k-label">Margen neto</div>
+      </div>
     </div>
-    <div class="section-card">
-      <div class="section-card-ttl">Ingresos por moneda</div>
-      <div id="repIngresos"><div class="empty"><p>Seleccioná un período y consultá</p></div></div>
+
+    <!-- Rentabilidad + antigüedad deuda -->
+    <div class="rep-main-grid" style="margin-bottom:14px">
+      <div class="card card-pad">
+        <div class="card-head">
+          <h3 class="card-title">Rentabilidad · últimos 6 meses</h3>
+          <div style="display:flex;gap:14px;font-size:12px;color:var(--text-2)">
+            <span style="display:flex;align-items:center;gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:var(--brand)"></i> Ingresos</span>
+            <span style="display:flex;align-items:center;gap:6px"><i style="width:10px;height:10px;border-radius:3px;background:var(--border)"></i> Gastos</span>
+          </div>
+        </div>
+        <div class="bars" id="repBars" style="height:200px;margin-top:10px"></div>
+      </div>
+      <div class="card card-pad">
+        <h3 class="card-title" style="margin-bottom:4px">Cobros pendientes</h3>
+        <div style="font-size:12.5px;color:var(--text-3);margin-bottom:14px">Antigüedad de la deuda</div>
+        <div id="repAntiguedad"></div>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-2);display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12.5px;color:var(--text-3)">Total por cobrar</span>
+          <span class="num" id="repTotalCobrar" style="font-weight:800;font-size:18px;color:var(--brand)">—</span>
+        </div>
+      </div>
     </div>
-    <div class="section-card">
-      <div class="section-card-ttl">Gastos por categoría</div>
-      <div id="repGastos"><div class="empty"><p>—</p></div></div>
-    </div>
-    <div class="section-card">
-      <div class="section-card-ttl">Cobros pendientes</div>
-      <div id="repPendientes"><div class="empty"><p>Cargando…</p></div></div>
+
+    <!-- Top clientes -->
+    <div class="card card-pad">
+      <h3 class="card-title" style="margin-bottom:14px">Top clientes por facturación</h3>
+      <div id="repTopClientes"><div class="empty" style="padding:20px 0"><p>Cargando…</p></div></div>
     </div>
   </div>
 </div>
@@ -2619,7 +2765,7 @@ function showPage(page) {
   if (page === 'productos') loadProductos();
   if (page === 'agenda') loadAgenda();
   if (page === 'proveedores') loadProveedores();
-  if (page === 'reportes') loadCobrosPendientes();
+  if (page === 'reportes') loadReportes();
   if (page === 'config') loadConfig();
   if (page === 'logs') loadLogs();
   // sync bottom nav
@@ -3599,40 +3745,93 @@ async function generarGastosFijos() {
 
 // ── REPORTES ──────────────────────────────────────────────────────────
 async function loadReportes() {
-  const desde = document.getElementById('repDesde').value;
-  const hasta = document.getElementById('repHasta').value;
-  let url = '/api/reportes/rentabilidad?';
-  if (desde) url += 'desde=' + desde + '&';
-  if (hasta) url += 'hasta=' + hasta;
-  const d = await apiGet(url);
-  if (d.ok) {
-    document.getElementById('repIngresos').innerHTML = d.data.ingresos.length ?
-      `<table class="dtbl"><thead><tr><th>Moneda</th><th>Total cobrado</th></tr></thead><tbody>
-       ${d.data.ingresos.map(r=>`<tr><td class="b">${r.moneda}</td><td style="font-family:var(--fh);color:var(--ok)">$ ${fmtMoney(r.total)}</td></tr>`).join('')}
-       </tbody></table>` : '<div class="empty"><p>Sin datos</p></div>';
-    document.getElementById('repGastos').innerHTML = d.data.gastosPorCategoria.length ?
-      `<table class="dtbl"><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody>
-       ${d.data.gastosPorCategoria.map(r=>`<tr><td class="b">${r.categoria}</td><td style="font-family:var(--fh);color:#dc2626">$ ${fmtMoney(r.total)}</td></tr>`).join('')}
-       </tbody></table>` : '<div class="empty"><p>Sin gastos</p></div>';
-  }
-  loadCobrosPendientes();
-}
+  const mes = new Date().toISOString().slice(0,7);
+  const [dash, pend] = await Promise.all([
+    apiGet('/api/dashboard?mes='+mes),
+    apiGet('/api/reportes/cobros-pendientes')
+  ]);
 
-async function loadCobrosPendientes() {
-  const d = await apiGet('/api/reportes/cobros-pendientes');
-  if (!d.ok) return;
-  document.getElementById('repPendientes').innerHTML = d.data.items.length ?
-    `<table class="dtbl"><thead><tr><th>#</th><th>Pieza</th><th>Cliente</th><th>Precio</th><th>Cobrado</th><th>Pendiente</th></tr></thead><tbody>
-     ${d.data.items.map(p=>`<tr>
-       <td class="b" style="font-family:var(--fh)">#${String(p.numero||p.id).padStart(4,'0')}</td>
-       <td>${p.pieza}</td><td>${p.cliente||'—'}</td>
-       <td>$ ${fmtMoney(p.precio)}</td>
-       <td style="color:var(--ok)">$ ${fmtMoney(p.cobrado)}</td>
-       <td style="color:#dc2626;font-family:var(--fh)">$ ${fmtMoney(p.pendiente)}</td>
-     </tr>`).join('')}
-     </tbody></table>
-     <div style="text-align:right;padding:8px 14px;font-size:12.5px;color:var(--t2)">Total pendiente: <strong style="color:#dc2626;font-family:var(--fh)">$ ${fmtMoney(d.data.total)}</strong></div>` :
-    '<div class="empty"><p>Sin cobros pendientes ✓</p></div>';
+  // Serie 6 meses (ingresos = cobrado, gastos)
+  const serie6 = (dash.ok ? (dash.data.serie||[]) : []).slice(-6);
+  const ingMes = serie6.length ? serie6[serie6.length-1].cobrado : 0;
+  const gasMes = serie6.length ? serie6[serie6.length-1].gastos : 0;
+  const ganMes = ingMes - gasMes;
+  const margen = ingMes > 0 ? Math.round(ganMes/ingMes*100) : 0;
+  const mesNom = new Date(mes+'-01').toLocaleString('es-UY',{month:'long'});
+
+  document.getElementById('repKpiIng').textContent = '$ '+fmtMoney(ingMes);
+  document.getElementById('repKpiIngLbl').textContent = 'Ingresos · '+mesNom;
+  document.getElementById('repKpiGas').textContent = '$ '+fmtMoney(gasMes);
+  document.getElementById('repKpiGasLbl').textContent = 'Gastos · '+mesNom;
+  document.getElementById('repKpiGan').textContent = '$ '+fmtMoney(ganMes);
+  document.getElementById('repKpiMargen').textContent = margen+'%';
+
+  // Barras ingresos vs gastos
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const maxV = Math.max(...serie6.map(s=>Math.max(s.cobrado||0,s.gastos||0)),1);
+  document.getElementById('repBars').innerHTML = serie6.map(s=>{
+    const mm = parseInt((s.mes||'1/2000').split('/')[0])-1;
+    const hi = Math.max((s.cobrado/maxV)*165,3);
+    const hg = Math.max((s.gastos/maxV)*165,3);
+    const net = Math.round((s.cobrado-s.gastos)/1000);
+    return `<div class="col" style="justify-content:flex-end">
+      <div style="display:flex;gap:4px;align-items:flex-end;height:100%;width:100%;justify-content:center">
+        <div class="bar" style="height:${hi}px;width:18px;max-width:18px" title="Ingresos"></div>
+        <div class="bar muted" style="height:${hg}px;width:18px;max-width:18px" title="Gastos"></div>
+      </div>
+      <span class="num" style="font-size:10.5px;font-weight:700;color:${net>=0?'var(--ok-fg)':'var(--bad-fg)'}">${net>=0?'+':''}${net}k</span>
+      <span class="cap">${meses[mm]||''}</span>
+    </div>`;
+  }).join('') || '<div class="empty" style="margin:auto"><p>Sin datos</p></div>';
+
+  // Antigüedad de la deuda (basado en fecha_entrega de pendientes)
+  const items = pend.ok ? (pend.data.items||[]) : [];
+  const totalCobrar = pend.ok ? (pend.data.total||0) : 0;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const buckets = { aldia:0, pronto:0, v17:0, v7:0 };
+  items.forEach(p=>{
+    let diff = null;
+    if (p.fecha_entrega){ try{ const pt=p.fecha_entrega.includes('/')?p.fecha_entrega.split('/').reverse():p.fecha_entrega.split('-'); diff=Math.round((new Date(pt.join('-'))-hoy)/86400000);}catch(e){} }
+    const m = Number(p.pendiente||0);
+    if (diff===null || diff>3) buckets.aldia += m;
+    else if (diff>=0) buckets.pronto += m;
+    else if (diff>=-7) buckets.v17 += m;
+    else buckets.v7 += m;
+  });
+  const totalB = buckets.aldia+buckets.pronto+buckets.v17+buckets.v7 || 1;
+  const ant = [
+    {l:'Al día', v:buckets.aldia, c:'var(--ok)'},
+    {l:'Vence pronto', v:buckets.pronto, c:'var(--warn)'},
+    {l:'Vencido 1–7 días', v:buckets.v17, c:'var(--brand)'},
+    {l:'Vencido +7 días', v:buckets.v7, c:'var(--bad)'},
+  ];
+  document.getElementById('repAntiguedad').innerHTML = ant.map(a=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+        <span style="color:var(--text-2);font-weight:600">${a.l}</span>
+        <span class="num" style="font-weight:700">${a.v?'$ '+fmtMoney(a.v):'—'}</span>
+      </div>
+      <div class="stock-bar" style="max-width:none"><i style="width:${Math.round(a.v/totalB*100)}%;background:${a.c}"></i></div>
+    </div>`).join('');
+  document.getElementById('repTotalCobrar').textContent = '$ '+fmtMoney(totalCobrar);
+
+  // Top clientes
+  const top = dash.ok ? (dash.data.topClientes||[]) : [];
+  const maxFact = top.length ? Math.max(...top.map(c=>Number(c.total||0)),1) : 1;
+  document.getElementById('repTopClientes').innerHTML = top.length ? top.map((c,i)=>{
+    const nombre = c.nombre||'—';
+    const color = _avColor(nombre);
+    const ini = _avIni(nombre);
+    return `<div class="row-item">
+      <span class="num" style="width:18px;color:var(--text-faint);font-weight:700;flex-shrink:0">${i+1}</span>
+      <div class="av-ini" style="width:32px;height:32px;border-radius:10px;font-size:12px;flex-shrink:0;background:linear-gradient(150deg,${color},color-mix(in srgb,${color} 70%,#000))">${ini}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13.5px;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nombre}</div>
+        <div class="stock-bar" style="max-width:360px"><i style="width:${Math.round(c.total/maxFact*100)}%;background:var(--brand)"></i></div>
+      </div>
+      <div class="num" style="font-weight:700;font-size:14px;flex-shrink:0">$ ${fmtMoney(c.total)}</div>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:20px 0"><p>Sin datos de facturación</p></div>';
 }
 
 // ── CONFIGURACIÓN ─────────────────────────────────────────────────────
@@ -3968,71 +4167,90 @@ document.addEventListener('click', e => {
 let _editAgendaId = null;
 let _usuariosList = [];
 
+// ── AGENDA: vista semanal (estilo template) ──────────────────────────
+let _agWeekStart = null; // lunes de la semana visible
+
+function _lunesDe(date){
+  const d = new Date(date);
+  const dow = (d.getDay()+6)%7; // 0=lunes
+  d.setDate(d.getDate()-dow);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function agWeek(delta){
+  if(!_agWeekStart) _agWeekStart = _lunesDe(new Date());
+  _agWeekStart.setDate(_agWeekStart.getDate()+delta*7);
+  loadAgenda();
+}
+function agWeekToday(){ _agWeekStart = _lunesDe(new Date()); loadAgenda(); }
+
+const _AG_TIPO = {
+  entrega:  {cl:'ag-ok',   ic:'✈', lbl:'Entrega'},
+  tarea:    {cl:'ag-brand',ic:'🖨', lbl:'Tarea'},
+  impresion:{cl:'ag-brand',ic:'🖨', lbl:'Impresión'},
+  reunion:  {cl:'ag-teal', ic:'👥', lbl:'Reunión'},
+  plazo:    {cl:'ag-vio',  ic:'⏰', lbl:'Plazo'},
+  compra:   {cl:'ag-info', ic:'🛒', lbl:'Compra'},
+  retiro:   {cl:'ag-vio',  ic:'📦', lbl:'Retiro'},
+  otro:     {cl:'ag-teal', ic:'•',  lbl:'Otro'}
+};
+
 async function loadAgenda() {
-  const tipo = document.getElementById('agendaTipo').value;
-  const soloMios = document.getElementById('agendaAsignado').value;
-  const conCompletados = document.getElementById('agendaCompletados').checked;
-  let url = '/api/agenda?';
-  if (tipo) url += 'tipo='+tipo+'&';
-  if (soloMios) url += 'solo_mios=1&';
-  if (conCompletados) url += 'completados=1';
-  const d = await apiGet(url);
-  if (!d.ok) return;
-  renderAgendaLista(d.data);
+  if (!_agWeekStart) _agWeekStart = _lunesDe(new Date());
+  const start = new Date(_agWeekStart);
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const desde = fmt(start), hasta = fmt(end);
+  let items = [];
+  try {
+    const d = await apiGet(`/api/agenda?desde=${desde}&hasta=${hasta}&completados=1`);
+    items = d.ok ? d.data : [];
+  } catch {}
+  renderAgendaSemana(start, items);
 }
 
-function renderAgendaLista(items) {
-  const hoy = new Date().toISOString().slice(0,10);
-  const enSieteDias = new Date(Date.now()+7*86400000).toISOString().slice(0,10);
-  const TIPO_ICONS = { entrega:'📦', tarea:'✅', reunion:'👥', plazo:'⏰' };
-  const PRIO_LABELS = { baja:'↓ Baja', normal:'Normal', alta:'↑ Alta', urgente:'🔥 Urgente' };
+function renderAgendaSemana(start, items) {
+  const DIAS = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const hoyStr = new Date().toISOString().slice(0,10);
+  const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-  if (!items.length) {
-    document.getElementById('agendaLista').innerHTML = '<div class="empty" style="padding:40px;text-align:center;color:var(--t3)"><p>No hay ítems en la agenda</p></div>';
-    return;
-  }
+  // Label de semana
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  const lbl = document.getElementById('agWeekLabel');
+  if (lbl) lbl.textContent = `${start.getDate()} ${MESES[start.getMonth()]} – ${end.getDate()} ${MESES[end.getMonth()]}, ${end.getFullYear()}`;
 
   // Agrupar por fecha
-  const grupos = {};
-  items.forEach(item => {
-    const f = item.fecha;
-    if (!grupos[f]) grupos[f] = [];
-    grupos[f].push(item);
-  });
+  const byDate = {};
+  items.forEach(e => { (byDate[e.fecha] = byDate[e.fecha]||[]).push(e); });
 
-  let html = '';
-  Object.keys(grupos).sort().forEach(fecha => {
-    const fechaLabel = fecha === hoy ? '🗓 Hoy' : fecha < hoy ? '⚠ Vencidos' : fecha;
-    html += `<div class="ag-grupo">${fechaLabel}</div>`;
-    grupos[fecha].forEach(item => {
-      const vencido = !item.completado && item.fecha < hoy;
-      const esHoy = item.fecha === hoy;
-      const esPronto = !vencido && !esHoy && item.fecha <= enSieteDias;
-      html += `
-        <div class="agenda-card${item.completado?' completado':''}${vencido?' vencido':esHoy?' hoy':esPronto?' pronto':''}">
-          <div class="agenda-check${item.completado?' done':''}" onclick="toggleCompletado(${item.id},${item.completado?0:1},this)">
-            ${item.completado?'✓':''}
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <span style="font-size:14px;font-weight:600;color:var(--t1)">${TIPO_ICONS[item.tipo]||'•'} ${item.titulo}</span>
-              <span class="bdg prio-${item.prioridad}" style="font-size:9px;padding:1px 6px;background:none;border:none">${PRIO_LABELS[item.prioridad]||item.prioridad}</span>
-            </div>
-            ${item.descripcion?`<div style="font-size:12px;color:var(--t2);margin-top:2px">${item.descripcion}</div>`:''}
-            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;font-size:11px;color:var(--t3)">
-              ${item.hora?`<span>🕐 ${item.hora}</span>`:''}
-              ${item.asignado_nombre?`<span>👤 ${item.asignado_nombre}</span>`:''}
-              ${item.presupuesto_pieza?`<span>📋 ${item.presupuesto_pieza}</span>`:''}
-            </div>
-          </div>
-          <div class="tact">
-            <button class="tbtn" onclick="abrirAgendaForm(${item.id})">✏</button>
-            <button class="tbtn d" onclick="eliminarAgenda(${item.id})">🗑</button>
-          </div>
-        </div>`;
-    });
-  });
-  document.getElementById('agendaLista').innerHTML = html;
+  let cols = '';
+  for (let i=0;i<7;i++){
+    const day = new Date(start); day.setDate(day.getDate()+i);
+    const ds = fmt(day);
+    const esHoy = ds === hoyStr;
+    const evts = (byDate[ds]||[]).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+    const eventosHtml = evts.length ? evts.map(e=>{
+      const s = _AG_TIPO[e.tipo] || _AG_TIPO.otro;
+      const done = e.completado ? 'opacity:.55;text-decoration:line-through' : '';
+      return `<div class="ag-event ${s.cl}" style="${done}" onclick="abrirAgendaForm(${e.id})">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:11px">${s.ic}</span><span class="num" style="font-size:11px;font-weight:700">${e.hora||''}</span>
+        </div>
+        <div style="font-weight:700;font-size:12.5px;line-height:1.25">${e.titulo}</div>
+        ${e.descripcion||e.sub?`<div style="font-size:11px;opacity:.8;margin-top:2px">${e.descripcion||e.sub}</div>`:''}
+      </div>`;
+    }).join('') : '<div class="agenda-empty">—</div>';
+    cols += `<div class="agenda-col${esHoy?' hoy':''}">
+      <div class="agenda-head">
+        <span class="agenda-dia">${DIAS[i]}</span>
+        <span class="agenda-num${esHoy?' hoy':''}">${day.getDate()}</span>
+      </div>
+      <div class="agenda-events">${eventosHtml}</div>
+    </div>`;
+  }
+  const grid = document.getElementById('agendaGrid');
+  if (grid) grid.innerHTML = cols;
 }
 
 async function toggleCompletado(id, completado, el) {
@@ -4171,27 +4389,68 @@ const _origAbrirEditPres_clienteReset = () => {
 let _editInsumoId = null;
 let _insumosCache = [];
 
+let _insumoChip = '';
+function setInsumoChip(val){
+  _insumoChip = val;
+  document.querySelectorAll('[id^="ichip-"]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('ichip-'+val)?.classList.add('on');
+  renderInsumos();
+}
+function _insEstado(i){
+  const st = Number(i.stock||0);
+  const min = Number(i.stock_min||1);
+  if (st <= 0) return {cl:'b-rechazado',t:'Agotado',bar:'var(--bad)'};
+  if (st <= min) return {cl:'b-produccion',t:'Bajo mínimo',bar:'var(--warn)'};
+  return {cl:'b-aprobado',t:'En stock',bar:'var(--ok)'};
+}
 async function loadInsumos() {
-  if (typeof document.getElementById('insumosTbody') === 'undefined') return;
-  const cat = document.getElementById('insumoFiltCat')?.value || '';
-  const url = '/api/insumos' + (cat ? '?categoria='+cat : '');
-  const d = await apiGet(url);
+  const d = await apiGet('/api/insumos');
   _insumosCache = d.ok ? d.data : [];
-  if (!document.getElementById('insumosTbody')) return;
-  document.getElementById('insumosTbody').innerHTML = _insumosCache.length ? _insumosCache.map(i => `<tr>
-    <td class="b">${i.nombre}</td>
-    <td><span class="bdg borrador" style="text-transform:capitalize">${i.categoria}</span></td>
-    <td style="color:var(--t2)">${i.tipo||'—'}</td>
-    <td>${i.proveedor_nombre||'—'}</td>
-    <td style="font-family:var(--fh);color:var(--ac)">$ ${fmtMoney(i.precio)} ${i.moneda}</td>
-    <td style="color:var(--t3)">${i.unidad}</td>
-    <td style="color:var(--t2)">${i.stock||0}</td>
-    <td style="font-size:11px;color:var(--t3)">${i.notas||'—'}</td>
-    <td><div class="tact">
-      <button class="tbtn" onclick="abrirInsumoForm(${i.id})">✏</button>
-      <button class="tbtn d" onclick="eliminarInsumo(${i.id})">🗑</button>
-    </div></td>
-  </tr>`).join('') : '<tr><td colspan="9" style="padding:32px;text-align:center;color:var(--t3)">Sin insumos. Agregá el primero.</td></tr>';
+  renderInsumos();
+}
+function renderInsumos() {
+  const tbody = document.getElementById('insumosTbody');
+  if (!tbody) return;
+  const all = _insumosCache;
+  // KPIs
+  const valor = all.reduce((a,i)=>a + Number(i.stock||0)*Number(i.precio||0), 0);
+  const bajo = all.filter(i=>{const e=_insEstado(i);return e.t==='Bajo mínimo';}).length;
+  const agot = all.filter(i=>Number(i.stock||0)<=0).length;
+  document.getElementById('insKpiValor').textContent = '$ '+fmtMoney(Math.round(valor));
+  document.getElementById('insKpiBajo').textContent = bajo;
+  document.getElementById('insKpiAgot').textContent = agot;
+  document.getElementById('insKpiSku').textContent = all.length;
+  // Filtro chip (por categoría)
+  const rows = all.filter(i => !_insumoChip || (i.categoria||'').toLowerCase() === _insumoChip);
+  tbody.innerHTML = rows.length ? rows.map(i => {
+    const e = _insEstado(i);
+    const min = Number(i.stock_min||1);
+    const st = Number(i.stock||0);
+    const pct = Math.min(100, min ? (st/(min*2))*100 : (st>0?100:0));
+    const color = _catColor(i.categoria) || _avColor(i.nombre);
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:11px">
+          <span style="width:26px;height:26px;border-radius:8px;background:${color};border:1px solid var(--border);flex-shrink:0"></span>
+          <div><b style="font-size:13.5px">${i.nombre}</b><div style="font-size:11px;color:var(--text-3)">${i.notas||i.tipo||'—'}</div></div>
+        </div>
+      </td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px;text-transform:capitalize">${i.tipo||i.categoria||'—'}</td>
+      <td style="min-width:130px">
+        <div class="num" style="font-size:13px;font-weight:700;margin-bottom:2px">${st} ${i.unidad||''} <span style="color:var(--text-faint);font-weight:500">/ mín ${min}</span></div>
+        <div class="stock-bar"><i style="width:${pct}%;background:${e.bar}"></i></div>
+      </td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px">${i.proveedor_nombre||'—'}</td>
+      <td class="num" style="font-size:13px">$ ${fmtMoney(i.precio)}<span style="color:var(--text-faint);font-size:11px">/${i.unidad||'u'}</span></td>
+      <td><span class="badge ${e.cl}"><span class="bdot"></span>${e.t}</span></td>
+      <td>
+        <div style="display:flex;gap:3px">
+          <button class="icon-btn" style="width:28px;height:28px" onclick="abrirInsumoForm(${i.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarInsumo(${i.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="padding:36px;text-align:center;color:var(--text-3)">Sin insumos. Agregá el primero.</td></tr>';
 }
 
 async function abrirInsumoForm(id) {
@@ -4443,17 +4702,38 @@ let _editProdId = null;
 async function loadProductos() {
   const d = await apiGet('/api/productos');
   if (!d.ok) return;
-  document.getElementById('productosTbody').innerHTML = d.data.length ? d.data.map(p => `<tr>
-    <td class="b">${p.nombre}</td>
-    <td style="color:var(--t2)">${p.descripcion||'—'}</td>
-    <td style="font-family:var(--fh);color:var(--ac)">$ ${fmtMoney(p.precio_base)} ${p.moneda}</td>
-    <td style="color:var(--t2)">${p.mat||'—'}</td>
-    <td style="font-size:12px;color:var(--t3)">${p.notas||'—'}</td>
-    <td><div class="tact">
-      <button class="tbtn" onclick="editarProducto(${p.id},'${encodeURIComponent(JSON.stringify(p))}')">✏</button>
-      <button class="tbtn d" onclick="eliminarProducto(${p.id})">🗑</button>
-    </div></td>
-  </tr>`).join('') : '<tr><td colspan="6" style="padding:32px;text-align:center;color:var(--t3)">Sin productos. Agregá el primero.</td></tr>';
+  const cont = document.getElementById('productosTbody');
+  const data = d.data || [];
+  // KPIs
+  const precios = data.map(p=>Number(p.precio_base||p.precio||0));
+  const sum = precios.reduce((a,v)=>a+v,0);
+  const masCaro = data.length ? data.reduce((a,b)=>Number(b.precio_base||b.precio||0)>Number(a.precio_base||a.precio||0)?b:a) : null;
+  document.getElementById('prodKpiCount').textContent = data.length;
+  document.getElementById('prodKpiTop').textContent = masCaro ? masCaro.nombre : '—';
+  document.getElementById('prodKpiSum').textContent = '$ '+fmtMoney(sum);
+
+  cont.className = 'prod-grid';
+  cont.innerHTML = data.length ? data.map(p => {
+    const color = _avColor(p.nombre);
+    const precio = p.precio_base||p.precio||0;
+    return `<div class="card prod-card">
+      <div class="prod-thumb" style="background:linear-gradient(145deg,${color}22,${color}0D)">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.4" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        ${p.mat?`<span class="prod-cat" style="color:${color};background:var(--surface)">${p.mat}</span>`:''}
+      </div>
+      <div style="padding:14px 16px">
+        <div style="font-weight:700;font-size:14.5px;margin-bottom:7px">${p.nombre}</div>
+        ${p.descripcion?`<div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${p.descripcion}</div>`:'<div style="margin-bottom:12px"></div>'}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border-2)">
+          <span class="num" style="font-weight:800;font-size:16px;color:var(--brand)">$ ${fmtMoney(precio)}</span>
+          <div style="display:flex;gap:3px">
+            <button class="icon-btn" style="width:28px;height:28px" onclick="editarProducto(${p.id},'${encodeURIComponent(JSON.stringify(p))}')" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+            <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarProducto(${p.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty" style="grid-column:1/-1;padding:40px"><p>Sin productos. Agregá el primero.</p></div>';
 }
 
 function abrirProductoForm() {
@@ -4507,19 +4787,45 @@ let _editProvId = null;
 async function loadProveedores() {
   const d = await apiGet('/api/proveedores');
   if (!d.ok) return;
-  document.getElementById('provTbody').innerHTML = d.data.length ? d.data.map(p => `<tr>
-    <td class="b">${p.nombre}${p.contacto?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${p.contacto}</div>`:''}</td>
-    <td style="color:var(--t2)">${p.rubro||'—'}</td>
-    <td style="font-size:12px">${p.rut||'—'}</td>
-    <td>${p.telefono||'—'}</td>
-    <td>${p.email||'—'}</td>
-    <td style="font-size:12px;color:var(--t2)">${p.direccion||'—'}</td>
-    <td style="font-size:11px;color:var(--t3)">${p.notas||'—'}</td>
-    <td><div class="tact">
-      <button class="tbtn" onclick="editProveedor(${p.id},'${encodeURIComponent(JSON.stringify(p))}')">✏</button>
-      <button class="tbtn d" onclick="eliminarProveedor(${p.id})">🗑</button>
-    </div></td>
-  </tr>`).join('') : '<tr><td colspan="8" style="padding:32px;text-align:center;color:var(--t3)">Sin proveedores cargados</td></tr>';
+  const cont = document.getElementById('provTbody');
+  const data = d.data || [];
+  // KPIs
+  const compras = data.reduce((a,p)=>a+Number(p.total_comprado||p.comprado||0),0);
+  const pedidos = data.reduce((a,p)=>a+Number(p.total_pedidos||p.pedidos||0),0);
+  document.getElementById('provKpiCount').textContent = data.length;
+  document.getElementById('provKpiCompras').textContent = '$ '+fmtMoney(compras);
+  document.getElementById('provKpiPedidos').textContent = pedidos;
+
+  cont.className = 'prov-grid';
+  cont.innerHTML = data.length ? data.map(p => {
+    const color = _avColor(p.nombre);
+    const ini = _avIni(p.nombre);
+    const ped = p.total_pedidos||p.pedidos||0;
+    const comp = p.total_comprado||p.comprado||0;
+    const ult = p.ultimo_pedido||p.ult||'—';
+    return `<div class="card card-pad lift">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div class="av-ini" style="width:46px;height:46px;border-radius:13px;font-size:16px;flex-shrink:0;background:linear-gradient(150deg,${color},color-mix(in srgb,${color} 70%,#000))">${ini}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+          ${p.rubro?`<span class="chip" style="padding:2px 9px;font-size:11px;margin-top:3px">${p.rubro}</span>`:''}
+        </div>
+        <div style="display:flex;gap:3px;flex-shrink:0">
+          <button class="icon-btn" style="width:28px;height:28px" onclick="editProveedor(${p.id},'${encodeURIComponent(JSON.stringify(p))}')" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarProveedor(${p.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px;font-size:12.5px;color:var(--text-2)">
+        <span style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 5L2 7"/></svg>${p.email||'—'}</span>
+        <span style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>${p.telefono||'—'}</span>
+      </div>
+      <div style="display:flex;gap:8px;padding-top:14px;border-top:1px solid var(--border-2)">
+        <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Pedidos</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">${ped}</div></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Comprado</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">$ ${fmtMoney(comp)}</div></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Último</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">${ult}</div></div>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty" style="grid-column:1/-1;padding:40px"><p>Sin proveedores cargados</p></div>';
 }
 
 function openProveedorForm() {
