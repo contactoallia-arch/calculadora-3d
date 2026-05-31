@@ -1209,6 +1209,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <button class="chip" id="pchip-aprobado" onclick="setPresChip('aprobado')">Aprobado</button>
           <button class="chip" id="pchip-produccion" onclick="setPresChip('produccion')">En producción</button>
           <button class="chip" id="pchip-listo" onclick="setPresChip('listo')">Listo</button>
+          <button class="chip" id="pchip-entregado" onclick="setPresChip('entregado')">Entregado</button>
           <button class="chip" id="pchip-cobrado" onclick="setPresChip('cobrado')">Cobrado</button>
         </div>
         <!-- Desktop: input visible | Mobile: ícono toggle -->
@@ -1535,7 +1536,12 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="fgrp"><label>Fecha *</label><input id="gastoFecha" type="date"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Para qué fue</label><input id="gastoParaQue" placeholder="Ej: producción presupuesto #0012, stock, mantenimiento…"></div>
+      <div class="fgrp"><label>Para qué fue</label><input id="gastoParaQue" placeholder="Ej: stock, mantenimiento…"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Asignar a presupuesto <span style="color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+        <select id="gastoPresupuesto"><option value="">— Sin asignar —</option></select>
+      </div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Categoría</label>
@@ -3711,7 +3717,7 @@ async function loadGastos() {
     return `<tr>
       <td class="mono" style="color:var(--text-3);font-size:12px">${g.fecha}</td>
       <td><span class="badge" style="background:var(--surface-2);color:${color};border:1px solid var(--border)"><span class="bdot" style="background:${color}"></span>${g.categoria}</span></td>
-      <td class="hide-m" style="color:var(--text-2);font-size:13px">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${g.para_que}</div>`:''}</td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${g.para_que}</div>`:''}${g.presupuesto_id?`<div style="font-size:11px;color:var(--info-fg);margin-top:2px">📋 Presup. #${String(g.pres_numero||g.presupuesto_id).padStart(4,'0')}${g.pres_pieza?' · '+g.pres_pieza:''}</div>`:''}</td>
       <td>${tipoCell}</td>
       <td class="num" style="font-weight:700;color:var(--bad-fg)">−$ ${fmtMoney(g.monto)}</td>
       <td><button class="icon-btn" style="width:28px;height:28px" onclick="eliminarGasto(${g.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button></td>
@@ -3742,6 +3748,7 @@ async function openGastoForm() {
   document.getElementById('gastoParaQue').value = '';
   document.getElementById('gastoMonto').value = '';
   document.getElementById('gastoFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('gastoPresupuesto').value = '';
   document.getElementById('nuevoPanelProv').style.display = 'none';
   document.getElementById('btnToggleProv').textContent = '+ Nuevo';
   openM('mGasto');
@@ -3750,6 +3757,15 @@ async function openGastoForm() {
     const sel = document.getElementById('gastoProveedor');
     sel.innerHTML = '<option value="">Sin proveedor</option>' +
       (d.ok ? d.data.map(p => `<option value="${p.id}">${p.nombre}${p.rubro ? ' — ' + p.rubro : ''}</option>`).join('') : '');
+  } catch {}
+  // Presupuestos aprobados/en curso (no entregados ni cobrados)
+  try {
+    const dp = await apiGet('/api/presupuestos');
+    const abiertos = dp.ok ? dp.data.filter(p => ['aprobado','produccion','listo'].includes(p.estado)) : [];
+    const selP = document.getElementById('gastoPresupuesto');
+    selP.innerHTML = '<option value="">— Sin asignar —</option>' + abiertos.map(p =>
+      `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} · ${p.pieza||'—'}${p.cliente_nombre||p.cliente?' ('+(p.cliente_nombre||p.cliente)+')':''}</option>`
+    ).join('');
   } catch {}
 }
 
@@ -3784,7 +3800,8 @@ async function saveGasto() {
     monto: parseFloat(document.getElementById('gastoMonto').value),
     moneda: document.getElementById('gastoMoneda').value,
     fecha: document.getElementById('gastoFecha').value,
-    proveedor_id: provId ? Number(provId) : null
+    proveedor_id: provId ? Number(provId) : null,
+    presupuesto_id: document.getElementById('gastoPresupuesto').value ? Number(document.getElementById('gastoPresupuesto').value) : null
   };
   if (!body.descripcion || !body.monto) { showToast('Descripción y monto requeridos', 'err'); return; }
   const d = await apiPost('/api/gastos', body);
