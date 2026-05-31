@@ -435,6 +435,7 @@ footer{text-align:center;padding:18px;font-size:11.5px;color:var(--text-3);borde
 .kpi .k-label,.kpi-lbl{font-size:12px;color:var(--text-3);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
 .kpi .k-val,.kpi-val{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
 .kpi .k-sub,.kpi-sub{font-size:11.5px;color:var(--text-3);margin-top:4px}
+.k-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .kpi-card.accent{background:var(--brand);box-shadow:var(--shadow-brand)}.kpi-card.accent .kpi-lbl,.kpi-card.accent .kpi-val,.kpi-card.accent .kpi-sub{color:#fff}.kpi-card.accent .kpi-lbl{opacity:.85}
 /* Tables */
 .tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
@@ -908,11 +909,56 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   </div>
   <div class="pg-body">
     <div class="kpi-grid" id="dashKpis">
-      <div class="kpi-card"><div class="kpi-lbl">Facturado mes</div><div class="kpi-val" id="kpiFact">—</div><div class="kpi-sub">UYU entregado/cobrado</div></div>
-      <div class="kpi-card accent"><div class="kpi-lbl">Cobrado mes</div><div class="kpi-val" id="kpiCobr">—</div><div class="kpi-sub" id="kpiCobrSub">efectivo + transferencia</div></div>
-      <div class="kpi-card"><div class="kpi-lbl">Gastos mes</div><div class="kpi-val" id="kpiGast">—</div><div class="kpi-sub">todos los tipos</div></div>
-      <div class="kpi-card"><div class="kpi-lbl">Ganancia neta</div><div class="kpi-val" id="kpiGan">—</div><div class="kpi-sub">Cobrado − Gastos</div></div>
-      <div class="kpi-card"><div class="kpi-lbl">En producción</div><div class="kpi-val" id="kpiActivos">—</div><div class="kpi-sub">presupuestos activos</div></div>
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-lbl">Facturado mes</div>
+          <div class="k-ico" style="background:var(--teal-soft)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal-fg)" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          </div>
+        </div>
+        <div class="kpi-val" id="kpiFact">—</div>
+        <div class="kpi-sub">UYU entregado/cobrado</div>
+      </div>
+      <div class="kpi-card accent">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-lbl">Cobrado mes</div>
+          <div class="k-ico" style="background:rgba(255,255,255,.2)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+        </div>
+        <div class="kpi-val" id="kpiCobr">—</div>
+        <div class="kpi-sub" id="kpiCobrSub">efectivo + transferencia</div>
+      </div>
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-lbl">Gastos mes</div>
+          <div class="k-ico" style="background:var(--bad-soft)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2" stroke-linecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+          </div>
+        </div>
+        <div class="kpi-val" id="kpiGast">—</div>
+        <div class="kpi-sub">todos los tipos</div>
+      </div>
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-lbl">Ganancia neta</div>
+          <div class="k-ico" style="background:var(--ok-soft)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok-fg)" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+        </div>
+        <div class="kpi-val" id="kpiGan">—</div>
+        <div class="kpi-sub">Cobrado − Gastos</div>
+      </div>
+      <div class="kpi-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="kpi-lbl">En producción</div>
+          <div class="k-ico" style="background:var(--brand-soft)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand-strong)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </div>
+        </div>
+        <div class="kpi-val" id="kpiActivos">—</div>
+        <div class="kpi-sub">presupuestos activos</div>
+      </div>
     </div>
     <!-- Calendario mensual -->
     <div class="cal-wrapper" id="dashCalWrapper">
@@ -936,6 +982,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div id="calDayPanelEvents"></div>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)">Analítica</div>
+      <div style="flex:1;height:1px;background:var(--border-2)"></div>
+    </div>
     <div class="charts-grid">
       <div class="chart-card" style="grid-column:1/-1">
         <div class="chart-ttl">Facturado vs Cobrado vs Gastos — últimos 12 meses</div>
@@ -950,13 +1000,28 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="chart-wrap"><canvas id="chartGastos"></canvas></div>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3)">Actividad reciente</div>
+      <div style="flex:1;height:1px;background:var(--border-2)"></div>
+    </div>
     <div class="dash-2col">
       <div class="tbl-wrap">
-        <div class="tbl-hd"><div class="tbl-ttl">Últimos presupuestos</div></div>
+        <div class="tbl-hd">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--brand)"></div>
+            <div class="tbl-ttl">Últimos presupuestos</div>
+          </div>
+        </div>
         <div id="dashUltimos"><div class="empty"><p>Sin datos</p></div></div>
       </div>
       <div class="tbl-wrap">
-        <div class="tbl-hd"><div class="tbl-ttl">Cobros pendientes</div><div style="font-size:11px;color:var(--t3)">entregados sin cobrar</div></div>
+        <div class="tbl-hd">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--warn)"></div>
+            <div class="tbl-ttl">Cobros pendientes</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-3)">entregados sin cobrar</div>
+        </div>
         <div id="dashPendientes"><div class="empty"><p>Sin datos</p></div></div>
       </div>
     </div>
@@ -2282,7 +2347,7 @@ function initSidebar() {
   document.getElementById('sidebarRol').textContent = u.rol;
   document.getElementById('sidebarAv').textContent = (u.nombre || 'U')[0].toUpperCase();
   const topUser = document.getElementById('topbarUser');
-  if (topUser) topUser.innerHTML = `<div style="width:28px;height:28px;background:var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${(u.nombre||'U')[0].toUpperCase()}</div><span style="font-weight:600;color:var(--text-2)">${u.nombre}</span>`;
+  if (topUser) topUser.innerHTML = `<div style="width:28px;height:28px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;font-family:var(--display)">${(u.nombre||'?')[0].toUpperCase()}</div><span style="font-weight:600;color:var(--text)">${u.nombre||''}</span>`;
   if (u.rol === 'admin') document.getElementById('nav-logs').style.display = '';
   // Auto-cargar dashboard
   const now = new Date();
@@ -2974,7 +3039,7 @@ async function loadGastos() {
   const MEDIO_ICONS = { efectivo:'💵', transferencia:'🏦', tarjeta_debito:'💳', tarjeta_credito:'💳', mercadopago:'📱', paypal:'🌐', otro:'•' };
   document.getElementById('gastoTbody').innerHTML = rows.length ? rows.map(g => `<tr>
     <td>${g.fecha}</td>
-    <td><span class="bdg borrador">${g.categoria}</span></td>
+    <td><span class="badge" style="background:var(--brand-soft);color:var(--brand-strong)">${g.categoria}</span></td>
     <td class="b">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${g.para_que}</div>`:''}${g.proveedor_nombre?`<div style="font-size:11px;color:var(--ac);margin-top:2px">🏭 ${g.proveedor_nombre}</div>`:''}</td>
     <td style="font-family:var(--fh)">$ ${fmtMoney(g.monto)} ${g.moneda}</td>
     <td style="color:var(--t3);font-size:12px">${MEDIO_ICONS[g.medio_pago]||'•'} ${g.medio_pago||'efectivo'}</td>
