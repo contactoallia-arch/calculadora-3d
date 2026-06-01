@@ -250,6 +250,13 @@ input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12)}
 .formula strong{color:var(--brand)}
 .r-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
 
+/* ─── ARTÍCULOS (multi) ─── */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px}
+.sec-head .fl{margin:0}
+.art-card.coll .cb{display:none}
+.art-card.coll .arr{transform:rotate(-90deg)}
+.add-art-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:18px;border:2px dashed var(--brand);border-radius:var(--r-lg);background:var(--brand-soft);color:var(--brand-strong);font-size:15px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:all var(--tr)}
+.add-art-btn:hover{background:var(--brand);color:#fff;border-style:solid}
 /* ─── BUTTONS ─── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:var(--r-sm);padding:10px 16px;font-weight:700;font-size:13.5px;font-family:var(--sans);cursor:pointer;transition:transform .12s,box-shadow .18s,background .16s,border-color .16s;text-decoration:none}
 .btn:active{transform:translateY(1px) scale(.99)}
@@ -2217,23 +2224,25 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="c-icon">
         <svg class="icon" viewBox="0 0 18 18"><rect x="5" y="2" width="10" height="14" rx="1.5"/><path d="M8 2V1a1 1 0 012 0v1"/><line x1="7" y1="7" x2="13" y2="7"/><line x1="7" y1="10" x2="13" y2="10"/><line x1="7" y1="13" x2="11" y2="13"/><rect x="3" y="4" width="2" height="10" rx="1" fill="currentColor" opacity=".3"/></svg>
       </div>
-      <div><div class="ctit">Pedido</div><div class="csub">Nombre de la pieza y cantidad</div></div>
+      <div><div class="ctit">Pedido</div><div class="csub">Nombre general del trabajo</div></div>
     </div>
     <div class="ch-r"><span class="arr">▼</span></div>
   </div>
   <div class="cb col" id="body-pedido">
-    <div class="three">
-      <div class="f" style="grid-column:1/3">
-        <label class="fl">Nombre de la pieza</label>
-        <input type="text" id="pieceName" placeholder="Ej: Soporte para escritorio…">
-      </div>
+    <div class="two">
       <div class="f">
-        <label class="fl">Cantidad</label>
-        <input type="number" id="qty" value="1" min="1" step="1">
-        <label style="display:flex;align-items:center;gap:7px;margin-top:9px;cursor:pointer">
-          <input type="checkbox" id="qtyEnabled" checked style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
-          <span style="font-size:12px;color:var(--t2);line-height:1.3">Multiplicar precio por cantidad</span>
-        </label>
+        <label class="fl">Nombre del pedido / trabajo</label>
+        <input type="text" id="pieceName" placeholder="Ej: Pedido de Juan, lote para feria…">
+      </div>
+      <div class="f"><label class="fl">Tipo de cambio (USD → UYU)</label>
+        <div class="irow">
+          <input type="number" id="exRate" value="39.78" min="1" step="0.01" style="flex:1" oninput="recalcTotal()">
+          <button class="hbtn" id="exRateBtn" onclick="fetchRate()" title="Actualizar (BCU)" style="flex-shrink:0;height:44px;border-radius:var(--rs);gap:5px">
+            <svg class="icon" viewBox="0 0 18 18"><path d="M16 2v5h-5"/><path d="M2 16v-5h5"/><path d="M5.51 7a7 7 0 0113.23 2M1.26 9a7 7 0 0013.23 2"/></svg>
+            <span class="hbtn-label" id="exRateBtnLbl">BCU</span>
+          </button>
+        </div>
+        <div class="hint" id="exRateHint">Referencial BCU</div>
       </div>
     </div>
   </div>
@@ -2270,323 +2279,19 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="dbanner">Sección desactivada — no aparecerá en el PDF.</div>
 </div>
 
-<!-- ③ MATERIAL -->
-<div class="card">
-  <div class="ch fixed">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><ellipse cx="9" cy="5" rx="5.5" ry="2"/><ellipse cx="9" cy="13" rx="5.5" ry="2"/><line x1="3.5" y1="5" x2="3.5" y2="13"/><line x1="14.5" y1="5" x2="14.5" y2="13"/><ellipse cx="9" cy="9" rx="2.5" ry="1" opacity=".4"/></svg>
-      </div>
-      <div><div class="ctit">Material</div><div class="csub">Filamento o resina</div></div>
-    </div>
-  </div>
-  <div class="cb">
-    <div class="f"><label class="fl">Tipo de filamento</label>
-      <select id="matType" onchange="onMatTypeChange()">
-        <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
-        <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
-        <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
-      </select>
-      <div id="insumosCalcHint" style="font-size:11px;color:var(--ac);margin-top:4px;display:none"></div>
-    </div>
-    <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
-      <div class="irow">
-        <input type="number" id="spoolPrice" value="800" min="0" step="1">
-        <div class="ctog" id="spoolTog">
-          <button class="on" onclick="setCur('spool','UYU')">$</button>
-          <button onclick="setCur('spool','USD')">U$S</button>
-        </div>
-      </div>
-      <div class="hint" id="spoolHint"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-        <label class="tsw" title="Agregar 22% de IVA al precio del carrete">
-          <input type="checkbox" id="ivaOnSpool" onchange="S.ivaOnSpool=this.checked;updHints();calc()">
-          <div class="ttr"><div class="tth"></div></div>
-        </label>
-        <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre precio del carrete</span>
-        <span id="ivaSpoolHint" style="font-size:12px;color:var(--ac);font-weight:600"></span>
-      </div>
-    </div>
-    <div class="two">
-      <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams" value="50" min="0" step="1"></div>
-      <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste" value="5" min="0" max="100" step="1"></div>
-    </div>
-  </div>
+<!-- ═══ ARTÍCULOS DEL PRESUPUESTO ═══ -->
+<div class="full" id="articulosWrap"></div>
+
+<!-- Botón agregar artículo -->
+<div class="full" id="addArtRow">
+  <button class="add-art-btn" onclick="addArticulo()">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span id="addArtLabel">Agregar artículo</span>
+  </button>
 </div>
 
-<!-- ④ ELECTRICIDAD -->
-<div class="card" id="card-elec">
-  <div class="ch" onclick="tog('elec')">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><path d="M10.5 2L5 10h4.5L7.5 16 13 8H8.5L10.5 2z"/></svg>
-      </div>
-      <div><div class="ctit">Electricidad · UTE</div><div class="csub">Tarifa y consumo de la impresora</div></div>
-    </div>
-    <div class="ch-r">
-      <label class="tsw" onclick="event.stopPropagation()">
-        <input type="checkbox" id="en-elec" checked onchange="toggleSec('elec',this.checked);event.stopPropagation()">
-        <div class="ttr"><div class="tth"></div></div>
-      </label>
-      <span class="arr">▼</span>
-    </div>
-  </div>
-  <div class="cb col" id="body-elec">
-    <div class="f"><label class="fl">Tarifa UTE 2025–2026</label>
-      <div class="pills" id="utePills">
-        <button class="pill on" onclick="setRate(this,10.35)">Residencial · 10.35</button>
-        <button class="pill" onclick="setRate(this,5.16)">Comercial · 5.16</button>
-        <button class="pill" onclick="setRate(this,6.19)">Alto consumo · 6.19</button>
-        <button class="pill" onclick="setRate(this,'custom')">Personalizada</button>
-      </div>
-      <input type="number" id="kwhRate" value="10.35" min="0" step="0.01" style="display:none">
-    </div>
-    <div class="two">
-      <div class="f"><label class="fl">Modelo de impresora</label>
-        <select id="printerModel" onchange="setPrinter(this.value)">
-          <option value="A1">Bambu Lab A1</option><option value="A1Mini">Bambu Lab A1 Mini</option>
-          <option value="P1P">Bambu Lab P1P</option><option value="P1S">Bambu Lab P1S</option>
-          <option value="P2S">Bambu Lab P2S</option><option value="X1C">Bambu Lab X1C</option>
-          <option value="X1E">Bambu Lab X1E</option><option value="H2C">Bambu Lab H2C</option>
-          <option value="H2D">Bambu Lab H2D</option><option value="H2S">Bambu Lab H2S</option>
-          <option value="manual">Otra / Manual</option>
-        </select>
-      </div>
-      <div class="f"><label class="fl">Potencia promedio (W)</label>
-        <input type="number" id="watts" value="95" min="0" step="1">
-        <div class="hint" id="wattsHint">A1 · PLA · wiki.bambulab.com</div>
-      </div>
-    </div>
-    <div class="f"><label class="fl">Material para consumo</label>
-      <div class="pills" id="matPills">
-        <button class="pill on" onclick="setMP(this,'PLA')">PLA</button>
-        <button class="pill" onclick="setMP(this,'PETG')">PETG</button>
-        <button class="pill" onclick="setMP(this,'ABS')">ABS / PC</button>
-      </div>
-    </div>
-  </div>
-  <div class="dbanner">Sección desactivada — no incluida en el cálculo.</div>
-</div>
-
-<!-- ⑤ TIEMPO -->
-<div class="card full" id="card-time">
-  <div class="ch" onclick="tog('time')">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7"/><path d="M9 5v4l2.5 2.5"/></svg>
-      </div>
-      <div><div class="ctit">Tiempo de impresión</div><div class="csub">Dato obtenido desde el slicer</div></div>
-    </div>
-    <div class="ch-r">
-      <label class="tsw" onclick="event.stopPropagation()">
-        <input type="checkbox" id="en-time" checked onchange="toggleSec('time',this.checked);event.stopPropagation()">
-        <div class="ttr"><div class="tth"></div></div>
-      </label>
-      <span class="arr">▼</span>
-    </div>
-  </div>
-  <div class="cb col" id="body-time">
-    <div class="time-grid">
-      <div class="time-unit">
-        <label>Días</label>
-        <div class="stepper">
-          <button class="step-btn" onclick="step('tDays',-1)">−</button>
-          <input class="step-inp" type="number" id="tDays" value="0" min="0">
-          <button class="step-btn" onclick="step('tDays',1)">+</button>
-        </div>
-      </div>
-      <div class="time-unit">
-        <label>Horas</label>
-        <div class="stepper">
-          <button class="step-btn" onclick="step('tHours',-1)">−</button>
-          <input class="step-inp" type="number" id="tHours" value="3" min="0" max="23">
-          <button class="step-btn" onclick="step('tHours',1)">+</button>
-        </div>
-      </div>
-      <div class="time-unit">
-        <label>Minutos</label>
-        <div class="stepper">
-          <button class="step-btn" onclick="step('tMins',-1)">−</button>
-          <input class="step-inp" type="number" id="tMins" value="30" min="0" max="59">
-          <button class="step-btn" onclick="step('tMins',1)">+</button>
-        </div>
-      </div>
-    </div>
-    <div class="time-total">
-      <div class="time-total-label">Total calculado</div>
-      <div class="time-total-val" id="timeTotal">3h 30min = 3.50 h</div>
-    </div>
-  </div>
-  <div class="dbanner">Sección desactivada — tiempo en 0 para el cálculo.</div>
-</div>
-
-<!-- ⑥ IMPRESORA -->
-<div class="card" id="card-printer">
-  <div class="ch" onclick="tog('printer')">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><rect x="3" y="10" width="12" height="6" rx="1"/><path d="M5 10V6a1 1 0 011-1h6a1 1 0 011 1v4"/><rect x="2" y="7" width="14" height="5" rx="1"/><rect x="11" y="9" width="2" height="1" rx=".5" fill="currentColor"/></svg>
-      </div>
-      <div><div class="ctit">Impresora &amp; Mantenimiento</div><div class="csub">Depreciación y consumibles</div></div>
-    </div>
-    <div class="ch-r">
-      <label class="tsw" onclick="event.stopPropagation()">
-        <input type="checkbox" id="en-printer" checked onchange="toggleSec('printer',this.checked);event.stopPropagation()">
-        <div class="ttr"><div class="tth"></div></div>
-      </label>
-      <span class="arr">▼</span>
-    </div>
-  </div>
-  <div class="cb col" id="body-printer">
-    <div class="two">
-      <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost" value="80000" min="0" step="100"></div>
-      <div class="f"><label class="fl">Vida útil (horas)</label><input type="number" id="printerLife" value="5000" min="100" step="100"><div class="hint">Promedio: 3 000–10 000 h</div></div>
-    </div>
-    <div class="two">
-      <div class="f"><label class="fl">Mantenimiento mensual (UYU)</label><input type="number" id="maintenance" value="350" min="0" step="10"><div class="hint" id="maintHint">Boquilla ~200 · lubricante ~80 · PEI ~70</div></div>
-      <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces" value="20" min="1" step="1"></div>
-    </div>
-  </div>
-  <div class="dbanner">Sección desactivada — no incluida en el cálculo.</div>
-</div>
-
-<!-- ⑦ MANO DE OBRA -->
-<div class="card" id="card-labor">
-  <div class="ch" onclick="tog('labor')">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><path d="M14.5 3.5a3.5 3.5 0 00-4.95 0L3 10.05V15h4.95l6.55-6.55a3.5 3.5 0 000-4.95z"/><line x1="9" y1="5" x2="13" y2="9"/></svg>
-      </div>
-      <div><div class="ctit">Mano de obra</div><div class="csub">Tiempo, tarifa y gastos fijos</div></div>
-    </div>
-    <div class="ch-r">
-      <label class="tsw" onclick="event.stopPropagation()">
-        <input type="checkbox" id="en-labor" checked onchange="toggleSec('labor',this.checked);event.stopPropagation()">
-        <div class="ttr"><div class="tth"></div></div>
-      </label>
-      <span class="arr">▼</span>
-    </div>
-  </div>
-  <div class="cb col" id="body-labor">
-    <div class="two">
-      <div class="f"><label class="fl">Tarifa horaria (UYU)</label><input type="number" id="hourly" value="200" min="0" step="10"><div class="hint">Técnico: 300–800 UYU/h</div></div>
-      <div class="f"><label class="fl">Horas prep + post-proceso</label><input type="number" id="laborH" value="0.5" min="0" step="0.25"></div>
-    </div>
-    <div class="two">
-      <div class="f"><label class="fl">Gastos fijos mensuales (UYU)</label><input type="number" id="overhead" value="5000" min="0" step="100"><div class="hint">Alquiler, internet, etc.</div></div>
-      <div class="f"><label class="fl">Buffer fallas (%)</label><input type="number" id="failBuf" value="10" min="0" max="50" step="1"><div class="hint">Exp: 5–10% · Novel: 15–20%</div></div>
-    </div>
-  </div>
-  <div class="dbanner">Sección desactivada — no incluida en el cálculo.</div>
-</div>
-
-<!-- ⑧ ADICIONALES -->
-<div class="card full" id="card-extras">
-  <div class="ch" onclick="tog('extras')">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2l6.5 3.25v7.5L9 16l-6.5-3.25V5.25L9 2z"/><path d="M9 2v14M2.5 5.25L9 8.5l6.5-3.25"/></svg>
-      </div>
-      <div><div class="ctit">Costos adicionales</div><div class="csub">Packaging e insumos extra</div></div>
-    </div>
-    <div class="ch-r">
-      <label class="tsw" onclick="event.stopPropagation()">
-        <input type="checkbox" id="en-extras" checked onchange="toggleSec('extras',this.checked);event.stopPropagation()">
-        <div class="ttr"><div class="tth"></div></div>
-      </label>
-      <span class="arr">▼</span>
-    </div>
-  </div>
-  <div class="cb col" id="body-extras">
-    <div class="f"><label class="fl">Packaging / embalaje</label>
-      <div class="irow">
-        <input type="number" id="packaging" value="40" min="0" step="1">
-        <div class="ctog" id="pkgTog">
-          <button class="on" onclick="setCur('pkg','UYU')">$</button>
-          <button onclick="setCur('pkg','USD')">U$S</button>
-        </div>
-      </div>
-      <div class="hint" id="pkgHint"></div>
-    </div>
-    <div class="divl"></div>
-    <label class="fl" style="display:block;margin-bottom:10px">Insumos adicionales</label>
-    <div class="xl" id="xList"></div>
-    <button class="addbtn" onclick="addExtra()">＋ Agregar insumo adicional</button>
-    <div class="hint ok" id="xTotal" style="margin-top:10px"></div>
-  </div>
-  <div class="dbanner">Sección desactivada — no incluida en el cálculo.</div>
-</div>
-
-<!-- ⑨ PIEZAS ADICIONALES -->
-<div class="card full" id="card-pieces">
-  <div class="ch fixed">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><rect x="2" y="2" width="6" height="6" rx="1"/><rect x="10" y="2" width="6" height="6" rx="1"/><rect x="2" y="10" width="6" height="6" rx="1"/><rect x="10" y="10" width="6" height="6" rx="1"/></svg>
-      </div>
-      <div><div class="ctit">Piezas del presupuesto</div><div class="csub">Componentes que se suman o son opcionales</div></div>
-    </div>
-  </div>
-  <div class="cb">
-    <div style="font-size:12.5px;color:var(--t2);margin-bottom:12px;background:var(--sf2);border-radius:var(--rs);padding:10px 13px;border:1px solid var(--bd);line-height:1.5">
-      La <strong>pieza principal</strong> se calcula arriba. Agregá piezas que <strong>suman</strong> al total (ej: logo incluido), que son <strong>opcionales</strong> (el cliente puede agregar), o <strong>variantes</strong> en otro material con precio separado.
-    </div>
-    <div id="pieceList"></div>
-    <button class="addbtn" onclick="addPiece()">＋ Agregar pieza al presupuesto</button>
-  </div>
-</div>
-
-<!-- ⑩ MARGEN -->
-<div class="card full">
-  <div class="ch fixed">
-    <div class="ch-l">
-      <div class="c-icon">
-        <svg class="icon" viewBox="0 0 18 18"><path d="M2 13l4-4 3 3 7-7"/><path d="M12 5h4v4"/></svg>
-      </div>
-      <div><div class="ctit">Margen de ganancia &amp; Moneda</div></div>
-    </div>
-  </div>
-  <div class="cb">
-    <div class="marg-inner">
-      <div>
-        <div class="marg-big" id="margDisp">50%</div>
-        <div class="marg-tag" id="margTag">Estándar — piezas comunes</div>
-        <div class="pills" id="margPills">
-          <button class="pill" onclick="setMargin(this,20)">20%</button>
-          <button class="pill" onclick="setMargin(this,30)">30%</button>
-          <button class="pill on" onclick="setMargin(this,50)">50%</button>
-          <button class="pill" onclick="setMargin(this,80)">80%</button>
-          <button class="pill" onclick="setMargin(this,120)">120%</button>
-          <button class="pill" onclick="setMargin(this,200)">200%</button>
-        </div>
-        <input type="range" id="margSlider" min="0" max="300" value="50" oninput="onSlider(this.value)">
-        <div class="sl-labs"><span>0%</span><span>150%</span><span>300%</span></div>
-      </div>
-      <div>
-        <div class="f"><label class="fl">Tipo de cambio (USD → UYU)</label>
-          <div class="irow">
-            <input type="number" id="exRate" value="39.78" min="1" step="0.01" style="flex:1">
-            <button class="hbtn" id="exRateBtn" onclick="fetchRate()" title="Actualizar tipo de cambio" style="flex-shrink:0;height:44px;border-radius:var(--rs);gap:5px">
-              <svg class="icon" viewBox="0 0 18 18"><path d="M16 2v5h-5"/><path d="M2 16v-5h5"/><path d="M5.51 7a7 7 0 0113.23 2M1.26 9a7 7 0 0013.23 2"/></svg>
-              <span class="hbtn-label" id="exRateBtnLbl">BCU</span>
-            </button>
-          </div>
-          <div class="hint" id="exRateHint">Referencial BCU</div>
-        </div>
-        <div class="f"><label class="fl">Mostrar resultados en</label>
-          <div class="dtog" id="dispTog">
-            <button class="on" onclick="setDisp(this,'UYU')">$ UYU</button>
-            <button onclick="setDisp(this,'USD')">U$S</button>
-            <button onclick="setDisp(this,'BOTH')">Ambos</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ⑩ RESULTADOS -->
-<div class="card full" id="rcard">
+<!-- ═══ RESULTADO DEL PRESUPUESTO (total) ═══ -->
+<div class="card full" id="rcardTotal" style="display:none">
   <div class="r-head">
     <div style="display:flex;align-items:center;gap:8px">
       <div class="c-icon" style="background:var(--ac)">
@@ -2596,7 +2301,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <label class="tsw" title="Facturar: agrega 22% IVA al total">
-        <input type="checkbox" id="ivaOnBill" onchange="S.ivaOnBill=this.checked;calc()">
+        <input type="checkbox" id="ivaOnBill" onchange="S.ivaOnBill=this.checked;recalcTotal()">
         <div class="ttr"><div class="tth"></div></div>
       </label>
       <span style="font-size:13px;font-weight:600;color:var(--t2)">Facturar (+ IVA 22%)</span>
@@ -2607,7 +2312,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <button onclick="setDisp(this,'BOTH')">Ambos</button>
     </div>
   </div>
-  <div id="presBar" style="display:none;padding:10px 22px;background:var(--acs);border-bottom:1px solid var(--acg);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <div id="presBar" style="display:none;padding:10px 22px;background:var(--acs);border-bottom:1px solid var(--acg);align-items:center;gap:14px;flex-wrap:wrap">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);opacity:.7">Presupuesto activo</div>
     <div id="presNumView" style="display:flex;align-items:center;gap:6px">
       <span id="presNumLabel" style="font-family:var(--fh);font-size:22px;font-weight:300;color:var(--ac);letter-spacing:-0.02em">#0001</span>
@@ -2623,13 +2328,13 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="r-body">
     <div class="price-hero">
       <div class="ph-main">
-        <div class="ph-label">Precio de venta</div>
-        <div class="ph-price" id="pMain">—</div>
+        <div class="ph-label">Precio total del presupuesto</div>
+        <div class="ph-price" id="tMain">—</div>
       </div>
       <div class="ph-stats">
-        <div class="ph-stat"><div class="ph-stl">Costo total</div><div class="ph-stv" id="costDisp">—</div></div>
-        <div class="ph-stat"><div class="ph-stl">Ganancia</div><div class="ph-stv g" id="profitDisp">—</div></div>
-        <div class="ph-stat"><div class="ph-stl">Margen efectivo</div><div class="ph-stv" id="effMargin">—</div></div>
+        <div class="ph-stat"><div class="ph-stl">Costo total</div><div class="ph-stv" id="tCost">—</div></div>
+        <div class="ph-stat"><div class="ph-stl">Ganancia</div><div class="ph-stv g" id="tProfit">—</div></div>
+        <div class="ph-stat"><div class="ph-stl">Artículos</div><div class="ph-stv" id="tCount">0</div></div>
       </div>
       <div id="ivaDesglose" style="display:none;margin-top:16px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rm);padding:14px 18px;width:100%">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);opacity:.7;margin-bottom:10px">Desglose con IVA (22%)</div>
@@ -2640,21 +2345,15 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
       </div>
     </div>
-    <div id="piecesSection" style="display:none;margin-bottom:18px">
-      <div class="bars-ttl">Piezas del presupuesto</div>
-      <div id="piecesDisplay"></div>
-    </div>
-    <div class="mets" id="metsGrid"></div>
-    <div class="bars-ttl">Desglose de costos</div>
-    <div id="barsList"></div>
-    <div class="formula"><strong>Fórmula</strong><br>Precio = (Material + Electricidad + Depreciación + Mantenimiento + Mano de obra + Gastos fijos + Packaging + Insumos) × (1 + % fallas) × (1 + % margen)</div>
+    <div class="bars-ttl">Detalle por artículo</div>
+    <div id="tArticulos"></div>
     <div class="r-actions">
       <button class="btn btn--primary" onclick="exportPDF()">
         <svg class="icon" viewBox="0 0 18 18"><rect x="3" y="2" width="10" height="13" rx="1.5"/><path d="M13 5l2 2-2 2"/><path d="M6 7h5M6 10h3"/></svg>
         Exportar PDF
       </button>
       <a id="waLink" class="btn btn--ghost" href="#" target="_blank" rel="noopener" style="text-decoration:none" onclick="return buildWALink(this)">
-        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2a7 7 0 00-6.08 10.47L2 16l3.62-.9A7 7 0 109 2z"/><path d="M6.5 7c.3.6.8 1.4 1.5 2s1.5 1.2 2.1 1.4" opacity=".5"/><path d="M6 6.5s.5-.5 1 0l.7 1c.2.3 0 .6-.2.8C7.2 8.6 7 9 7.5 9.5s.9.3 1.2 0c.2-.2.5-.4.8-.2l1 .7c.5.5 0 1 0 1-.5.5-2 .7-3.5-.8S5.5 7 6 6.5z"/></svg>
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2a7 7 0 00-6.08 10.47L2 16l3.62-.9A7 7 0 109 2z"/></svg>
         Compartir WhatsApp
       </a>
       <button class="btn btn--ghost" id="saveBtn" onclick="savePresupuesto()">
@@ -5118,582 +4817,519 @@ const PR={
   manual:{PLA:100,PETG:100,ABS:100,maint:300,hint:'Ingresá los datos manualmente'}
 };
 
-// ── STATE ─────────────────────────────────────────────────────────────
+// ── STATE (multi-artículo) ────────────────────────────────────────────
 let S={
-  spoolCur:'UYU',pkgCur:'UYU',matPill:'PLA',disp:'UYU',margin:50,
-  ivaOnSpool:false,ivaOnBill:false,
-  extras:[],extId:0,lc:null,pieces:[],pieceId:0,editingId:null,editingNum:null,
-  sec:{elec:true,printer:true,labor:true,extras:true,time:true,client:true},
-  col:{pedido:false,client:false,elec:false,time:false,printer:false,labor:false,extras:false,dims:false},
-  prices:{...DEF}
+  disp:'UYU', ivaOnBill:false, margin:50,
+  prices:{...DEF},
+  articulos:[], artId:0,
+  extras:[], extId:0,          // compat (no usados en multi)
+  pieces:[], pieceId:0,        // compat
+  editingId:null, editingNum:null,
+  lc:null, lcArts:null
 };
 try{const p=JSON.parse(localStorage.getItem('al-prices'));if(p)S.prices={...DEF,...p}}catch(e){}
 
-// ── THEME (control segmentado claro/oscuro) ───────────────────────────
-syncThemeToggle();
+// Defaults precargados del taller (editables por artículo)
+const ART_DEF={
+  desc:'', qty:1, qtyMul:true, alto:'', ancho:'', profundo:'', peso:'',
+  matType:'PLA', spoolPrice:800, ivaOnSpool:false, grams:50, waste:5,
+  kwhRate:10.35, printerModel:'A1', watts:95, matPill:'PLA',
+  tDays:0, tHours:3, tMins:30,
+  printerCost:80000, printerLife:5000, maintenance:350, pieces:20,
+  hourly:200, laborH:0.5, overhead:5000, failBuf:10,
+  packaging:0, margin:50, spoolCur:'UYU', pkgCur:'UYU',
+  sec:{elec:true,printer:true,labor:true,time:true,extras:false}
+};
 
-// ── STEPPER ───────────────────────────────────────────────────────────
-function step(id,d){
-  const el=document.getElementById(id);
-  const v=parseInt(el.value)||0;
-  const min=parseInt(el.min)||0;
-  const max=el.max?parseInt(el.max):9999;
-  el.value=Math.max(min,Math.min(max,v+d));
-  calc();
-}
+syncThemeToggle();
 
 // ── MODALS ────────────────────────────────────────────────────────────
 function openM(id){document.getElementById('ov').classList.add('open');document.getElementById(id).classList.add('open')}
 function closeM(){document.getElementById('ov').classList.remove('open');document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'))}
 
-// ── COLLAPSE ─────────────────────────────────────────────────────────
-function toggleSec(id,on){
-  S.sec[id]=on;
-  const card=document.getElementById('card-'+id);
-  if(!card)return;
-  if(!on&&!S.col[id])tog(id);
-  else if(on&&S.col[id])tog(id);
-  calc();
-}
-function tog(id){
-  S.col[id]=!S.col[id];
-  const c=document.getElementById('card-'+id);
-  if(c)c.classList.toggle('coll',S.col[id]);
-}
-
-// ── CURRENCY ─────────────────────────────────────────────────────────
-function setCur(field,cur){
-  const ex=parseFloat(document.getElementById('exRate').value)||39.78;
-  if(field==='spool'){
-    const inp=document.getElementById('spoolPrice'),v=parseFloat(inp.value)||0;
-    if(cur==='USD'&&S.spoolCur==='UYU')inp.value=(v/ex).toFixed(2);
-    if(cur==='UYU'&&S.spoolCur==='USD')inp.value=Math.round(v*ex);
-    S.spoolCur=cur;
-    document.getElementById('spoolTog').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent===(cur==='UYU'?'$':'U$S')));
-  }
-  if(field==='pkg'){
-    const inp=document.getElementById('packaging'),v=parseFloat(inp.value)||0;
-    if(cur==='USD'&&S.pkgCur==='UYU')inp.value=(v/ex).toFixed(2);
-    if(cur==='UYU'&&S.pkgCur==='USD')inp.value=Math.round(v*ex);
-    S.pkgCur=cur;
-    document.getElementById('pkgTog').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent===(cur==='UYU'?'$':'U$S')));
-  }
-  if(field.startsWith('x-')){
-    const idx=parseInt(field.split('-')[1]),e=S.extras[idx];if(!e)return;
-    const v=parseFloat(e.el.querySelector('.xp').value)||0;
-    if(cur==='USD'&&e.cur==='UYU')e.el.querySelector('.xp').value=(v/ex).toFixed(2);
-    if(cur==='UYU'&&e.cur==='USD')e.el.querySelector('.xp').value=Math.round(v*ex);
-    e.cur=cur;
-    e.el.querySelectorAll('.xcur button').forEach(b=>b.classList.toggle('on',b.textContent===(cur==='UYU'?'$':'U$S')));
-  }
-  updHints();calc();
-}
-function updHints(){
-  const ex=parseFloat(document.getElementById('exRate').value)||39.78;
-  const sv=parseFloat(document.getElementById('spoolPrice').value)||0;
-  const spUYU=S.spoolCur==='USD'?sv*ex:sv;
-  const spEff=S.ivaOnSpool?spUYU*1.22:spUYU;
-  document.getElementById('spoolHint').textContent=S.spoolCur==='USD'?`≈ ${fmt(spUYU)} UYU`:'';
-  const ivaH=document.getElementById('ivaSpoolHint');
-  if(ivaH)ivaH.textContent=S.ivaOnSpool?`→ ${fmt(spEff)} UYU (con IVA)`:'';
-  const pv=parseFloat(document.getElementById('packaging').value)||0;
-  document.getElementById('pkgHint').textContent=S.pkgCur==='USD'?`≈ ${fmt(pv*ex)} UYU`:'';
-}
-
-// ── RATE ─────────────────────────────────────────────────────────────
-function setRate(btn,rate){
-  document.querySelectorAll('#utePills .pill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
-  const inp=document.getElementById('kwhRate');
-  if(rate==='custom')inp.style.display='block';
-  else{inp.style.display='none';inp.value=rate;}
-  calc();
-}
-
-// ── PRINTER ──────────────────────────────────────────────────────────
-function setPrinter(m){
-  const p=PR[m]||PR.A1;
-  document.getElementById('watts').value=p[S.matPill]||p.PLA;
-  document.getElementById('maintenance').value=p.maint;
-  document.getElementById('maintHint').textContent=p.hint;
-  document.getElementById('wattsHint').textContent=`${m} · ${S.matPill} · wiki.bambulab.com`;
-  calc();
-}
-function setMP(btn,mat){
-  S.matPill=mat;
-  document.querySelectorAll('#matPills .pill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
-  const m=document.getElementById('printerModel').value,p=PR[m]||PR.A1;
-  document.getElementById('watts').value=p[mat]||p.PLA;
-  document.getElementById('wattsHint').textContent=`${m} · ${mat} · wiki.bambulab.com`;
-  calc();
-}
-
-// ── MARGIN ───────────────────────────────────────────────────────────
-function setMargin(btn,v){
-  document.querySelectorAll('#margPills .pill').forEach(b=>b.classList.remove('on'));
-  if(btn)btn.classList.add('on');
-  document.getElementById('margSlider').value=v;S.margin=v;updMargin(v);calc();
-}
-function onSlider(v){S.margin=parseInt(v);document.querySelectorAll('#margPills .pill').forEach(b=>b.classList.remove('on'));updMargin(v);calc();}
-function updMargin(v){
-  v=parseInt(v);document.getElementById('margDisp').textContent=v+'%';
-  const ts=[[0,20,'Muy bajo — apenas cubrís costos'],[21,40,'Bajo — clientes frecuentes'],[41,70,'Estándar — piezas comunes'],[71,100,'Bueno — piezas técnicas'],[101,150,'Alto — diseño personalizado'],[151,999,'Premium — exclusivo o urgente']];
-  const t=ts.find(([a,b])=>v>=a&&v<=b);document.getElementById('margTag').textContent=t?t[2]:'';
-}
-
-// ── DISPLAY ───────────────────────────────────────────────────────────
-function setDisp(btn,cur){
-  S.disp=cur;
-  document.querySelectorAll('.dtog button').forEach(b=>{
-    b.classList.toggle('on',(cur==='UYU'&&b.textContent.includes('UYU'))||(cur==='USD'&&b.textContent.includes('U$S'))||(cur==='BOTH'&&b.textContent==='Ambos'));
-  });
-  calc();
-}
-
-// ── EXTRAS ───────────────────────────────────────────────────────────
-function addExtra(){
-  const id=S.extId++;
-  const row=document.createElement('div');row.className='xrow';row.dataset.id=id;
-  row.innerHTML=`<input type="text" class="xd" placeholder="Descripción…">
-    <div style="display:flex;gap:5px;align-items:center">
-      <input type="number" class="xp" value="0" min="0" step="1" style="flex:1;height:40px">
-      <div class="ctog xcur" style="height:40px">
-        <button class="on" onclick="setCur('x-${id}','UYU')">$</button>
-        <button onclick="setCur('x-${id}','USD')">U$S</button>
-      </div>
-    </div>
-    <button class="rmbtn" onclick="rmExtra(${id})">×</button>`;
-  document.getElementById('xList').appendChild(row);
-  S.extras.push({id,el:row,cur:'UYU'});
-  row.querySelector('.xp').addEventListener('input',calc);
-  calc();
-}
-function rmExtra(id){const i=S.extras.findIndex(e=>e.id===id);if(i>=0){S.extras[i].el.remove();S.extras.splice(i,1);}calc();}
-
 // ── FORMAT ────────────────────────────────────────────────────────────
 function fmt(v){return Math.round(v).toLocaleString('es-UY')}
 function fmtD(v){return v.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtC(v,cur,ex){
-  if(cur==='UYU')return`$\u00a0${fmt(v)}`;
-  if(cur==='USD')return`U$S\u00a0${fmtD(v/ex)}`;
-  return`$\u00a0${fmt(v)}\u2002·\u2002U$S\u00a0${fmtD(v/ex)}`;
+  if(cur==='UYU')return`$ ${fmt(v)}`;
+  if(cur==='USD')return`U$S ${fmtD(v/ex)}`;
+  return`$ ${fmt(v)} · U$S ${fmtD(v/ex)}`;
+}
+function exRate(){return parseFloat(document.getElementById('exRate').value)||39.78;}
+function _art(aid){return S.articulos.find(a=>a.id===aid);}
+function gv(id,aid){const el=document.getElementById(id+'-'+aid);return el?el.value:'';}
+function gn(id,aid){return parseFloat(gv(id,aid))||0;}
+
+// ── ARTÍCULO: HTML ────────────────────────────────────────────────────
+function articuloHTML(aid){
+  const n=S.articulos.length;
+  return `<div class="card full art-card" id="art-${aid}" style="border:1px solid var(--ac);border-left:4px solid var(--ac)">
+    <div class="ch" onclick="artToggleCollapse(${aid})" style="cursor:pointer">
+      <div class="ch-l">
+        <div class="c-icon" style="background:var(--ac);color:#fff;font-family:var(--fh);font-weight:700">${n}</div>
+        <div><div class="ctit" id="art-disp-${aid}">Artículo ${n}</div><div class="csub" id="art-sub-${aid}">Completá los datos del artículo</div></div>
+      </div>
+      <div class="ch-r" style="gap:10px">
+        <span class="num" id="art-price-${aid}" style="font-family:var(--fh);font-weight:700;color:var(--ac);font-size:15px">$ 0</span>
+        <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar artículo" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
+        <span class="arr">▼</span>
+      </div>
+    </div>
+    <div class="cb col" id="art-body-${aid}">
+
+      <!-- 1. Descripción + cantidad + dimensiones -->
+      <div class="f"><label class="fl">Descripción del artículo</label>
+        <input type="text" id="desc-${aid}" placeholder="Ej: Llavero personalizado…" oninput="document.getElementById('art-disp-${aid}').textContent=this.value||'Artículo ${n}'">
+      </div>
+      <div class="two">
+        <div class="f"><label class="fl">Cantidad</label>
+          <input type="number" id="qty-${aid}" value="1" min="1" step="1">
+          <label style="display:flex;align-items:center;gap:7px;margin-top:9px;cursor:pointer">
+            <input type="checkbox" id="qtyEnabled-${aid}" checked style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer">
+            <span style="font-size:12px;color:var(--t2)">Multiplicar precio por cantidad</span>
+          </label>
+        </div>
+        <div class="f"><label class="fl">Dimensiones (opcional)</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input type="number" id="alto-${aid}" placeholder="Alto mm" min="0" step="1">
+            <input type="number" id="ancho-${aid}" placeholder="Ancho mm" min="0" step="1">
+            <input type="number" id="profundo-${aid}" placeholder="Prof. mm" min="0" step="1">
+            <input type="number" id="peso-${aid}" placeholder="Peso g" min="0" step="1">
+          </div>
+        </div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 4. Material -->
+      <label class="fl" style="display:block;margin-bottom:8px">🧵 Material</label>
+      <div class="f"><label class="fl">Tipo de filamento</label>
+        <select id="matType-${aid}" onchange="artMatType(${aid})">
+          <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
+          <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
+          <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
+        </select>
+      </div>
+      <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
+        <div class="irow">
+          <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
+          <div class="ctog" id="spoolTog-${aid}">
+            <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
+            <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+          <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
+        </div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
+        <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 5. Electricidad -->
+      <div class="sec-head">
+        <label class="fl">⚡ Electricidad</label>
+        <label class="tsw"><input type="checkbox" id="en-elec-${aid}" checked onchange="artToggleSec(${aid},'elec',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-elec-${aid}">
+        <div class="f"><label class="fl">Tarifa UTE (UYU/kWh)</label>
+          <div class="pills" id="utePills-${aid}">
+            <button class="pill on" onclick="artSetRate(${aid},this,10.35)">Residencial · 10.35</button>
+            <button class="pill" onclick="artSetRate(${aid},this,5.16)">Comercial · 5.16</button>
+            <button class="pill" onclick="artSetRate(${aid},this,'custom')">Personalizada</button>
+          </div>
+          <input type="number" id="kwhRate-${aid}" value="10.35" min="0" step="0.01" style="display:none;margin-top:6px">
+        </div>
+        <div class="two">
+          <div class="f"><label class="fl">Impresora</label>
+            <select id="printerModel-${aid}" onchange="artSetPrinter(${aid},this.value)">
+              <option value="A1">Bambu A1</option><option value="A1Mini">A1 Mini</option><option value="P1P">P1P</option><option value="P1S">P1S</option><option value="P2S">P2S</option><option value="X1C">X1C</option><option value="X1E">X1E</option><option value="H2C">H2C</option><option value="H2D">H2D</option><option value="H2S">H2S</option><option value="manual">Otra / Manual</option>
+            </select>
+          </div>
+          <div class="f"><label class="fl">Potencia (W)</label><input type="number" id="watts-${aid}" value="95" min="0" step="1"></div>
+        </div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 6. Tiempo -->
+      <div class="sec-head">
+        <label class="fl">⏱ Tiempo de impresión</label>
+        <label class="tsw"><input type="checkbox" id="en-time-${aid}" checked onchange="artToggleSec(${aid},'time',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-time-${aid}">
+        <div class="time-grid">
+          <div class="time-unit"><label>Días</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tDays',-1)">−</button><input class="step-inp" type="number" id="tDays-${aid}" value="0" min="0"><button class="step-btn" onclick="artStep(${aid},'tDays',1)">+</button></div></div>
+          <div class="time-unit"><label>Horas</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tHours',-1)">−</button><input class="step-inp" type="number" id="tHours-${aid}" value="3" min="0" max="23"><button class="step-btn" onclick="artStep(${aid},'tHours',1)">+</button></div></div>
+          <div class="time-unit"><label>Minutos</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tMins',-1)">−</button><input class="step-inp" type="number" id="tMins-${aid}" value="30" min="0" max="59"><button class="step-btn" onclick="artStep(${aid},'tMins',1)">+</button></div></div>
+        </div>
+        <div class="time-total"><div class="time-total-label">Total</div><div class="time-total-val" id="timeTotal-${aid}">3h 30min</div></div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 7. Impresora & mantenimiento -->
+      <div class="sec-head">
+        <label class="fl">🖨 Impresora &amp; mantenimiento</label>
+        <label class="tsw"><input type="checkbox" id="en-printer-${aid}" checked onchange="artToggleSec(${aid},'printer',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-printer-${aid}">
+        <div class="two">
+          <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost-${aid}" value="80000" min="0" step="100"></div>
+          <div class="f"><label class="fl">Vida útil (horas)</label><input type="number" id="printerLife-${aid}" value="5000" min="100" step="100"></div>
+        </div>
+        <div class="two">
+          <div class="f"><label class="fl">Mantenimiento mensual</label><input type="number" id="maintenance-${aid}" value="350" min="0" step="10"></div>
+          <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces-${aid}" value="20" min="1" step="1"></div>
+        </div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 8. Mano de obra -->
+      <div class="sec-head">
+        <label class="fl">🛠 Mano de obra</label>
+        <label class="tsw"><input type="checkbox" id="en-labor-${aid}" checked onchange="artToggleSec(${aid},'labor',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-labor-${aid}">
+        <div class="two">
+          <div class="f"><label class="fl">Tarifa horaria (UYU)</label><input type="number" id="hourly-${aid}" value="200" min="0" step="10"></div>
+          <div class="f"><label class="fl">Horas prep + post</label><input type="number" id="laborH-${aid}" value="0.5" min="0" step="0.25"></div>
+        </div>
+        <div class="two">
+          <div class="f"><label class="fl">Gastos fijos mensuales</label><input type="number" id="overhead-${aid}" value="5000" min="0" step="100"></div>
+          <div class="f"><label class="fl">Buffer fallas (%)</label><input type="number" id="failBuf-${aid}" value="10" min="0" max="50" step="1"></div>
+        </div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 9. Costos adicionales (todo en 0, packaging apagado) -->
+      <div class="sec-head">
+        <label class="fl">📦 Costos adicionales</label>
+        <label class="tsw"><input type="checkbox" id="en-extras-${aid}" onchange="artToggleSec(${aid},'extras',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-extras-${aid}" style="display:none">
+        <div class="f"><label class="fl">Packaging / embalaje</label>
+          <div class="irow">
+            <input type="number" id="packaging-${aid}" value="0" min="0" step="1">
+            <div class="ctog" id="pkgTog-${aid}"><button class="on" onclick="artSetCur(${aid},'pkg','UYU')">$</button><button onclick="artSetCur(${aid},'pkg','USD')">U$S</button></div>
+          </div>
+        </div>
+        <label class="fl" style="display:block;margin:10px 0 8px">Insumos adicionales</label>
+        <div class="xl" id="xList-${aid}"></div>
+        <button class="addbtn" onclick="artAddExtra(${aid})">＋ Agregar insumo adicional</button>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 10. Margen -->
+      <label class="fl" style="display:block;margin-bottom:8px">📈 Margen de ganancia</label>
+      <div class="marg-big" id="margDisp-${aid}" style="font-size:34px">50%</div>
+      <div class="pills" id="margPills-${aid}" style="margin-bottom:8px">
+        <button class="pill" onclick="artSetMargin(${aid},this,20)">20%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,30)">30%</button>
+        <button class="pill on" onclick="artSetMargin(${aid},this,50)">50%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,80)">80%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,120)">120%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,200)">200%</button>
+      </div>
+      <input type="range" id="margSlider-${aid}" min="0" max="300" value="50" oninput="artOnSlider(${aid},this.value)">
+      <div class="sl-labs"><span>0%</span><span>150%</span><span>300%</span></div>
+      <div class="divl"></div>
+
+      <!-- 11. Resultado de la pieza -->
+      <div class="price-hero" style="margin-bottom:0">
+        <div class="ph-main"><div class="ph-label">Precio de esta pieza</div><div class="ph-price" id="pMain-${aid}" style="font-size:32px">—</div></div>
+        <div class="ph-stats">
+          <div class="ph-stat"><div class="ph-stl">Costo</div><div class="ph-stv" id="costDisp-${aid}">—</div></div>
+          <div class="ph-stat"><div class="ph-stl">Ganancia</div><div class="ph-stv g" id="profitDisp-${aid}">—</div></div>
+          <div class="ph-stat"><div class="ph-stl">Margen ef.</div><div class="ph-stv" id="effMargin-${aid}">—</div></div>
+        </div>
+      </div>
+      <div class="mets" id="metsGrid-${aid}" style="margin-top:14px"></div>
+    </div>
+  </div>`;
 }
 
-// ── CALC ──────────────────────────────────────────────────────────────
-function calc(){
-  const ex=parseFloat(document.getElementById('exRate').value)||39.78;updHints();
-  const qtyEnabled=document.getElementById('qtyEnabled')?.checked!==false;
-  const qty=qtyEnabled?Math.max(1,parseFloat(document.getElementById('qty').value)||1):1;
-  // Material
-  const spR=parseFloat(document.getElementById('spoolPrice').value)||0;
-  const spUraw=S.spoolCur==='USD'?spR*ex:spR;
-  const spU=S.ivaOnSpool?spUraw*1.22:spUraw;
-  const g=parseFloat(document.getElementById('grams').value)||0;
-  const ws=parseFloat(document.getElementById('waste').value)||0;
-  const matC=(g*(1+ws/100)/1000)*spU;
-  // Time
-  let totalH=0;
-  if(S.sec.time){
-    const d=parseFloat(document.getElementById('tDays').value)||0;
-    const h=parseFloat(document.getElementById('tHours').value)||0;
-    const m=parseFloat(document.getElementById('tMins').value)||0;
-    totalH=d*24+h+m/60;
-    const parts=[];
-    if(d>0)parts.push(`${d}d`);
-    if(h>0||d>0)parts.push(`${h}h`);
-    parts.push(`${Math.round(m)}min`);
-    document.getElementById('timeTotal').textContent=`${parts.join(' ')} = ${totalH.toFixed(2)} h`;
-  } else {document.getElementById('timeTotal').textContent='Sección desactivada';}
-  // Elec
-  let elecC=0;
-  if(S.sec.elec){
-    const kw=parseFloat(document.getElementById('kwhRate').value)||10.35;
-    const w=parseFloat(document.getElementById('watts').value)||0;
-    elecC=(w/1000)*totalH*kw;
+// ── ARTÍCULO: gestión ────────────────────────────────────────────────
+function addArticulo(snapData){
+  const aid=S.artId++;
+  S.articulos.push({id:aid, sec:{...ART_DEF.sec}, col:{}, margin:50, spoolCur:'UYU', pkgCur:'UYU', ivaOnSpool:false, matPill:'PLA', extras:[], extId:0});
+  const wrap=document.getElementById('articulosWrap');
+  wrap.insertAdjacentHTML('beforeend', articuloHTML(aid));
+  const bloque=document.getElementById('art-'+aid);
+  // Aplicar packaging apagado por defecto (sección extras off)
+  document.getElementById('body-extras-'+aid).style.display='none';
+  // Listeners de recálculo
+  bloque.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',()=>{renderArt(aid);recalcTotal();}));
+  // Botón de agregar pasa a "sumar otro artículo"
+  document.getElementById('addArtLabel').textContent='Sumar otro artículo';
+  document.getElementById('rcardTotal').style.display='';
+  if(snapData) restoreArticulo(aid,snapData);
+  renderArt(aid); recalcTotal();
+  if(!snapData) bloque.scrollIntoView({behavior:'smooth',block:'center'});
+  return aid;
+}
+function rmArticulo(aid){
+  const i=S.articulos.findIndex(a=>a.id===aid);
+  if(i<0)return;
+  S.articulos.splice(i,1);
+  document.getElementById('art-'+aid)?.remove();
+  if(S.articulos.length===0){
+    document.getElementById('addArtLabel').textContent='Agregar artículo';
+    document.getElementById('rcardTotal').style.display='none';
   }
-  // Printer
-  let deprC=0,maintC=0;
-  if(S.sec.printer){
-    const pc=parseFloat(document.getElementById('printerCost').value)||0;
-    const pl=parseFloat(document.getElementById('printerLife').value)||5000;
-    deprC=(pc/pl)*totalH;
-    const mn=parseFloat(document.getElementById('maintenance').value)||0;
-    const ps=parseFloat(document.getElementById('pieces').value)||1;
-    maintC=mn/ps;
-  }
-  // Labor
-  let laborC=0,ovhC=0,fail=0;
-  if(S.sec.labor){
-    const hr=parseFloat(document.getElementById('hourly').value)||0;
-    const lh=parseFloat(document.getElementById('laborH').value)||0;
-    laborC=hr*lh;
-    const ov=parseFloat(document.getElementById('overhead').value)||0;
-    const ps=parseFloat(document.getElementById('pieces').value)||1;
-    ovhC=ov/ps;
-    fail=parseFloat(document.getElementById('failBuf').value)||0;
-  }
-  // Extras
-  let pkgC=0,extC=0;
-  if(S.sec.extras){
-    const pkR=parseFloat(document.getElementById('packaging').value)||0;
-    pkgC=S.pkgCur==='USD'?pkR*ex:pkR;
-    S.extras.forEach(e=>{const v=parseFloat(e.el.querySelector('.xp').value)||0;extC+=e.cur==='USD'?v*ex:v;});
-    document.getElementById('xTotal').textContent=S.extras.length?`Total insumos: ${fmtC(extC,S.disp,ex)}`:'';
-  } else {document.getElementById('xTotal').textContent='';}
+  recalcTotal();
+}
+function artToggleCollapse(aid){
+  const c=document.getElementById('art-'+aid);
+  if(c)c.classList.toggle('coll');
+}
 
+// ── ARTÍCULO: helpers ─────────────────────────────────────────────────
+function artToggleSec(aid,sec,on){
+  const a=_art(aid); if(a)a.sec[sec]=on;
+  const body=document.getElementById('body-'+sec+'-'+aid);
+  if(body)body.style.display=on?'':'none';
+  renderArt(aid); recalcTotal();
+}
+function artIvaSpool(aid,on){const a=_art(aid);if(a)a.ivaOnSpool=on;renderArt(aid);recalcTotal();}
+function artSetCur(aid,field,cur){
+  const a=_art(aid); if(!a)return; const ex=exRate();
+  if(field==='spool'){
+    const inp=document.getElementById('spoolPrice-'+aid),v=parseFloat(inp.value)||0;
+    if(cur==='USD'&&a.spoolCur==='UYU')inp.value=(v/ex).toFixed(2);
+    if(cur==='UYU'&&a.spoolCur==='USD')inp.value=Math.round(v*ex);
+    a.spoolCur=cur;
+    document.getElementById('spoolTog-'+aid).querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent===(cur==='UYU'?'$':'U$S')));
+  } else if(field==='pkg'){
+    const inp=document.getElementById('packaging-'+aid),v=parseFloat(inp.value)||0;
+    if(cur==='USD'&&a.pkgCur==='UYU')inp.value=(v/ex).toFixed(2);
+    if(cur==='UYU'&&a.pkgCur==='USD')inp.value=Math.round(v*ex);
+    a.pkgCur=cur;
+    document.getElementById('pkgTog-'+aid).querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent===(cur==='UYU'?'$':'U$S')));
+  }
+  renderArt(aid); recalcTotal();
+}
+function artSetRate(aid,btn,rate){
+  document.getElementById('utePills-'+aid).querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  const inp=document.getElementById('kwhRate-'+aid);
+  if(rate==='custom'){inp.style.display='block';}
+  else{inp.style.display='none';inp.value=rate;}
+  renderArt(aid); recalcTotal();
+}
+function artSetPrinter(aid,m){
+  const a=_art(aid); const p=PR[m]||PR.A1;
+  document.getElementById('watts-'+aid).value=p[a?a.matPill:'PLA']||p.PLA;
+  document.getElementById('maintenance-'+aid).value=p.maint;
+  renderArt(aid); recalcTotal();
+}
+function artStep(aid,field,d){
+  const el=document.getElementById(field+'-'+aid);
+  const v=parseInt(el.value)||0, min=parseInt(el.min)||0, max=el.max?parseInt(el.max):9999;
+  el.value=Math.max(min,Math.min(max,v+d));
+  renderArt(aid); recalcTotal();
+}
+function artSetMargin(aid,btn,v){
+  const a=_art(aid); if(a)a.margin=v;
+  document.getElementById('margPills-'+aid).querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  document.getElementById('margSlider-'+aid).value=v;
+  document.getElementById('margDisp-'+aid).textContent=v+'%';
+  renderArt(aid); recalcTotal();
+}
+function artOnSlider(aid,v){
+  const a=_art(aid); if(a)a.margin=parseInt(v);
+  document.getElementById('margPills-'+aid).querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));
+  document.getElementById('margDisp-'+aid).textContent=parseInt(v)+'%';
+  renderArt(aid); recalcTotal();
+}
+function artMatType(aid){
+  const a=_art(aid); const val=document.getElementById('matType-'+aid).value;
+  const price=S.prices[val]||800; const ex=exRate();
+  document.getElementById('spoolPrice-'+aid).value=(a&&a.spoolCur==='USD')?(price/ex).toFixed(2):price;
+  renderArt(aid); recalcTotal();
+}
+function artAddExtra(aid){
+  const a=_art(aid); if(!a)return; const eid=a.extId++;
+  const row=document.createElement('div');row.className='xrow';row.dataset.id=eid;
+  row.innerHTML=`<input type="text" class="xd" placeholder="Descripción…">
+    <div style="display:flex;gap:5px;align-items:center">
+      <input type="number" class="xp" value="0" min="0" step="1" style="flex:1;height:40px">
+    </div>
+    <button class="rmbtn" onclick="artRmExtra(${aid},${eid})">×</button>`;
+  document.getElementById('xList-'+aid).appendChild(row);
+  a.extras.push({id:eid,el:row});
+  row.querySelector('.xp').addEventListener('input',()=>{renderArt(aid);recalcTotal();});
+  renderArt(aid); recalcTotal();
+}
+function artRmExtra(aid,eid){
+  const a=_art(aid); if(!a)return;
+  const i=a.extras.findIndex(e=>e.id===eid);
+  if(i>=0){a.extras[i].el.remove();a.extras.splice(i,1);}
+  renderArt(aid); recalcTotal();
+}
+
+// ── MOTOR: cálculo de un artículo ─────────────────────────────────────
+function computeArt(aid){
+  const a=_art(aid); if(!a)return null;
+  const ex=exRate();
+  const qtyOn=document.getElementById('qtyEnabled-'+aid)?.checked!==false;
+  const qty=qtyOn?Math.max(1,gn('qty',aid)||1):1;
+  // Material
+  const spRaw=gn('spoolPrice',aid);
+  const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
+  const spU=a.ivaOnSpool?spU0*1.22:spU0;
+  const g=gn('grams',aid), ws=gn('waste',aid);
+  const matC=(g*(1+ws/100)/1000)*spU;
+  // Tiempo
+  let totalH=0;
+  if(a.sec.time){ totalH=gn('tDays',aid)*24+gn('tHours',aid)+gn('tMins',aid)/60;
+    const tt=document.getElementById('timeTotal-'+aid); if(tt)tt.textContent=`${totalH.toFixed(2)} h`;
+  }
+  // Electricidad
+  let elecC=0;
+  if(a.sec.elec){ const kw=gn('kwhRate',aid)||10.35, w=gn('watts',aid); elecC=(w/1000)*totalH*kw; }
+  // Impresora
+  let deprC=0,maintC=0;
+  if(a.sec.printer){ const pc=gn('printerCost',aid), pl=gn('printerLife',aid)||5000; deprC=(pc/pl)*totalH;
+    const mn=gn('maintenance',aid), ps=gn('pieces',aid)||1; maintC=mn/ps; }
+  // Mano de obra
+  let laborC=0,ovhC=0,fail=0;
+  if(a.sec.labor){ laborC=gn('hourly',aid)*gn('laborH',aid);
+    const ps=gn('pieces',aid)||1; ovhC=gn('overhead',aid)/ps; fail=gn('failBuf',aid); }
+  // Costos adicionales
+  let pkgC=0,extC=0;
+  if(a.sec.extras){ const pkR=gn('packaging',aid); pkgC=a.pkgCur==='USD'?pkR*ex:pkR;
+    a.extras.forEach(e=>{const v=parseFloat(e.el.querySelector('.xp').value)||0;extC+=v;}); }
   const sub=matC+elecC+deprC+maintC+laborC+ovhC+pkgC+extC;
   const failA=sub*(fail/100);
   const totalC=sub+failA;
-  const price=totalC*(1+S.margin/100);
-
-  // ── Additional pieces ────────────────────────────────────────────────
-  const piecesResults=[];
-  let extraSumCost=0,extraSumPrice=0;
-  S.pieces.forEach(p=>{
-    const pMat=document.getElementById('pmat-'+p.id)?.value||'PLA';
-    const pSpool=parseFloat(document.getElementById('pspool-'+p.id)?.value)||800;
-    const pGrams=parseFloat(document.getElementById('pgrams-'+p.id)?.value)||0;
-    const pWaste=parseFloat(document.getElementById('pwaste-'+p.id)?.value)||0;
-    const pDays=parseFloat(document.getElementById('pdays-'+p.id)?.value)||0;
-    const pHrs=parseFloat(document.getElementById('phours-'+p.id)?.value)||0;
-    const pMins=parseFloat(document.getElementById('pmins-'+p.id)?.value)||0;
-    const pLaborH=parseFloat(document.getElementById('plabor-'+p.id)?.value)||0;
-    const pName=document.getElementById('pname-'+p.id)?.value||'Pieza';
-    const pLbl=document.getElementById('vlabel-'+p.id)?.value||'';
-    const pH=pDays*24+pHrs+pMins/60;
-    const pMatC=(pGrams*(1+pWaste/100)/1000)*pSpool;
-    let pElecC=0;if(S.sec.elec){const kw=parseFloat(document.getElementById('kwhRate').value)||10.35;const w=parseFloat(document.getElementById('watts').value)||0;pElecC=(w/1000)*pH*kw;}
-    let pDeprC=0;if(S.sec.printer){const pc=parseFloat(document.getElementById('printerCost').value)||0;const pl=parseFloat(document.getElementById('printerLife').value)||5000;pDeprC=(pc/pl)*pH;}
-    let pLaborC=0;if(S.sec.labor){const hr=parseFloat(document.getElementById('hourly').value)||0;pLaborC=hr*pLaborH;}
-    const pSub=pMatC+pElecC+pDeprC+pLaborC;
-    const pFailA=pSub*(fail/100);
-    const pCost=pSub+pFailA;
-    const pPrice=pCost*(1+S.margin/100);
-    const costDisp=document.getElementById('pcost-disp-'+p.id);
-    if(costDisp)costDisp.textContent=fmtC(p.mode==='sum'?pPrice:pCost,'UYU',ex);
-    piecesResults.push({id:p.id,name:pName,mode:p.mode,label:pLbl,cost:pCost,price:pPrice,mat:pMat,grams:pGrams,totalH:pH});
-    if(p.mode==='sum'){extraSumCost+=pCost;extraSumPrice+=pPrice;}
-  });
-
-  const unitPrice=price+extraSumPrice;
+  const margin=a.margin||0;
+  const unitPrice=totalC*(1+margin/100);
   const totalP=unitPrice*qty;
-  const totalCostAll=(totalC+extraSumCost)*qty;
+  const totalCostAll=totalC*qty;
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
-  const C=S.disp;
-  S.lc={matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,sub,failA,totalC,price,unitPrice,totalP,profit,effM,qty,ex,piecesResults,extraSumPrice};
+  return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,totalP,totalCost:totalCostAll,profit,effM,totalH,
+    desc:gv('desc',aid)||'Artículo', mat:gv('matType',aid), grams:g, margin};
+}
 
-  // IVA facturación
-  const ivaAmt=totalP*0.22;
-  const totalConIVA=totalP+ivaAmt;
-  const displayPrice=S.ivaOnBill?totalConIVA:totalP;
-  // Hero
-  document.getElementById('pMain').textContent=fmtC(displayPrice,C,ex);
-  document.getElementById('costDisp').textContent=fmtC(totalC*qty,C,ex);
-  document.getElementById('profitDisp').textContent=fmtC(profit,C,ex);
-  document.getElementById('effMargin').textContent=effM.toFixed(1)+'%';
-  // Desglose IVA
+// ── MOTOR: render de un artículo ──────────────────────────────────────
+function renderArt(aid){
+  const r=computeArt(aid); if(!r)return null;
+  const C=S.disp, ex=exRate();
+  document.getElementById('pMain-'+aid).textContent=fmtC(r.totalP,C,ex);
+  document.getElementById('costDisp-'+aid).textContent=fmtC(r.totalCost,C,ex);
+  document.getElementById('profitDisp-'+aid).textContent=fmtC(r.profit,C,ex);
+  document.getElementById('effMargin-'+aid).textContent=r.effM.toFixed(1)+'%';
+  const price=document.getElementById('art-price-'+aid); if(price)price.textContent=fmtC(r.totalP,C,ex);
+  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g · ${r.qty>1?r.qty+' u · ':''}${fmtC(r.totalP,C,ex)}`;
+  const mets=[{l:'Material',v:r.matC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
+  const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
+  return r;
+}
+
+// ── MOTOR: total del presupuesto ──────────────────────────────────────
+function recalcTotal(){
+  const C=S.disp, ex=exRate();
+  let totalP=0,totalCost=0; const arts=[];
+  S.articulos.forEach(a=>{ const r=renderArt(a.id); if(r){totalP+=r.totalP;totalCost+=r.totalCost;arts.push(r);} });
+  const profit=totalP-totalCost;
+  S.lc={totalP,totalCost,profit,qty:1}; S.lcArts=arts;
+  const card=document.getElementById('rcardTotal');
+  if(card) card.style.display=S.articulos.length?'':'none';
+  const iva=totalP*0.22, conIVA=totalP+iva;
+  const disp=S.ivaOnBill?conIVA:totalP;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('tMain',fmtC(disp,C,ex));
+  set('tCost',fmtC(totalCost,C,ex));
+  set('tProfit',fmtC(profit,C,ex));
+  set('tCount',S.articulos.length);
   const ivaRow=document.getElementById('ivaDesglose');
-  if(ivaRow){
-    if(S.ivaOnBill){
-      ivaRow.style.display='';
-      document.getElementById('iva-neto').textContent=fmtC(totalP,C,ex);
-      document.getElementById('iva-monto').textContent=fmtC(ivaAmt,C,ex);
-      document.getElementById('iva-total').textContent=fmtC(totalConIVA,C,ex);
-    } else {
-      ivaRow.style.display='none';
-    }
-  }
-
-  // Metrics
-  const mets=[{l:'Material',v:matC},{l:'Electricidad',v:elecC},{l:'Depreciación',v:deprC},
-    {l:'Mantenimiento',v:maintC},{l:'Mano de obra',v:laborC},{l:'Gastos fijos',v:ovhC},
-    {l:'Packaging',v:pkgC},{l:'Insumos',v:extC},{l:'Buffer fallas',v:failA},{l:'Costo unit.',v:totalC,hl:true},{l:'Precio unit.',v:price,hl:true}];
-  document.getElementById('metsGrid').innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
-
-  // Bars
-  const bars=[{n:'Material',v:matC},{n:'Electricidad',v:elecC},{n:'Depreciación',v:deprC},
-    {n:'Mantenimiento',v:maintC},{n:'Mano de obra',v:laborC},{n:'Gastos fijos',v:ovhC},
-    {n:'Packaging',v:pkgC},{n:'Insumos',v:extC},{n:'Buffer fallas',v:failA}].filter(b=>b.v>0.01);
-  const bl=document.getElementById('barsList');
-  if(totalC<=0){bl.innerHTML='<div class="hint">Ingresá valores para ver el desglose.</div>';return;}
-  bl.innerHTML=bars.map(b=>{const pct=(b.v/totalC*100).toFixed(1);return`<div class="brow"><div class="bn">${b.n}</div><div class="bt"><div class="bf" style="width:${pct}%"></div></div><div class="bp">${pct}%</div><div class="ba">${fmtC(b.v,C,ex)}</div></div>`;}).join('');
-
-  // ── Pieces breakdown ─────────────────────────────────────────────────
-  const pSec=document.getElementById('piecesSection');
-  const pDisp=document.getElementById('piecesDisplay');
-  if(piecesResults.length>0&&pSec&&pDisp){
-    pSec.style.display='';
-    let html='';
-    // Main piece
-    html+=`<div class="prblock sum"><span class="prb-label sum">Pieza principal</span><div class="prb-row"><span class="prb-name">${document.getElementById('pieceName').value||'Pieza principal'}</span><span class="prb-price">${fmtC(price,C,ex)}</span></div><div class="prb-detail">${document.getElementById('matType').value} · ${document.getElementById('grams').value}g</div></div>`;
-    // Additional pieces
-    piecesResults.forEach(p=>{
-      const lbl=p.mode==='sum'?'Incluida':p.mode==='optional'?'Opcional':`Variante${p.label?' — '+p.label:''}`;
-      html+=`<div class="prblock ${p.mode}"><span class="prb-label ${p.mode}">${lbl}</span><div class="prb-row"><span class="prb-name">${p.name}</span><span class="prb-price">${fmtC(p.price,C,ex)}</span></div><div class="prb-detail">${p.mat} · ${p.grams}g · ${p.totalH.toFixed(1)}h${p.mode!=='sum'?' (no incluido en total)':''}</div></div>`;
-    });
-    pDisp.innerHTML=html;
-  } else if(pSec){pSec.style.display='none';}
+  if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
+  // Lista por artículo
+  const tA=document.getElementById('tArticulos');
+  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.qty>1?` ×${r.qty}`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá un artículo para ver el total.</div>';
 }
 
-// ── PIECES ────────────────────────────────────────────────────────────
-function addPiece(){
-  const id=S.pieceId++;
-  const el=document.createElement('div');
-  el.className='piece-item';el.id='piece-'+id;
-  el.innerHTML=`
-    <div class="piece-hdr" onclick="togglePiece(${id})">
-      <div class="piece-hdr-l">
-        <span class="piece-name-disp" id="pname-disp-${id}">Nueva pieza</span>
-        <span class="pmbadge sum" id="pmbadge-${id}">Sumar al total</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-        <span class="piece-cost-disp" id="pcost-disp-${id}">—</span>
-        <button class="rmbtn" onclick="event.stopPropagation();removePiece(${id})" title="Eliminar">×</button>
-      </div>
-    </div>
-    <div class="piece-body" id="pbody-${id}">
-      <div class="pmbtn-row">
-        <button class="pmbtn sum on" onclick="setPieceMode(${id},'sum',this)">Sumar al total</button>
-        <button class="pmbtn optional" onclick="setPieceMode(${id},'optional',this)">Opcional</button>
-        <button class="pmbtn variant" onclick="setPieceMode(${id},'variant',this)">Variante de material</button>
-      </div>
-      <div id="vlrow-${id}" style="display:none;margin-bottom:10px">
-        <label class="fl">Etiqueta de variante</label>
-        <input type="text" id="vlabel-${id}" placeholder="Ej: en PETG, en ABS…" oninput="calc()">
-      </div>
-      <div class="f">
-        <label class="fl">Nombre de esta pieza</label>
-        <input type="text" id="pname-${id}" placeholder="Ej: Logo personalizado, Carcasa…" oninput="document.getElementById('pname-disp-${id}').textContent=this.value||'Nueva pieza';calc()">
-      </div>
-      <div class="two">
-        <div class="f"><label class="fl">Material</label>
-          <select id="pmat-${id}" onchange="onPieceMat(${id},this.value)">
-            <option>PLA</option><option>PETG</option><option>ABS</option>
-            <option>TPU</option><option>ASA</option><option>Nylon</option>
-            <option>Resina</option><option>Personalizado</option>
-          </select>
-        </div>
-        <div class="f"><label class="fl">Precio carrete (UYU/kg)</label>
-          <input type="number" id="pspool-${id}" value="800" min="0" step="1" oninput="calc()">
-        </div>
-      </div>
-      <div class="two">
-        <div class="f"><label class="fl">Filamento (g)</label>
-          <input type="number" id="pgrams-${id}" value="20" min="0" step="1" oninput="calc()">
-        </div>
-        <div class="f"><label class="fl">Desperdicio (%)</label>
-          <input type="number" id="pwaste-${id}" value="5" min="0" max="100" step="1" oninput="calc()">
-        </div>
-      </div>
-      <label class="fl" style="display:block;margin-bottom:8px">Tiempo de impresión</label>
-      <div class="time-grid" style="margin-bottom:12px">
-        <div class="time-unit"><label>Días</label>
-          <div class="stepper">
-            <button class="step-btn" onclick="stepP('pdays-${id}',-1)">−</button>
-            <input class="step-inp" type="number" id="pdays-${id}" value="0" min="0" oninput="calc()">
-            <button class="step-btn" onclick="stepP('pdays-${id}',1)">+</button>
-          </div>
-        </div>
-        <div class="time-unit"><label>Horas</label>
-          <div class="stepper">
-            <button class="step-btn" onclick="stepP('phours-${id}',-1)">−</button>
-            <input class="step-inp" type="number" id="phours-${id}" value="1" min="0" max="23" oninput="calc()">
-            <button class="step-btn" onclick="stepP('phours-${id}',1)">+</button>
-          </div>
-        </div>
-        <div class="time-unit"><label>Minutos</label>
-          <div class="stepper">
-            <button class="step-btn" onclick="stepP('pmins-${id}',-1)">−</button>
-            <input class="step-inp" type="number" id="pmins-${id}" value="0" min="0" max="59" oninput="calc()">
-            <button class="step-btn" onclick="stepP('pmins-${id}',1)">+</button>
-          </div>
-        </div>
-      </div>
-      <div class="f">
-        <label class="fl">Horas prep/post-proceso (esta pieza)</label>
-        <input type="number" id="plabor-${id}" value="0" min="0" step="0.25" oninput="calc()">
-        <div class="hint">Ej: limpieza, soportes, pintura</div>
-      </div>
-      <div class="divl"></div>
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:8px">Dimensiones / Peso (opcional)</div>
-      <div class="three">
-        <div class="f"><label class="fl">Alto (mm)</label><input type="number" id="palto-${id}" min="0" step="0.1" placeholder="—" oninput="calc()"></div>
-        <div class="f"><label class="fl">Ancho (mm)</label><input type="number" id="pancho-${id}" min="0" step="0.1" placeholder="—" oninput="calc()"></div>
-        <div class="f"><label class="fl">Profundo (mm)</label><input type="number" id="pprofundo-${id}" min="0" step="0.1" placeholder="—" oninput="calc()"></div>
-      </div>
-      <div class="f"><label class="fl">Peso (g)</label><input type="number" id="ppeso-${id}" min="0" step="0.1" placeholder="—" oninput="calc()"></div>
-    </div>`;
-  document.getElementById('pieceList').appendChild(el);
-  S.pieces.push({id,mode:'sum',collapsed:false});
-  calc();
-}
-function removePiece(id){
-  S.pieces=S.pieces.filter(p=>p.id!==id);
-  document.getElementById('piece-'+id)?.remove();
-  calc();
-}
-function togglePiece(id){
-  const body=document.getElementById('pbody-'+id);
-  if(!body)return;
-  body.style.display=body.style.display==='none'?'':'none';
-}
-function setPieceMode(id,mode,btn){
-  const p=S.pieces.find(x=>x.id===id);if(!p)return;
-  p.mode=mode;
-  btn.closest('.pmbtn-row').querySelectorAll('.pmbtn').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const badge=document.getElementById('pmbadge-'+id);
-  if(badge){badge.className='pmbadge '+mode;badge.textContent=mode==='sum'?'Sumar al total':mode==='optional'?'Opcional':'Variante';}
-  const vrow=document.getElementById('vlrow-'+id);
-  if(vrow)vrow.style.display=mode==='variant'?'':'none';
-  calc();
-}
-function onPieceMat(id,mat){
-  const spool=document.getElementById('pspool-'+id);
-  if(spool)spool.value=S.prices[mat]||800;
-  calc();
-}
-function stepP(inputId,delta){
-  const el=document.getElementById(inputId);if(!el)return;
-  const v=parseInt(el.value)||0,min=parseInt(el.min)||0,max=el.max?parseInt(el.max):9999;
-  el.value=Math.max(min,Math.min(max,v+delta));calc();
+// ── DISPLAY (global) ──────────────────────────────────────────────────
+function setDisp(btn,cur){
+  S.disp=cur;
+  document.querySelectorAll('#rcardTotal .dtog button').forEach(b=>{
+    b.classList.toggle('on',(cur==='UYU'&&b.textContent.includes('UYU'))||(cur==='USD'&&b.textContent.includes('U$S'))||(cur==='BOTH'&&b.textContent==='Ambos'));
+  });
+  recalcTotal();
 }
 
-// ── PDF EXPORT ────────────────────────────────────────────────────────
+// compat: calc() global ahora recalcula todo
+function calc(){recalcTotal();}
+
+// ── EXPORT PDF (multi-artículo) ───────────────────────────────────────
 function exportPDF(){
-  if(!S.lc){alert('Calculá primero el presupuesto.');return;}
-  const lc=S.lc,ex=lc.ex,qty=lc.qty;
-  const piece=document.getElementById('pieceName').value||'';
-  const clientOn=S.sec.client;
-  const cn=clientOn?document.getElementById('cName').value:'';
-  const ce=clientOn?document.getElementById('cEmail').value:'';
-  const cp=clientOn?document.getElementById('cPhone').value:'';
-  const dv=clientOn?document.getElementById('delivDate').value:'';
-  const mat=document.getElementById('matType').value;
-  const grams=document.getElementById('grams').value;
-  const notes=clientOn?document.getElementById('notes').value:'';
+  if(!S.articulos.length){alert('Agregá al menos un artículo.');return;}
+  const ex=exRate();
+  const clienteOn=true;
+  const cn=document.getElementById('cName').value||'';
+  const ce=document.getElementById('cEmail').value||'';
+  const cp=document.getElementById('cPhone').value||'';
+  const dv=document.getElementById('delivDate').value||'';
+  const notes=document.getElementById('notes').value||'';
+  const pedido=document.getElementById('pieceName').value||'';
   const num=S.editingNum?String(S.editingNum).padStart(4,'0'):String((_histCache.length||0)+1).padStart(4,'0');
   const dt=new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
-
-  // Build print doc HTML (simplified — no cost breakdown)
-  const qtyLine=document.getElementById('qtyEnabled')?.checked&&qty>1?`<div class="pd-br">Cantidad: <strong>${qty} unidades</strong></div>`:'';
-  const clientBlock=clientOn&&(cn||ce||cp)?`
-    <div class="pd-box">
-      <div class="pd-bt">Cliente</div>
-      ${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}
-      ${ce?`<div class="pd-br">${ce}</div>`:''}
-      ${cp?`<div class="pd-br">${cp}</div>`:''}
-    </div>`:'';
-
+  let totalP=0;
+  const rows=S.articulos.map(a=>{const r=computeArt(a.id);totalP+=r.totalP;
+    return `<tr><td><strong>${r.desc}</strong></td><td style="color:#666">${r.mat} · ${r.grams}g</td><td style="text-align:center">${r.qty}</td><td style="text-align:right;font-weight:700">$ ${fmt(r.totalP)}</td></tr>`;}).join('');
+  const iva=totalP*0.22, conIVA=totalP+iva;
+  const clientBlock=(cn||ce||cp)?`<div class="pd-box"><div class="pd-bt">Cliente</div>${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}${ce?`<div class="pd-br">${ce}</div>`:''}${cp?`<div class="pd-br">${cp}</div>`:''}</div>`:'';
+  const totalBlock=S.ivaOnBill?`
+    <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
+      <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(totalP)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(iva)}</span></div>
+      </div>
+    </div>`:`<div class="pd-total"><div><div class="pd-tl">Precio total</div></div><div class="pd-tp">$ ${fmt(totalP)}</div></div>`;
   document.getElementById('printDoc').innerHTML=`
   <div class="pd">
     <div class="pd-hdr">
       <div style="display:flex;align-items:center;gap:12px">
-        <svg width="44" height="44" viewBox="0 0 100 100" fill="none">
-          <defs>
-            <radialGradient id="bg2" cx="38%" cy="32%" r="70%"><stop offset="0%" stop-color="#e2ddd6"/><stop offset="100%" stop-color="#c8c3bc"/></radialGradient>
-            <linearGradient id="nz2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#9a9898"/><stop offset="50%" stop-color="#868484"/><stop offset="100%" stop-color="#6e6c6c"/></linearGradient>
-            <linearGradient id="fl2" x1="0.2" y1="1" x2="0.8" y2="0"><stop offset="0%" stop-color="#c4561a"/><stop offset="100%" stop-color="#f07830"/></linearGradient>
-          </defs>
-          <circle cx="50" cy="50" r="47" fill="url(#bg2)"/>
-          <rect x="37" y="12" width="16" height="7" rx="2" fill="url(#nz2)"/>
-          <rect x="37" y="15" width="16" height="1.2" fill="rgba(0,0,0,0.18)"/>
-          <rect x="37" y="17.5" width="16" height="1.2" fill="rgba(0,0,0,0.18)"/>
-          <rect x="33" y="20" width="24" height="22" rx="2.5" fill="url(#nz2)"/>
-          <rect x="33" y="20" width="4" height="22" rx="2" fill="rgba(255,255,255,0.13)"/>
-          <rect x="33" y="24.5" width="24" height="1.1" fill="rgba(0,0,0,0.22)"/>
-          <rect x="33" y="29" width="24" height="1.1" fill="rgba(0,0,0,0.22)"/>
-          <rect x="33" y="33.5" width="24" height="1.1" fill="rgba(0,0,0,0.22)"/>
-          <rect x="33" y="38" width="24" height="1.1" fill="rgba(0,0,0,0.22)"/>
-          <path d="M35 42 L57 42 L50.5 58 L41.5 58 Z" fill="#7c7a7a"/>
-          <path d="M35 42 L42 42 L38.5 52 Z" fill="rgba(255,255,255,0.1)"/>
-          <ellipse cx="46" cy="59.5" rx="4.5" ry="2" fill="#686666"/>
-          <circle cx="46" cy="61" r="1.4" fill="#d4601a" opacity="0.6"/>
-          <path d="M57 33 C61 14 80 8 78 26 C76 44 64 53 57 50 C65 44 63 22 57 33 Z" fill="url(#fl2)"/>
-          <path d="M62 22 C64 13 74 11 73 19 C71 13 66 15 62 22 Z" fill="rgba(255,200,120,0.42)"/>
-          <text x="50" y="74" text-anchor="middle" font-family="Arial Black,Arial" font-weight="900" font-size="11" fill="#d4601a" letter-spacing="1.8">ARTELAB</text>
-        </svg>
+        <div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>
         <div><div class="pd-brand">ArteLab UY</div><div class="pd-brand-sub">IMPRESIÓN 3D · URUGUAY</div></div>
       </div>
-      <div class="pd-meta">
-        <div class="pd-qlabel">Presupuesto</div>
-        <div class="pd-qno">#${num}</div>
-        <div class="pd-date">${dt}</div>
-      </div>
+      <div class="pd-meta"><div class="pd-qlabel">Presupuesto</div><div class="pd-qno">#${num}</div><div class="pd-date">${dt}</div></div>
     </div>
-
     <div class="pd-boxes" style="${clientBlock?'':'grid-template-columns:1fr'}">
-      <div class="pd-box">
-        <div class="pd-bt">Detalle del pedido</div>
-        ${piece?`<div class="pd-br"><strong>${piece}</strong></div>`:''}
-        ${qtyLine}
-        <div class="pd-br">Material: ${mat} · ${grams}g</div>
-        ${dv?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${dv}</div>`:''}
-      </div>
+      <div class="pd-box"><div class="pd-bt">Pedido</div>${pedido?`<div class="pd-br"><strong>${pedido}</strong></div>`:''}<div class="pd-br">${S.articulos.length} artículo${S.articulos.length>1?'s':''}</div>${dv?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${dv}</div>`:''}</div>
       ${clientBlock}
     </div>
-
-    ${(()=>{
-      const _ivaAmt=lc.totalP*0.22;
-      const _totalIVA=lc.totalP+_ivaAmt;
-      const _qtyLine=qty>1&&document.getElementById('qtyEnabled')?.checked?`<div style="font-size:11px;color:rgba(255,255,255,.55)">${qty} uds. × $ ${fmt(lc.unitPrice)} c/u</div>`:'';
-      if(S.ivaOnBill){return`
-      <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
-        <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
-          <div class="pd-tl">Total a cobrar (con IVA)</div>
-          <div class="pd-tp">$ ${fmt(_totalIVA)}</div>
-        </div>
-        <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(lc.totalP)}</span></div>
-          ${_qtyLine}
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(_ivaAmt)}</span></div>
-        </div>
-      </div>`;}
-      return`
-      <div class="pd-total">
-        <div><div class="pd-tl">Precio de venta</div>${_qtyLine}</div>
-        <div class="pd-tp">$ ${fmt(lc.totalP)}</div>
-      </div>`;
-    })()}
-
-    ${(()=>{
-      if(!lc.piecesResults||lc.piecesResults.length===0)return'';
-      const C=S.disp,ex=lc.ex;
-      const mainName=document.getElementById('pieceName').value||'Pieza principal';
-      const mainMat=document.getElementById('matType').value;
-      const mainG=document.getElementById('grams').value;
-      let rows=`<tr><td><strong>${mainName}</strong></td><td style="color:#666">${mainMat} · ${mainG}g</td><td style="text-align:right;font-weight:700">$ ${fmt(lc.price)}</td></tr>`;
-      lc.piecesResults.filter(p=>p.mode==='sum').forEach(p=>{rows+=`<tr><td>${p.name} <span style="font-size:10px;color:#d4601a;font-weight:700;background:rgba(212,96,26,0.08);padding:1px 6px;border-radius:20px">INCLUIDO</span></td><td style="color:#666">${p.mat} · ${p.grams}g</td><td style="text-align:right;font-weight:700">$ ${fmt(p.price)}</td></tr>`;});
-      return`<table style="margin-bottom:10px"><thead><tr><th>Componente</th><th>Material</th><th style="text-align:right">Precio unit.</th></tr></thead><tbody>${rows}<tr style="border-top:2px solid #e0ddd8"><td colspan="2" style="font-weight:700">Total por unidad</td><td style="text-align:right;font-weight:700;color:#d4601a">$ ${fmt(lc.unitPrice)}</td></tr></tbody></table>`;
-    })()}
-
-    ${(()=>{
-      if(!lc.piecesResults)return'';
-      const opts=lc.piecesResults.filter(p=>p.mode==='optional');
-      const vars=lc.piecesResults.filter(p=>p.mode==='variant');
-      if(!opts.length&&!vars.length)return'';
-      let html='';
-      if(opts.length){
-        html+=`<div style="background:#f8f6f3;border-radius:8px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#5b5bcc;margin-bottom:8px">Ítems opcionales</div>`;
-        opts.forEach(p=>{html+=`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #eee"><span style="font-size:13px;color:#333">${p.name} <span style="font-size:11px;color:#666">${p.mat} · ${p.grams}g</span></span><span style="font-size:14px;font-weight:600;color:#5b5bcc">+ $ ${fmt(p.price*qty)}</span></div>`;});
-        html+=`</div>`;
-      }
-      if(vars.length){
-        html+=`<div style="background:#f8f6f3;border-radius:8px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#1a7a40;margin-bottom:8px">Variantes de material</div>`;
-        vars.forEach(p=>{const lbl=p.label?` — ${p.label}`:'';html+=`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #eee"><span style="font-size:13px;color:#333">${p.name}${lbl}</span><span style="font-size:14px;font-weight:600;color:#1a7a40">$ ${fmt(p.price*qty)}</span></div>`;});
-        html+=`</div>`;
-      }
-      return html;
-    })()}
-
+    <table style="margin-bottom:14px"><thead><tr><th>Artículo</th><th>Material</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio</th></tr></thead><tbody>${rows}</tbody></table>
+    ${totalBlock}
     ${notes?`<div class="pd-notes"><strong>Notas:</strong> ${notes}</div>`:''}
-
     <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
     <div class="pd-footer">ArteLab UY · Impresión 3D · Uruguay</div>
   </div>`;
-
   window.print();
 }
+
+// ── WHATSAPP ──────────────────────────────────────────────────────────
+function buildWALink(el){
+  if(!S.articulos.length){alert('Agregá al menos un artículo.');return false;}
+  let totalP=0; const lines=[];
+  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}${r.qty>1?` ×${r.qty}`:''}: $ ${fmt(r.totalP)}`);});
+  const pedido=document.getElementById('pieceName').value||'';
+  const cn=document.getElementById('cName')?.value||'';
+  const dv=document.getElementById('delivDate')?.value||'';
+  let msg='🖨️ *Presupuesto ArteLab UY*\n\n';
+  if(pedido) msg+=`📋 *${pedido}*\n`;
+  if(cn) msg+=`👤 Cliente: ${cn}\n`;
+  msg+='\n'+lines.join('\n');
+  msg+=`\n\n💰 *Total: $ ${fmt(S.ivaOnBill?totalP*1.22:totalP)} UYU*`;
+  if(dv) msg+=`\n📅 Entrega: ${dv}`;
+  msg+='\n\n_Presupuesto válido por 15 días._\n_ArteLab UY · Impresión 3D · Uruguay_';
+  el.href='https://wa.me/?text='+encodeURIComponent(msg);
+  return true;
+}
+
 
 // ── HISTORY · Vercel + Turso ──────────────────────────────────────────
 let _histCache=[];
@@ -5733,22 +5369,28 @@ function confirmEditNum(){
 function newPresupuesto(){S.editingId=null;S.editingNum=null;updatePresBar();}
 
 async function savePresupuesto(){
-  if(!S.lc){alert('Calculá primero el presupuesto.');return;}
+  if(!S.articulos.length){alert('Agregá al menos un artículo.');return;}
+  recalcTotal();
   const btn=document.getElementById('saveBtn');const orig=btn.innerHTML;
   btn.disabled=true;btn.textContent='Guardando…';
   const authHeaders={'Content-Type':'application/json'};
   if(typeof _token!=='undefined'&&_token) authHeaders.Authorization='Bearer '+_token;
+  // Nombre del presupuesto: el del Pedido, o la lista de artículos
+  const arts=(S.lcArts||[]);
+  const pedidoNombre=document.getElementById('pieceName').value.trim();
+  const pieza=pedidoNombre || arts.map(a=>a.desc).filter(Boolean).join(' + ') || 'Sin nombre';
+  const totalQty=arts.reduce((s,a)=>s+(a.qty||1),0);
   const payload={
-    pieza:document.getElementById('pieceName').value||'Sin nombre',
-    // Nombre para mostrar en listado
+    pieza,
     cliente:document.getElementById('cName').value||'—',
-    // Datos para auto-crear el cliente si no existe
     cliente_nombre:document.getElementById('cName').value?.trim()||'',
     cliente_email:document.getElementById('cEmail').value?.trim()||'',
     cliente_tel:document.getElementById('cPhone').value?.trim()||'',
-    mat:document.getElementById('matType').value,
-    qty:S.lc.qty,precio:S.lc.totalP,margen:S.margin,
+    mat:arts[0]?arts[0].mat:'PLA',
+    qty:totalQty||1, precio:S.lc.totalP, margen:arts[0]?arts[0].margin:0,
     fecha:new Date().toLocaleDateString('es-UY'),
+    fecha_entrega:document.getElementById('delivDate').value||null,
+    notas:document.getElementById('notes').value||null,
     snap:captureForm()
   };
   try{
@@ -5855,64 +5497,83 @@ function renderPrices(){
 function applyPrices(){
   Object.keys(DEF).forEach(k=>{const inp=document.getElementById('pr-'+k);if(inp)S.prices[k]=parseFloat(inp.value)||DEF[k];});
   localStorage.setItem('al-prices',JSON.stringify(S.prices));closeM();
-  const mat=document.getElementById('matType').value;
-  if(S.spoolCur==='UYU')document.getElementById('spoolPrice').value=S.prices[mat]||800;
-  calc();
+  recalcTotal();
 }
 function resetPrices(){S.prices={...DEF};localStorage.removeItem('al-prices');renderPrices();}
 
-// ── FORM CAPTURE / RESTORE ────────────────────────────────────────────
-const FORM_IDS=['pieceName','qty','cName','cEmail','cPhone','delivDate','notes','matType','spoolPrice','grams','waste','kwhRate','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging','exRate'];
+// ── FORM CAPTURE / RESTORE (multi-artículo) ──────────────────────────
 function captureForm(){
-  const snap={};FORM_IDS.forEach(id=>{const el=document.getElementById(id);if(el)snap[id]=el.value;});
-  snap.spoolCur=S.spoolCur;snap.pkgCur=S.pkgCur;snap.matPill=S.matPill;snap.margin=S.margin;snap.disp=S.disp;snap.sec={...S.sec};
-  snap.extras=S.extras.map(e=>({cur:e.cur,desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value}));
-  snap.pieces=S.pieces.map(p=>({
-    mode:p.mode,
-    name:document.getElementById('pname-'+p.id)?.value||'',
-    mat:document.getElementById('pmat-'+p.id)?.value||'PLA',
-    spool:document.getElementById('pspool-'+p.id)?.value||800,
-    grams:document.getElementById('pgrams-'+p.id)?.value||20,
-    waste:document.getElementById('pwaste-'+p.id)?.value||5,
-    days:document.getElementById('pdays-'+p.id)?.value||0,
-    hours:document.getElementById('phours-'+p.id)?.value||1,
-    mins:document.getElementById('pmins-'+p.id)?.value||0,
-    labor:document.getElementById('plabor-'+p.id)?.value||0,
-    label:document.getElementById('vlabel-'+p.id)?.value||'',
-    alto:document.getElementById('palto-'+p.id)?.value||'',
-    ancho:document.getElementById('pancho-'+p.id)?.value||'',
-    profundo:document.getElementById('pprofundo-'+p.id)?.value||'',
-    peso:document.getElementById('ppeso-'+p.id)?.value||''
-  }));
-  return snap;
+  const art=id=>{
+    const a=_art(id);
+    return {
+      desc:gv('desc',id), qty:gv('qty',id), qtyMul:document.getElementById('qtyEnabled-'+id)?.checked!==false,
+      alto:gv('alto',id),ancho:gv('ancho',id),profundo:gv('profundo',id),peso:gv('peso',id),
+      matType:gv('matType',id), spoolPrice:gv('spoolPrice',id), grams:gv('grams',id), waste:gv('waste',id),
+      kwhRate:gv('kwhRate',id), printerModel:gv('printerModel',id), watts:gv('watts',id),
+      tDays:gv('tDays',id),tHours:gv('tHours',id),tMins:gv('tMins',id),
+      printerCost:gv('printerCost',id),printerLife:gv('printerLife',id),maintenance:gv('maintenance',id),pieces:gv('pieces',id),
+      hourly:gv('hourly',id),laborH:gv('laborH',id),overhead:gv('overhead',id),failBuf:gv('failBuf',id),
+      packaging:gv('packaging',id),
+      sec:{...a.sec}, margin:a.margin, spoolCur:a.spoolCur, pkgCur:a.pkgCur, ivaOnSpool:a.ivaOnSpool, matPill:a.matPill,
+      extras:a.extras.map(e=>({desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value}))
+    };
+  };
+  return {
+    pedido:document.getElementById('pieceName').value,
+    cName:document.getElementById('cName').value, cEmail:document.getElementById('cEmail').value,
+    cPhone:document.getElementById('cPhone').value, delivDate:document.getElementById('delivDate').value,
+    notes:document.getElementById('notes').value,
+    exRate:document.getElementById('exRate').value, disp:S.disp, ivaOnBill:S.ivaOnBill,
+    articulos:S.articulos.map(a=>art(a.id))
+  };
 }
-function restoreForm(snap){
-  FORM_IDS.forEach(id=>{const el=document.getElementById(id);if(el&&snap[id]!==undefined)el.value=snap[id];});
-  if(snap.margin!==undefined)setMargin(null,snap.margin);
-  if(snap.disp)setDisp(null,snap.disp);
-  document.getElementById('xList').innerHTML='';S.extras=[];S.extId=0;
-  (snap.extras||[]).forEach(e=>{addExtra();const last=S.extras[S.extras.length-1];last.el.querySelector('.xd').value=e.desc||'';last.el.querySelector('.xp').value=e.price||0;if(e.cur&&e.cur!=='UYU')setCur('x-'+last.id,e.cur);});
-  // Restore pieces
-  document.getElementById('pieceList').innerHTML='';S.pieces=[];S.pieceId=0;
-  (snap.pieces||[]).forEach(p=>{
-    addPiece();
-    const id=S.pieces[S.pieces.length-1].id;
-    document.getElementById('pname-'+id).value=p.name||'';
-    document.getElementById('pname-disp-'+id).textContent=p.name||'Nueva pieza';
-    const matSel=document.getElementById('pmat-'+id);if(matSel)matSel.value=p.mat||'PLA';
-    document.getElementById('pspool-'+id).value=p.spool||800;
-    document.getElementById('pgrams-'+id).value=p.grams||20;
-    document.getElementById('pwaste-'+id).value=p.waste||5;
-    document.getElementById('pdays-'+id).value=p.days||0;
-    document.getElementById('phours-'+id).value=p.hours||1;
-    document.getElementById('pmins-'+id).value=p.mins||0;
-    document.getElementById('plabor-'+id).value=p.labor||0;
-    if(p.label){const vl=document.getElementById('vlabel-'+id);if(vl)vl.value=p.label;}
-    if(p.mode&&p.mode!=='sum'){
-      const modeBtn=document.querySelector(`#piece-${id} .pmbtn.${p.mode}`);
-      if(modeBtn)setPieceMode(id,p.mode,modeBtn);
-    }
+
+function restoreArticulo(aid,d){
+  const a=_art(aid); if(!a||!d)return;
+  const setv=(id,v)=>{const el=document.getElementById(id+'-'+aid);if(el&&v!==undefined&&v!=='')el.value=v;};
+  setv('desc',d.desc); setv('qty',d.qty);
+  const qe=document.getElementById('qtyEnabled-'+aid); if(qe)qe.checked=d.qtyMul!==false;
+  ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
+  a.margin=d.margin!==undefined?d.margin:50; a.spoolCur=d.spoolCur||'UYU'; a.pkgCur=d.pkgCur||'UYU'; a.ivaOnSpool=!!d.ivaOnSpool; a.matPill=d.matPill||'PLA';
+  if(d.sec)a.sec={elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
+  ['elec','time','printer','labor','extras'].forEach(sec=>{
+    const on=a.sec[sec]!==false;
+    const chk=document.getElementById('en-'+sec+'-'+aid); const body=document.getElementById('body-'+sec+'-'+aid);
+    if(chk)chk.checked=on; if(body)body.style.display=on?'':'none';
   });
+  const md=document.getElementById('margDisp-'+aid); if(md)md.textContent=a.margin+'%';
+  const ms=document.getElementById('margSlider-'+aid); if(ms)ms.value=a.margin;
+  document.getElementById('margPills-'+aid)?.querySelectorAll('.pill').forEach(b=>b.classList.toggle('on',b.textContent===a.margin+'%'));
+  const ivs=document.getElementById('ivaOnSpool-'+aid); if(ivs)ivs.checked=a.ivaOnSpool;
+  document.getElementById('spoolTog-'+aid)?.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent===(a.spoolCur==='UYU'?'$':'U$S')));
+  (d.extras||[]).forEach(e=>{artAddExtra(aid);const last=a.extras[a.extras.length-1];last.el.querySelector('.xd').value=e.desc||'';last.el.querySelector('.xp').value=e.price||0;});
+  renderArt(aid);
+}
+
+function legacyToArt(snap){
+  return {desc:snap.pieceName||'Artículo', qty:snap.qty||1, qtyMul:true,
+    matType:snap.matType, spoolPrice:snap.spoolPrice, grams:snap.grams, waste:snap.waste,
+    kwhRate:snap.kwhRate, watts:snap.watts, tDays:snap.tDays,tHours:snap.tHours,tMins:snap.tMins,
+    printerCost:snap.printerCost,printerLife:snap.printerLife,maintenance:snap.maintenance,pieces:snap.pieces,
+    hourly:snap.hourly,laborH:snap.laborH,overhead:snap.overhead,failBuf:snap.failBuf,
+    packaging:snap.packaging, sec:snap.sec||{}, margin:snap.margin||50, spoolCur:snap.spoolCur, pkgCur:snap.pkgCur, ivaOnSpool:snap.ivaOnSpool, matPill:snap.matPill,
+    extras:(snap.extras||[]).map(e=>({desc:e.desc,price:e.price}))};
+}
+
+function restoreForm(snap){
+  if(!snap)return;
+  S.articulos.slice().forEach(a=>{document.getElementById('art-'+a.id)?.remove();});
+  S.articulos=[]; const wrap=document.getElementById('articulosWrap'); if(wrap)wrap.innerHTML='';
+  const setg=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
+  setg('pieceName',snap.pedido!==undefined?snap.pedido:snap.pieceName); setg('cName',snap.cName);
+  setg('cEmail',snap.cEmail); setg('cPhone',snap.cPhone); setg('delivDate',snap.delivDate); setg('notes',snap.notes);
+  if(snap.exRate)setg('exRate',snap.exRate);
+  if(snap.disp)S.disp=snap.disp;
+  S.ivaOnBill=!!snap.ivaOnBill; const ib=document.getElementById('ivaOnBill'); if(ib)ib.checked=S.ivaOnBill;
+  let arts=snap.articulos;
+  if(!arts||!arts.length){ arts=[legacyToArt(snap)]; }
+  arts.forEach(d=>addArticulo(d));
+  recalcTotal();
 }
 
 // ── WIRE-UP ───────────────────────────────────────────────────────────
@@ -5941,40 +5602,11 @@ async function fetchRate(){
   lbl.textContent='BCU';btn.disabled=false;
 }
 
-// ── WHATSAPP SHARE ────────────────────────────────────────────────────
-function buildWALink(el){
-  if(!S.lc){alert('Calculá primero el presupuesto.');return false;}
-  const lc=S.lc;
-  const piece=document.getElementById('pieceName').value||'Impresión 3D';
-  const mat=document.getElementById('matType').value;
-  const qty=lc.qty;
-  const dv=document.getElementById('delivDate')?.value||'';
-  const cn=document.getElementById('cName')?.value||'';
+// Recalcular total al cambiar tipo de cambio (afecta a todos los artículos)
+document.getElementById('exRate')?.addEventListener('input',recalcTotal);
 
-  let msg='🖨️ *Presupuesto ArteLab UY*\n\n';
-  msg+=`📦 *${piece}*\n`;
-  if(cn) msg+=`👤 Cliente: ${cn}\n`;
-  msg+=`🧵 Material: ${mat}\n`;
-  if(qty>1) msg+=`🔢 Cantidad: ${qty} unidades\n`;
-  if(dv) msg+=`📅 Entrega: ${dv}\n`;
-  msg+=`\n💰 *Precio: $ ${fmt(lc.totalP)} UYU*`;
-  if(qty>1) msg+=` ($ ${fmt(lc.price)} c/u)`;
-  msg+='\n\n_Presupuesto válido por 15 días._\n_ArteLab UY · Impresión 3D · Uruguay_';
-
-  el.href='https://wa.me/?text='+encodeURIComponent(msg);
-  return true;
-}
-
-
-document.getElementById('matType').addEventListener('change',function(){
-  const p=S.prices[this.value]||800;
-  const ex=parseFloat(document.getElementById('exRate').value)||39.78;
-  document.getElementById('spoolPrice').value=S.spoolCur==='USD'?(p/ex).toFixed(2):p;calc();
-});
-document.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',calc));
-
-// ── INIT ──────────────────────────────────────────────────────────────
-setPrinter('A1');updMargin(50);calc();
+// ── INIT — la calculadora arranca vacía; el botón "+ Artículo" crea el primero ──
+recalcTotal();
 </script>
 </body>
 </html>
