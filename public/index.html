@@ -136,7 +136,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 
 /* Body */
 .cb{padding:18px 20px;transition:all var(--tr)}
-.cb.col{max-height:1400px;overflow:hidden;transition:max-height .32s cubic-bezier(.4,0,.2,1),padding .32s cubic-bezier(.4,0,.2,1),opacity .22s ease;opacity:1}
+.cb.col{max-height:4000px;overflow:hidden;transition:max-height .45s cubic-bezier(.4,0,.2,1),padding .32s cubic-bezier(.4,0,.2,1),opacity .22s ease;opacity:1}
 .card.coll .cb.col{max-height:0;padding-top:0;padding-bottom:0;opacity:0}
 .dbanner{display:none;padding:7px 20px 12px;font-size:12px;color:var(--text-3);font-style:italic}
 .card.coll .dbanner{display:block}
@@ -1955,6 +1955,44 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveProveedor()">Guardar</button></div>
 </div>
 
+<!-- MODAL: NUEVA PIEZA -->
+<div class="modal" id="mPieza" style="max-width:520px">
+  <div class="mh">
+    <div class="mt">
+      <svg class="icon" style="display:inline;vertical-align:middle;margin-right:6px" viewBox="0 0 18 18"><rect x="3" y="2" width="10" height="13" rx="1.5"/><path d="M13 5l2 2-2 2"/><path d="M6 7h5M6 10h3"/></svg>
+      Nueva pieza
+    </div>
+    <button class="mx" onclick="closeM()">✕</button>
+  </div>
+  <div class="mb">
+    <div class="f"><label class="fl">Nombre de la pieza *</label>
+      <input type="text" id="mP-nombre" placeholder="Ej: Soporte de cámara, llavero, base…" onkeydown="if(event.key==='Enter')confirmAddPieza()">
+    </div>
+    <div class="f"><label class="fl">Dimensiones</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        <input type="number" id="mP-alto" placeholder="Alto mm" min="0" step="1">
+        <input type="number" id="mP-ancho" placeholder="Ancho mm" min="0" step="1">
+        <input type="number" id="mP-profundo" placeholder="Prof. mm" min="0" step="1">
+      </div>
+    </div>
+    <div class="two">
+      <div class="f"><label class="fl">Peso (g)</label>
+        <input type="number" id="mP-peso" placeholder="Ej: 45" min="0" step="1">
+      </div>
+      <div class="f"><label class="fl">Características</label>
+        <input type="text" id="mP-caract" placeholder="Ej: flexible, traslúcido…">
+      </div>
+    </div>
+    <div class="f"><label class="fl">Descripción</label>
+      <textarea id="mP-desc" rows="3" placeholder="Detalles del diseño, tolerancias, acabado, color, instrucciones especiales…"></textarea>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="bs2" onclick="closeM()">Cancelar</button>
+    <button class="bp2" onclick="confirmAddPieza()">Continuar →</button>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════════════
      PAGE: AGENDA
 ═══════════════════════════════════════════════════════════════════ -->
@@ -2282,11 +2320,11 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 <!-- ═══ ARTÍCULOS DEL PRESUPUESTO ═══ -->
 <div class="full" id="articulosWrap"></div>
 
-<!-- Botón agregar artículo -->
+<!-- Botón agregar pieza -->
 <div class="full" id="addArtRow">
-  <button class="add-art-btn" onclick="addArticulo()">
+  <button class="add-art-btn" onclick="openAddPiezaModal()">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    <span id="addArtLabel">Agregar artículo</span>
+    <span id="addArtLabel">+ Pieza</span>
   </button>
 </div>
 
@@ -2305,6 +2343,13 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="ttr"><div class="tth"></div></div>
       </label>
       <span style="font-size:13px;font-weight:600;color:var(--t2)">Facturar (+ IVA 22%)</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <label class="tsw" title="Incluir total general en el PDF">
+        <input type="checkbox" id="sumPreciosCheck" onchange="S.sumPrecios=this.checked">
+        <div class="ttr"><div class="tth"></div></div>
+      </label>
+      <span style="font-size:13px;font-weight:600;color:var(--t2)">Sumar precios en PDF</span>
     </div>
     <div class="dtog" style="flex-wrap:wrap">
       <button class="on" onclick="setDisp(this,'UYU')">$ UYU</button>
@@ -2334,7 +2379,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="ph-stats">
         <div class="ph-stat"><div class="ph-stl">Costo total</div><div class="ph-stv" id="tCost">—</div></div>
         <div class="ph-stat"><div class="ph-stl">Ganancia</div><div class="ph-stv g" id="tProfit">—</div></div>
-        <div class="ph-stat"><div class="ph-stl">Artículos</div><div class="ph-stv" id="tCount">0</div></div>
+        <div class="ph-stat"><div class="ph-stl">Piezas</div><div class="ph-stv" id="tCount">0</div></div>
       </div>
       <div id="ivaDesglose" style="display:none;margin-top:16px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rm);padding:14px 18px;width:100%">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);opacity:.7;margin-bottom:10px">Desglose con IVA (22%)</div>
@@ -2345,7 +2390,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
       </div>
     </div>
-    <div class="bars-ttl">Detalle por artículo</div>
+    <div class="bars-ttl">Cotización por pieza</div>
     <div id="tArticulos"></div>
     <div class="r-actions">
       <button class="btn btn--primary" onclick="exportPDF()">
@@ -4825,7 +4870,8 @@ let S={
   extras:[], extId:0,          // compat (no usados en multi)
   pieces:[], pieceId:0,        // compat
   editingId:null, editingNum:null,
-  lc:null, lcArts:null
+  lc:null, lcArts:null,
+  sumPrecios:false
 };
 try{const p=JSON.parse(localStorage.getItem('al-prices'));if(p)S.prices={...DEF,...p}}catch(e){}
 
@@ -4847,6 +4893,37 @@ syncThemeToggle();
 function openM(id){document.getElementById('ov').classList.add('open');document.getElementById(id).classList.add('open')}
 function closeM(){document.getElementById('ov').classList.remove('open');document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'))}
 
+// ── MODAL: NUEVA PIEZA ────────────────────────────────────────────────
+function openAddPiezaModal(){
+  ['mP-nombre','mP-alto','mP-ancho','mP-profundo','mP-peso','mP-caract','mP-desc'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
+  const err=document.getElementById('mP-error'); if(err)err.style.display='none';
+  openM('mPieza');
+  setTimeout(()=>{document.getElementById('mP-nombre')?.focus();},120);
+}
+function confirmAddPieza(){
+  const nombre=(document.getElementById('mP-nombre')?.value||'').trim();
+  if(!nombre){
+    document.getElementById('mP-nombre')?.focus();
+    document.getElementById('mP-nombre')?.style.setProperty('border-color','var(--bad)');
+    setTimeout(()=>document.getElementById('mP-nombre')?.style.removeProperty('border-color'),1800);
+    return;
+  }
+  const data={
+    desc:nombre,
+    alto:document.getElementById('mP-alto')?.value||'',
+    ancho:document.getElementById('mP-ancho')?.value||'',
+    profundo:document.getElementById('mP-profundo')?.value||'',
+    peso:document.getElementById('mP-peso')?.value||'',
+    caract:document.getElementById('mP-caract')?.value||'',
+    notasPieza:document.getElementById('mP-desc')?.value||''
+  };
+  closeM();
+  const aid=addArticulo(data);
+  setTimeout(()=>{document.getElementById('art-'+aid)?.scrollIntoView({behavior:'smooth',block:'start'});},80);
+}
+
 // ── FORMAT ────────────────────────────────────────────────────────────
 function fmt(v){return Math.round(v).toLocaleString('es-UY')}
 function fmtD(v){return v.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -4867,35 +4944,32 @@ function articuloHTML(aid){
     <div class="ch" onclick="artToggleCollapse(${aid})" style="cursor:pointer">
       <div class="ch-l">
         <div class="c-icon" style="background:var(--ac);color:#fff;font-family:var(--fh);font-weight:700">${n}</div>
-        <div><div class="ctit" id="art-disp-${aid}">Artículo ${n}</div><div class="csub" id="art-sub-${aid}">Completá los datos del artículo</div></div>
+        <div><div class="ctit" id="art-disp-${aid}">Pieza ${n}</div><div class="csub" id="art-sub-${aid}">Completá los datos de la pieza</div></div>
       </div>
       <div class="ch-r" style="gap:10px">
         <span class="num" id="art-price-${aid}" style="font-family:var(--fh);font-weight:700;color:var(--ac);font-size:15px">$ 0</span>
-        <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar artículo" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
+        <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar pieza" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
         <span class="arr">▼</span>
       </div>
     </div>
     <div class="cb col" id="art-body-${aid}">
 
-      <!-- 1. Descripción + cantidad + dimensiones -->
-      <div class="f"><label class="fl">Descripción del artículo</label>
-        <input type="text" id="desc-${aid}" placeholder="Ej: Llavero personalizado…" oninput="document.getElementById('art-disp-${aid}').textContent=this.value||'Artículo ${n}'">
+      <!-- 1. Nombre + Características + Descripción + Dimensiones -->
+      <div class="f"><label class="fl">Nombre de la pieza</label>
+        <input type="text" id="desc-${aid}" placeholder="Ej: Llavero personalizado…" oninput="document.getElementById('art-disp-${aid}').textContent=this.value||'Pieza ${n}'">
       </div>
-      <div class="two">
-        <div class="f"><label class="fl">Cantidad</label>
-          <input type="number" id="qty-${aid}" value="1" min="1" step="1">
-          <label style="display:flex;align-items:center;gap:7px;margin-top:9px;cursor:pointer">
-            <input type="checkbox" id="qtyEnabled-${aid}" checked style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer">
-            <span style="font-size:12px;color:var(--t2)">Multiplicar precio por cantidad</span>
-          </label>
-        </div>
-        <div class="f"><label class="fl">Dimensiones (opcional)</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <input type="number" id="alto-${aid}" placeholder="Alto mm" min="0" step="1">
-            <input type="number" id="ancho-${aid}" placeholder="Ancho mm" min="0" step="1">
-            <input type="number" id="profundo-${aid}" placeholder="Prof. mm" min="0" step="1">
-            <input type="number" id="peso-${aid}" placeholder="Peso g" min="0" step="1">
-          </div>
+      <div class="f"><label class="fl">Características</label>
+        <input type="text" id="caract-${aid}" placeholder="Ej: flexible, resistente al calor, traslúcido…">
+      </div>
+      <div class="f"><label class="fl">Descripción / Notas de la pieza</label>
+        <textarea id="notasPieza-${aid}" rows="2" placeholder="Detalles técnicos, tolerancias, acabado, instrucciones especiales…"></textarea>
+      </div>
+      <div class="f"><label class="fl">Dimensiones y peso</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <input type="number" id="alto-${aid}" placeholder="Alto mm" min="0" step="1">
+          <input type="number" id="ancho-${aid}" placeholder="Ancho mm" min="0" step="1">
+          <input type="number" id="profundo-${aid}" placeholder="Prof. mm" min="0" step="1">
+          <input type="number" id="peso-${aid}" placeholder="Peso g" min="0" step="1">
         </div>
       </div>
       <div class="divl"></div>
@@ -5037,7 +5111,7 @@ function articuloHTML(aid){
 
       <!-- 11. Resultado de la pieza -->
       <div class="price-hero" style="margin-bottom:0">
-        <div class="ph-main"><div class="ph-label">Precio de esta pieza</div><div class="ph-price" id="pMain-${aid}" style="font-size:32px">—</div></div>
+        <div class="ph-main"><div class="ph-label">Presupuesto de esta pieza</div><div class="ph-price" id="pMain-${aid}" style="font-size:32px">—</div></div>
         <div class="ph-stats">
           <div class="ph-stat"><div class="ph-stl">Costo</div><div class="ph-stv" id="costDisp-${aid}">—</div></div>
           <div class="ph-stat"><div class="ph-stl">Ganancia</div><div class="ph-stv g" id="profitDisp-${aid}">—</div></div>
@@ -5045,6 +5119,14 @@ function articuloHTML(aid){
         </div>
       </div>
       <div class="mets" id="metsGrid-${aid}" style="margin-top:14px"></div>
+
+      <!-- Botón + Pieza al final de cada pieza -->
+      <div style="margin-top:20px;padding-top:18px;border-top:2px dashed var(--bd)">
+        <button class="add-art-btn" onclick="openAddPiezaModal()" style="padding:13px">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          + Pieza
+        </button>
+      </div>
     </div>
   </div>`;
 }
@@ -5060,12 +5142,9 @@ function addArticulo(snapData){
   document.getElementById('body-extras-'+aid).style.display='none';
   // Listeners de recálculo
   bloque.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',()=>{renderArt(aid);recalcTotal();}));
-  // Botón de agregar pasa a "sumar otro artículo"
-  document.getElementById('addArtLabel').textContent='Sumar otro artículo';
   document.getElementById('rcardTotal').style.display='';
   if(snapData) restoreArticulo(aid,snapData);
   renderArt(aid); recalcTotal();
-  if(!snapData) bloque.scrollIntoView({behavior:'smooth',block:'center'});
   return aid;
 }
 function rmArticulo(aid){
@@ -5074,7 +5153,6 @@ function rmArticulo(aid){
   S.articulos.splice(i,1);
   document.getElementById('art-'+aid)?.remove();
   if(S.articulos.length===0){
-    document.getElementById('addArtLabel').textContent='Agregar artículo';
     document.getElementById('rcardTotal').style.display='none';
   }
   recalcTotal();
@@ -5172,8 +5250,7 @@ function artRmExtra(aid,eid){
 function computeArt(aid){
   const a=_art(aid); if(!a)return null;
   const ex=exRate();
-  const qtyOn=document.getElementById('qtyEnabled-'+aid)?.checked!==false;
-  const qty=qtyOn?Math.max(1,gn('qty',aid)||1):1;
+  const qty=1;
   // Material
   const spRaw=gn('spoolPrice',aid);
   const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
@@ -5205,12 +5282,14 @@ function computeArt(aid){
   const totalC=sub+failA;
   const margin=a.margin||0;
   const unitPrice=totalC*(1+margin/100);
-  const totalP=unitPrice*qty;
-  const totalCostAll=totalC*qty;
+  const totalP=unitPrice;
+  const totalCostAll=totalC;
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
   return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,totalP,totalCost:totalCostAll,profit,effM,totalH,
-    desc:gv('desc',aid)||'Artículo', mat:gv('matType',aid), grams:g, margin};
+    desc:gv('desc',aid)||'Pieza', mat:gv('matType',aid), grams:g, margin,
+    caract:gv('caract',aid), notasPieza:gv('notasPieza',aid),
+    alto:gv('alto',aid), ancho:gv('ancho',aid), profundo:gv('profundo',aid), peso:gv('peso',aid)};
 }
 
 // ── MOTOR: render de un artículo ──────────────────────────────────────
@@ -5222,7 +5301,7 @@ function renderArt(aid){
   document.getElementById('profitDisp-'+aid).textContent=fmtC(r.profit,C,ex);
   document.getElementById('effMargin-'+aid).textContent=r.effM.toFixed(1)+'%';
   const price=document.getElementById('art-price-'+aid); if(price)price.textContent=fmtC(r.totalP,C,ex);
-  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g · ${r.qty>1?r.qty+' u · ':''}${fmtC(r.totalP,C,ex)}`;
+  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g · ${fmtC(r.totalP,C,ex)}`;
   const mets=[{l:'Material',v:r.matC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
   const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
   return r;
@@ -5248,7 +5327,7 @@ function recalcTotal(){
   if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
   // Lista por artículo
   const tA=document.getElementById('tArticulos');
-  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.qty>1?` ×${r.qty}`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá un artículo para ver el total.</div>';
+  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
 }
 
 // ── DISPLAY (global) ──────────────────────────────────────────────────
@@ -5265,9 +5344,8 @@ function calc(){recalcTotal();}
 
 // ── EXPORT PDF (multi-artículo) ───────────────────────────────────────
 function exportPDF(){
-  if(!S.articulos.length){alert('Agregá al menos un artículo.');return;}
+  if(!S.articulos.length){alert('Agregá al menos una pieza.');return;}
   const ex=exRate();
-  const clienteOn=true;
   const cn=document.getElementById('cName').value||'';
   const ce=document.getElementById('cEmail').value||'';
   const cp=document.getElementById('cPhone').value||'';
@@ -5277,18 +5355,32 @@ function exportPDF(){
   const num=S.editingNum?String(S.editingNum).padStart(4,'0'):String((_histCache.length||0)+1).padStart(4,'0');
   const dt=new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
   let totalP=0;
-  const rows=S.articulos.map(a=>{const r=computeArt(a.id);totalP+=r.totalP;
-    return `<tr><td><strong>${r.desc}</strong></td><td style="color:#666">${r.mat} · ${r.grams}g</td><td style="text-align:center">${r.qty}</td><td style="text-align:right;font-weight:700">$ ${fmt(r.totalP)}</td></tr>`;}).join('');
+  // Filas de piezas — desglosadas individualmente
+  const rows=S.articulos.map((a,idx)=>{
+    const r=computeArt(a.id); totalP+=r.totalP;
+    const dimParts=[r.alto&&`${r.alto}mm alt`,r.ancho&&`${r.ancho}mm anch`,r.profundo&&`${r.profundo}mm prof`,r.peso&&`${r.peso}g`].filter(Boolean).join(' · ');
+    const caractLine=r.caract?`<div style="font-size:11px;color:#888;margin-top:2px">${r.caract}</div>`:'';
+    const notaLine=r.notasPieza?`<div style="font-size:11px;color:#888;margin-top:1px;font-style:italic">${r.notasPieza}</div>`:'';
+    return `<tr>
+      <td><strong>${r.desc}</strong>${caractLine}${notaLine}</td>
+      <td style="color:#666">${r.mat} · ${r.grams}g${dimParts?`<br><span style="font-size:11px">${dimParts}</span>`:''}</td>
+      <td style="text-align:right;font-weight:700;white-space:nowrap">$ ${fmt(r.totalP)}</td>
+    </tr>`;
+  }).join('');
   const iva=totalP*0.22, conIVA=totalP+iva;
   const clientBlock=(cn||ce||cp)?`<div class="pd-box"><div class="pd-bt">Cliente</div>${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}${ce?`<div class="pd-br">${ce}</div>`:''}${cp?`<div class="pd-br">${cp}</div>`:''}</div>`:'';
-  const totalBlock=S.ivaOnBill?`
-    <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
-      <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
-      <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(totalP)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(iva)}</span></div>
-      </div>
-    </div>`:`<div class="pd-total"><div><div class="pd-tl">Precio total</div></div><div class="pd-tp">$ ${fmt(totalP)}</div></div>`;
+  // Bloque de total — solo aparece si "Sumar precios" está activado
+  let totalBlock='';
+  if(S.sumPrecios){
+    totalBlock=S.ivaOnBill?`
+      <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
+        <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(totalP)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(iva)}</span></div>
+        </div>
+      </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})</div></div><div class="pd-tp">$ ${fmt(totalP)}</div></div>`;
+  }
   document.getElementById('printDoc').innerHTML=`
   <div class="pd">
     <div class="pd-hdr">
@@ -5299,10 +5391,10 @@ function exportPDF(){
       <div class="pd-meta"><div class="pd-qlabel">Presupuesto</div><div class="pd-qno">#${num}</div><div class="pd-date">${dt}</div></div>
     </div>
     <div class="pd-boxes" style="${clientBlock?'':'grid-template-columns:1fr'}">
-      <div class="pd-box"><div class="pd-bt">Pedido</div>${pedido?`<div class="pd-br"><strong>${pedido}</strong></div>`:''}<div class="pd-br">${S.articulos.length} artículo${S.articulos.length>1?'s':''}</div>${dv?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${dv}</div>`:''}</div>
+      <div class="pd-box"><div class="pd-bt">Pedido</div>${pedido?`<div class="pd-br"><strong>${pedido}</strong></div>`:''}<div class="pd-br">${S.articulos.length} pieza${S.articulos.length>1?'s':''}</div>${dv?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${dv}</div>`:''}</div>
       ${clientBlock}
     </div>
-    <table style="margin-bottom:14px"><thead><tr><th>Artículo</th><th>Material</th><th style="text-align:center">Cant.</th><th style="text-align:right">Precio</th></tr></thead><tbody>${rows}</tbody></table>
+    <table style="margin-bottom:14px"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Precio</th></tr></thead><tbody>${rows}</tbody></table>
     ${totalBlock}
     ${notes?`<div class="pd-notes"><strong>Notas:</strong> ${notes}</div>`:''}
     <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
@@ -5313,9 +5405,9 @@ function exportPDF(){
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────
 function buildWALink(el){
-  if(!S.articulos.length){alert('Agregá al menos un artículo.');return false;}
+  if(!S.articulos.length){alert('Agregá al menos una pieza.');return false;}
   let totalP=0; const lines=[];
-  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}${r.qty>1?` ×${r.qty}`:''}: $ ${fmt(r.totalP)}`);});
+  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}: $ ${fmt(r.totalP)}`);});
   const pedido=document.getElementById('pieceName').value||'';
   const cn=document.getElementById('cName')?.value||'';
   const dv=document.getElementById('delivDate')?.value||'';
@@ -5379,7 +5471,6 @@ async function savePresupuesto(){
   const arts=(S.lcArts||[]);
   const pedidoNombre=document.getElementById('pieceName').value.trim();
   const pieza=pedidoNombre || arts.map(a=>a.desc).filter(Boolean).join(' + ') || 'Sin nombre';
-  const totalQty=arts.reduce((s,a)=>s+(a.qty||1),0);
   const payload={
     pieza,
     cliente:document.getElementById('cName').value||'—',
@@ -5387,7 +5478,7 @@ async function savePresupuesto(){
     cliente_email:document.getElementById('cEmail').value?.trim()||'',
     cliente_tel:document.getElementById('cPhone').value?.trim()||'',
     mat:arts[0]?arts[0].mat:'PLA',
-    qty:totalQty||1, precio:S.lc.totalP, margen:arts[0]?arts[0].margin:0,
+    qty:S.articulos.length||1, precio:S.lc.totalP, margen:arts[0]?arts[0].margin:0,
     fecha:new Date().toLocaleDateString('es-UY'),
     fecha_entrega:document.getElementById('delivDate').value||null,
     notas:document.getElementById('notes').value||null,
@@ -5506,7 +5597,7 @@ function captureForm(){
   const art=id=>{
     const a=_art(id);
     return {
-      desc:gv('desc',id), qty:gv('qty',id), qtyMul:document.getElementById('qtyEnabled-'+id)?.checked!==false,
+      desc:gv('desc',id), caract:gv('caract',id), notasPieza:gv('notasPieza',id),
       alto:gv('alto',id),ancho:gv('ancho',id),profundo:gv('profundo',id),peso:gv('peso',id),
       matType:gv('matType',id), spoolPrice:gv('spoolPrice',id), grams:gv('grams',id), waste:gv('waste',id),
       kwhRate:gv('kwhRate',id), printerModel:gv('printerModel',id), watts:gv('watts',id),
@@ -5531,8 +5622,7 @@ function captureForm(){
 function restoreArticulo(aid,d){
   const a=_art(aid); if(!a||!d)return;
   const setv=(id,v)=>{const el=document.getElementById(id+'-'+aid);if(el&&v!==undefined&&v!=='')el.value=v;};
-  setv('desc',d.desc); setv('qty',d.qty);
-  const qe=document.getElementById('qtyEnabled-'+aid); if(qe)qe.checked=d.qtyMul!==false;
+  setv('desc',d.desc); setv('caract',d.caract); setv('notasPieza',d.notasPieza);
   ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
   a.margin=d.margin!==undefined?d.margin:50; a.spoolCur=d.spoolCur||'UYU'; a.pkgCur=d.pkgCur||'UYU'; a.ivaOnSpool=!!d.ivaOnSpool; a.matPill=d.matPill||'PLA';
   if(d.sec)a.sec={elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
@@ -5551,7 +5641,7 @@ function restoreArticulo(aid,d){
 }
 
 function legacyToArt(snap){
-  return {desc:snap.pieceName||'Artículo', qty:snap.qty||1, qtyMul:true,
+  return {desc:snap.pieceName||'Pieza', caract:'', notasPieza:'',
     matType:snap.matType, spoolPrice:snap.spoolPrice, grams:snap.grams, waste:snap.waste,
     kwhRate:snap.kwhRate, watts:snap.watts, tDays:snap.tDays,tHours:snap.tHours,tMins:snap.tMins,
     printerCost:snap.printerCost,printerLife:snap.printerLife,maintenance:snap.maintenance,pieces:snap.pieces,
