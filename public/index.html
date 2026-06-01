@@ -2117,7 +2117,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 
 <!-- Modal: nuevo usuario -->
 <div class="modal" id="mUser">
-  <div class="mh"><div class="mt">Usuario</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mh"><div class="mt" id="mUserTit">Usuario</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div class="frow">
       <div class="fgrp"><label>Nombre</label><input id="userNombre" placeholder="Nombre completo"></div>
@@ -3930,16 +3930,21 @@ async function loadConfig() {
   }
 
   if (usersD.ok) {
+    _usersCache = usersD.data;
     const card = document.getElementById('cfgUsuariosCard');
     if (_currentUser?.rol !== 'admin') { card.style.display = 'none'; }
     else {
       document.getElementById('cfgUsersTbody').innerHTML = usersD.data.map(u => `<tr>
         <td class="b">${u.nombre}</td>
         <td>${u.email}</td>
-        <td>${u.rol}</td>
-        <td>${u.activo ? '✓' : '—'}</td>
+        <td><span class="badge ${u.rol==='admin'?'b-aprobado':'b-enviado'}"><span class="bdot"></span>${u.rol}</span></td>
+        <td>${u.activo ? '<span style="color:var(--ok-fg)">✓ Activo</span>' : '<span style="color:var(--text-3)">— Inactivo</span>'}</td>
         <td style="color:var(--t3);font-size:12px">${u.last_login ? u.last_login.slice(0,16) : '—'}</td>
-        <td><button class="tbtn d" onclick="desactivarUser(${u.id})">${u.activo ? 'Desactivar' : 'Activar'}</button></td>
+        <td><div class="tact">
+          <button class="tbtn" onclick="openUserForm(${u.id})">Editar</button>
+          <button class="tbtn" onclick="desactivarUser(${u.id})">${u.activo ? 'Desactivar' : 'Activar'}</button>
+          <button class="tbtn d" onclick="eliminarUsuario(${u.id})">🗑</button>
+        </div></td>
       </tr>`).join('');
     }
   }
@@ -3969,19 +3974,52 @@ async function saveConfig() {
 }
 
 let _editingUserId = null;
-function openUserForm(id) { _editingUserId = id||null; document.getElementById('userNombre').value=''; document.getElementById('userEmail').value=''; document.getElementById('userPass').value=''; openM('mUser'); }
+let _usersCache = [];
+function openUserForm(id) {
+  _editingUserId = id || null;
+  const tit = document.getElementById('mUserTit');
+  const passInput = document.getElementById('userPass');
+  if (id) {
+    const u = _usersCache.find(x => Number(x.id) === Number(id));
+    if (!u) { showToast('Usuario no encontrado','err'); return; }
+    tit.textContent = 'Editar usuario';
+    document.getElementById('userNombre').value = u.nombre || '';
+    document.getElementById('userEmail').value = u.email || '';
+    document.getElementById('userPass').value = '';
+    passInput.placeholder = 'Dejar vacío para no cambiar';
+    document.getElementById('userRol').value = u.rol || 'operador';
+  } else {
+    tit.textContent = 'Nuevo usuario';
+    document.getElementById('userNombre').value = '';
+    document.getElementById('userEmail').value = '';
+    document.getElementById('userPass').value = '';
+    passInput.placeholder = '••••••••';
+    document.getElementById('userRol').value = 'operador';
+  }
+  openM('mUser');
+}
 async function saveUser() {
-  const body = { nombre: document.getElementById('userNombre').value, email: document.getElementById('userEmail').value, password: document.getElementById('userPass').value, rol: document.getElementById('userRol').value };
+  const body = { nombre: document.getElementById('userNombre').value.trim(), email: document.getElementById('userEmail').value.trim(), password: document.getElementById('userPass').value, rol: document.getElementById('userRol').value };
+  if (!body.nombre || !body.email) { showToast('Nombre y email requeridos','err'); return; }
+  if (!_editingUserId && !body.password) { showToast('La contraseña es requerida para un usuario nuevo','err'); return; }
   const d = _editingUserId ? await apiPut('/api/usuarios/'+_editingUserId, body) : await apiPost('/api/usuarios', body);
   if (d.ok) { showToast('Usuario guardado','ok'); closeM(); loadConfig(); }
   else showToast(d.error||'Error','err');
 }
 async function desactivarUser(id) {
-  const u = await apiGet('/api/usuarios'); // get current state
-  const user = (u.data||[]).find(x=>x.id==id);
+  const user = _usersCache.find(x => Number(x.id) === Number(id));
   if (!user) return;
   const d = await apiPut('/api/usuarios/'+id, {...user, activo: user.activo ? 0 : 1});
-  if (d.ok) { showToast('Usuario actualizado','ok'); loadConfig(); }
+  if (d.ok) { showToast(user.activo ? 'Usuario desactivado' : 'Usuario activado','ok'); loadConfig(); }
+  else showToast(d.error||'Error','err');
+}
+async function eliminarUsuario(id) {
+  const u = _usersCache.find(x => Number(x.id) === Number(id));
+  const nombre = u ? u.nombre : 'este usuario';
+  if (!confirm(`¿Eliminar a ${nombre}? Se borra del sistema, pero su historial en Auditoría se conserva.`)) return;
+  const d = await apiDelete('/api/usuarios/'+id);
+  if (d.ok) { showToast('Usuario eliminado','ok'); loadConfig(); }
+  else showToast(d.error||'Error al eliminar','err');
 }
 
 function openGastoFijoForm() { document.getElementById('gfNombre').value=''; document.getElementById('gfMonto').value=''; openM('mGastoFijo'); }

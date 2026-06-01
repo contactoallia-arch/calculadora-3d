@@ -33,8 +33,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (req.method === "DELETE") {
-      await db.execute({ sql: "UPDATE usuarios SET activo=0 WHERE id=?", args: [id] });
-      await logAction(db, user, "ELIMINAR_USUARIO", "usuario", id);
+      // Borrado real. El audit_log conserva usuario_nombre como texto,
+      // así que el registro de lo que hizo persiste aunque se borre el usuario.
+      if (Number(id) === Number(user.id)) {
+        return res.status(400).json({ ok: false, error: "No podés eliminar tu propio usuario" });
+      }
+      const tgt = await db.execute({ sql: "SELECT nombre, email, rol FROM usuarios WHERE id=?", args: [id] });
+      const t = tgt.rows[0];
+      if (!t) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+      if (t.rol === "admin") {
+        const admins = await db.execute("SELECT COUNT(*) as c FROM usuarios WHERE rol='admin' AND activo=1");
+        if (Number(admins.rows[0].c) <= 1) {
+          return res.status(400).json({ ok: false, error: "No podés eliminar el último administrador" });
+        }
+      }
+      await db.execute({ sql: "DELETE FROM usuarios WHERE id=?", args: [id] });
+      await logAction(db, user, "ELIMINAR_USUARIO", "usuario", id, { nombre: t.nombre, email: t.email, rol: t.rol });
       return res.status(200).json({ ok: true });
     }
     return res.status(405).json({ ok: false, error: "Método no permitido" });
