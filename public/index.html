@@ -2236,16 +2236,6 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </label>
       </div>
     </div>
-    <div class="divl"></div>
-    <div class="f">
-      <label class="fl">Variantes de cantidad para PDF</label>
-      <div class="hint" style="margin-bottom:8px">Mostrá precios para distintas cantidades usando regla de 3</div>
-      <div class="qv-tags" id="qvTags"></div>
-      <div class="qv-add">
-        <input type="number" id="qvInput" placeholder="ej: 5" min="1" step="1" style="width:72px" onkeydown="if(event.key==='Enter'){event.preventDefault();addQtyVariant()}">
-        <button class="qv-btn" onclick="addQtyVariant()">＋ Agregar cantidad</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -2648,12 +2638,6 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--t2)">IVA (22%)</span><span id="iva-monto" style="color:var(--ac);font-weight:600">—</span></div>
           <div style="display:flex;justify-content:space-between;font-size:16px;border-top:1px solid var(--acg);padding-top:8px;margin-top:2px"><span style="font-weight:700">Total a cobrar</span><span id="iva-total" style="font-weight:700;color:var(--ac)">—</span></div>
         </div>
-      </div>
-    </div>
-    <div id="qvSection" style="display:none;margin-bottom:18px">
-      <div class="bars-ttl">Precios por cantidad</div>
-      <div style="background:var(--sf2);border:1px solid var(--bd);border-radius:var(--rm);overflow:hidden">
-        <table class="qv-table"><thead><tr><th>Cantidad</th><th style="text-align:right">Precio total</th></tr></thead><tbody id="qvTableBody"></tbody></table>
       </div>
     </div>
     <div id="piecesSection" style="display:none;margin-bottom:18px">
@@ -5138,7 +5122,7 @@ const PR={
 let S={
   spoolCur:'UYU',pkgCur:'UYU',matPill:'PLA',disp:'UYU',margin:50,
   ivaOnSpool:false,ivaOnBill:false,
-  extras:[],extId:0,lc:null,pieces:[],pieceId:0,qtyVariants:[],editingId:null,editingNum:null,
+  extras:[],extId:0,lc:null,pieces:[],pieceId:0,editingId:null,editingNum:null,
   sec:{elec:true,printer:true,labor:true,extras:true,time:true,client:true},
   col:{pedido:false,client:false,elec:false,time:false,printer:false,labor:false,extras:false,dims:false},
   prices:{...DEF}
@@ -5434,20 +5418,6 @@ function calc(){
   if(totalC<=0){bl.innerHTML='<div class="hint">Ingresá valores para ver el desglose.</div>';return;}
   bl.innerHTML=bars.map(b=>{const pct=(b.v/totalC*100).toFixed(1);return`<div class="brow"><div class="bn">${b.n}</div><div class="bt"><div class="bf" style="width:${pct}%"></div></div><div class="bp">${pct}%</div><div class="ba">${fmtC(b.v,C,ex)}</div></div>`;}).join('');
 
-  // ── Qty variants table ───────────────────────────────────────────────
-  const qvSec=document.getElementById('qvSection');
-  const qvBody=document.getElementById('qvTableBody');
-  if(S.qtyVariants.length>0&&qvSec&&qvBody){
-    qvSec.style.display='';
-    const baseQty=qtyEnabled?Math.max(1,parseFloat(document.getElementById('qty').value)||1):1;
-    const allQtys=[baseQty,...S.qtyVariants.filter(v=>v!==baseQty)].sort((a,b)=>a-b);
-    qvBody.innerHTML=allQtys.map(q=>{
-      const p=unitPrice*q;
-      const isBase=q===baseQty;
-      return`<tr class="${isBase?'qv-base':''}"><td>${q} unidad${q===1?'':'es'}${isBase?' ★':''}</td><td>${fmtC(p,C,ex)}</td></tr>`;
-    }).join('');
-  } else if(qvSec){qvSec.style.display='none';}
-
   // ── Pieces breakdown ─────────────────────────────────────────────────
   const pSec=document.getElementById('piecesSection');
   const pDisp=document.getElementById('piecesDisplay');
@@ -5463,25 +5433,6 @@ function calc(){
     });
     pDisp.innerHTML=html;
   } else if(pSec){pSec.style.display='none';}
-}
-
-// ── QTY VARIANTS ─────────────────────────────────────────────────────
-function addQtyVariant(){
-  const inp=document.getElementById('qvInput');
-  const v=parseInt(inp.value);
-  if(!v||v<1)return;
-  if(S.qtyVariants.includes(v))return;
-  S.qtyVariants.push(v);S.qtyVariants.sort((a,b)=>a-b);
-  inp.value='';renderQvTags();calc();
-}
-function removeQtyVariant(v){
-  S.qtyVariants=S.qtyVariants.filter(x=>x!==v);
-  renderQvTags();calc();
-}
-function renderQvTags(){
-  const el=document.getElementById('qvTags');
-  if(!el)return;
-  el.innerHTML=S.qtyVariants.map(v=>`<span class="qv-tag">×${v}<button onclick="removeQtyVariant(${v})" title="Quitar">×</button></span>`).join('');
 }
 
 // ── PIECES ────────────────────────────────────────────────────────────
@@ -5717,18 +5668,6 @@ function exportPDF(){
     })()}
 
     ${(()=>{
-      if(!S.qtyVariants||S.qtyVariants.length===0)return'';
-      const baseQty=qty;
-      const allQtys=[baseQty,...S.qtyVariants.filter(v=>v!==baseQty)].sort((a,b)=>a-b);
-      const rows=allQtys.map(q=>{
-        const p=lc.unitPrice*q;
-        const isBase=q===baseQty;
-        return`<tr style="${isBase?'background:#fdf6f1;':''}"><td style="${isBase?'font-weight:700':''}">${q} unidad${q===1?'':'es'}${isBase?' ★':''}</td><td style="text-align:right;${isBase?'font-weight:700;color:#d4601a':''}">$ ${fmt(p)}</td></tr>`;
-      }).join('');
-      return`<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#d4601a;margin-bottom:8px">Precios por cantidad</div><table style="margin-bottom:0"><thead><tr><th>Cantidad</th><th style="text-align:right">Precio total</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-    })()}
-
-    ${(()=>{
       if(!lc.piecesResults)return'';
       const opts=lc.piecesResults.filter(p=>p.mode==='optional');
       const vars=lc.piecesResults.filter(p=>p.mode==='variant');
@@ -5928,7 +5867,6 @@ function captureForm(){
   const snap={};FORM_IDS.forEach(id=>{const el=document.getElementById(id);if(el)snap[id]=el.value;});
   snap.spoolCur=S.spoolCur;snap.pkgCur=S.pkgCur;snap.matPill=S.matPill;snap.margin=S.margin;snap.disp=S.disp;snap.sec={...S.sec};
   snap.extras=S.extras.map(e=>({cur:e.cur,desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value}));
-  snap.qtyVariants=[...S.qtyVariants];
   snap.pieces=S.pieces.map(p=>({
     mode:p.mode,
     name:document.getElementById('pname-'+p.id)?.value||'',
@@ -5954,8 +5892,6 @@ function restoreForm(snap){
   if(snap.disp)setDisp(null,snap.disp);
   document.getElementById('xList').innerHTML='';S.extras=[];S.extId=0;
   (snap.extras||[]).forEach(e=>{addExtra();const last=S.extras[S.extras.length-1];last.el.querySelector('.xd').value=e.desc||'';last.el.querySelector('.xp').value=e.price||0;if(e.cur&&e.cur!=='UYU')setCur('x-'+last.id,e.cur);});
-  // Restore qty variants
-  S.qtyVariants=snap.qtyVariants||[];renderQvTags();
   // Restore pieces
   document.getElementById('pieceList').innerHTML='';S.pieces=[];S.pieceId=0;
   (snap.pieces||[]).forEach(p=>{
