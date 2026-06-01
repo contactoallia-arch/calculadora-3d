@@ -2267,21 +2267,9 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div class="ch-r"><span class="arr">▼</span></div>
   </div>
   <div class="cb col" id="body-pedido">
-    <div class="two">
-      <div class="f">
-        <label class="fl">Nombre del pedido / trabajo</label>
-        <input type="text" id="pieceName" placeholder="Ej: Pedido de Juan, lote para feria…">
-      </div>
-      <div class="f"><label class="fl">Tipo de cambio (USD → UYU)</label>
-        <div class="irow">
-          <input type="number" id="exRate" value="39.78" min="1" step="0.01" style="flex:1" oninput="recalcTotal()">
-          <button class="hbtn" id="exRateBtn" onclick="fetchRate()" title="Actualizar (BCU)" style="flex-shrink:0;height:44px;border-radius:var(--rs);gap:5px">
-            <svg class="icon" viewBox="0 0 18 18"><path d="M16 2v5h-5"/><path d="M2 16v-5h5"/><path d="M5.51 7a7 7 0 0113.23 2M1.26 9a7 7 0 0013.23 2"/></svg>
-            <span class="hbtn-label" id="exRateBtnLbl">BCU</span>
-          </button>
-        </div>
-        <div class="hint" id="exRateHint">Referencial BCU</div>
-      </div>
+    <div class="f">
+      <label class="fl">Nombre del pedido / trabajo</label>
+      <input type="text" id="pieceName" placeholder="Ej: Pedido de Juan, lote para feria…">
     </div>
   </div>
 </div>
@@ -2371,6 +2359,18 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
   </div>
   <div class="r-body">
+    <!-- Tipo de cambio -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--bd);flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);white-space:nowrap">USD → UYU</span>
+      <div class="irow" style="flex:1;min-width:180px;max-width:300px">
+        <input type="number" id="exRate" value="39.78" min="1" step="0.01" oninput="recalcTotal()">
+        <button class="hbtn" id="exRateBtn" onclick="fetchRate()" title="Actualizar (BCU)" style="flex-shrink:0;height:44px;border-radius:var(--rs);gap:5px">
+          <svg class="icon" viewBox="0 0 18 18"><path d="M16 2v5h-5"/><path d="M2 16v-5h5"/><path d="M5.51 7a7 7 0 0113.23 2M1.26 9a7 7 0 0013.23 2"/></svg>
+          <span class="hbtn-label" id="exRateBtnLbl">BCU</span>
+        </button>
+      </div>
+      <span class="hint" id="exRateHint" style="margin:0">Referencial BCU</span>
+    </div>
     <div class="price-hero">
       <div class="ph-main">
         <div class="ph-label">Precio total del presupuesto</div>
@@ -4961,6 +4961,17 @@ function articuloHTML(aid){
       <div class="f"><label class="fl">Características</label>
         <input type="text" id="caract-${aid}" placeholder="Ej: flexible, resistente al calor, traslúcido…">
       </div>
+      <div class="two">
+        <div class="f"><label class="fl">Cantidad</label>
+          <input type="number" id="qty-${aid}" value="1" min="1" step="1" oninput="renderArt(${aid});recalcTotal()">
+        </div>
+        <div class="f" style="display:flex;flex-direction:column;justify-content:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;height:44px">
+            <input type="checkbox" id="qtyEnabled-${aid}" style="width:17px;height:17px;accent-color:var(--ac);cursor:pointer" onchange="renderArt(${aid});recalcTotal()">
+            <span style="font-size:12.5px;font-weight:600;color:var(--t2)">Multiplicar por cantidad</span>
+          </label>
+        </div>
+      </div>
       <div class="f"><label class="fl">Descripción / Notas de la pieza</label>
         <textarea id="notasPieza-${aid}" rows="2" placeholder="Detalles técnicos, tolerancias, acabado, instrucciones especiales…"></textarea>
       </div>
@@ -5243,7 +5254,8 @@ function artRmExtra(aid,eid){
 function computeArt(aid){
   const a=_art(aid); if(!a)return null;
   const ex=exRate();
-  const qty=1;
+  const qtyEnabled=document.getElementById('qtyEnabled-'+aid)?.checked||false;
+  const qty=qtyEnabled?Math.max(1,gn('qty',aid)||1):1;
   // Material
   const spRaw=gn('spoolPrice',aid);
   const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
@@ -5275,8 +5287,8 @@ function computeArt(aid){
   const totalC=sub+failA;
   const margin=a.margin||0;
   const unitPrice=totalC*(1+margin/100);
-  const totalP=unitPrice;
-  const totalCostAll=totalC;
+  const totalP=unitPrice*qty;
+  const totalCostAll=totalC*qty;
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
   return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,totalP,totalCost:totalCostAll,profit,effM,totalH,
@@ -5294,7 +5306,7 @@ function renderArt(aid){
   document.getElementById('profitDisp-'+aid).textContent=fmtC(r.profit,C,ex);
   document.getElementById('effMargin-'+aid).textContent=r.effM.toFixed(1)+'%';
   const price=document.getElementById('art-price-'+aid); if(price)price.textContent=fmtC(r.totalP,C,ex);
-  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g · ${fmtC(r.totalP,C,ex)}`;
+  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g${r.qty>1?' · ×'+r.qty:''} · ${fmtC(r.totalP,C,ex)}`;
   const mets=[{l:'Material',v:r.matC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
   const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
   return r;
@@ -5320,7 +5332,7 @@ function recalcTotal(){
   if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
   // Lista por artículo
   const tA=document.getElementById('tArticulos');
-  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
+  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.qty>1?` <span style="font-size:11px;color:var(--t3)">×${r.qty}</span>`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g${r.qty>1?` · precio unit. ${fmtC(r.unitPrice,C,ex)}`:''} · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
 }
 
 // ── DISPLAY (global) ──────────────────────────────────────────────────
@@ -5354,8 +5366,9 @@ function exportPDF(){
     const dimParts=[r.alto&&`${r.alto}mm alt`,r.ancho&&`${r.ancho}mm anch`,r.profundo&&`${r.profundo}mm prof`,r.peso&&`${r.peso}g`].filter(Boolean).join(' · ');
     const caractLine=r.caract?`<div style="font-size:11px;color:#888;margin-top:2px">${r.caract}</div>`:'';
     const notaLine=r.notasPieza?`<div style="font-size:11px;color:#888;margin-top:1px;font-style:italic">${r.notasPieza}</div>`:'';
+    const qtyLabel=r.qty>1?`<div style="font-size:11px;color:#888;margin-top:2px">Cant.: ${r.qty} × $ ${fmt(r.unitPrice)} c/u</div>`:'';
     return `<tr>
-      <td><strong>${r.desc}</strong>${caractLine}${notaLine}</td>
+      <td><strong>${r.desc}</strong>${caractLine}${notaLine}${qtyLabel}</td>
       <td style="color:#666">${r.mat} · ${r.grams}g${dimParts?`<br><span style="font-size:11px">${dimParts}</span>`:''}</td>
       <td style="text-align:right;font-weight:700;white-space:nowrap">$ ${fmt(r.totalP)}</td>
     </tr>`;
@@ -5400,7 +5413,7 @@ function exportPDF(){
 function buildWALink(el){
   if(!S.articulos.length){alert('Agregá al menos una pieza.');return false;}
   let totalP=0; const lines=[];
-  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}: $ ${fmt(r.totalP)}`);});
+  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}${r.qty>1?` ×${r.qty}`:''}: $ ${fmt(r.totalP)}`);});
   const pedido=document.getElementById('pieceName').value||'';
   const cn=document.getElementById('cName')?.value||'';
   const dv=document.getElementById('delivDate')?.value||'';
@@ -5591,6 +5604,7 @@ function captureForm(){
     const a=_art(id);
     return {
       desc:gv('desc',id), caract:gv('caract',id), notasPieza:gv('notasPieza',id),
+      qty:gv('qty',id)||'1', qtyEnabled:document.getElementById('qtyEnabled-'+id)?.checked||false,
       alto:gv('alto',id),ancho:gv('ancho',id),profundo:gv('profundo',id),peso:gv('peso',id),
       matType:gv('matType',id), spoolPrice:gv('spoolPrice',id), grams:gv('grams',id), waste:gv('waste',id),
       kwhRate:gv('kwhRate',id), printerModel:gv('printerModel',id), watts:gv('watts',id),
@@ -5616,6 +5630,8 @@ function restoreArticulo(aid,d){
   const a=_art(aid); if(!a||!d)return;
   const setv=(id,v)=>{const el=document.getElementById(id+'-'+aid);if(el&&v!==undefined&&v!=='')el.value=v;};
   setv('desc',d.desc); setv('caract',d.caract); setv('notasPieza',d.notasPieza);
+  setv('qty',d.qty||'1');
+  const qe=document.getElementById('qtyEnabled-'+aid); if(qe)qe.checked=!!d.qtyEnabled;
   ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
   a.margin=d.margin!==undefined?d.margin:50; a.spoolCur=d.spoolCur||'UYU'; a.pkgCur=d.pkgCur||'UYU'; a.ivaOnSpool=!!d.ivaOnSpool; a.matPill=d.matPill||'PLA';
   if(d.sec)a.sec={elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
