@@ -113,7 +113,7 @@ export default async function handler(req, res) {
     let sql = `SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.cliente_id,
       p.mat, p.qty, p.precio, p.margen, p.fecha, p.fecha_entrega,
       p.estado, p.moneda, p.notas, p.enviado_whatsapp, p.snap, p.created_at,
-      c.nombre as cliente_nombre, c.empresa as cliente_empresa
+      c.nombre as cliente_nombre, c.empresa as cliente_empresa, c.email as cliente_email, c.telefono as cliente_tel
       FROM presupuestos p
       LEFT JOIN clientes c ON c.id=p.cliente_id
       WHERE 1=1`;

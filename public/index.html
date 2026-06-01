@@ -1278,6 +1278,19 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 5 5 15 5"/><path d="M14 5l-1 11H5L4 5"/><path d="M7 5V3h4v2"/></svg>
       </button>
     </div>
+    <!-- compartir / enviar -->
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin:6px 0 8px">Enviar presupuesto</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button class="btn btn--ghost btn--sm" style="flex:1" onclick="descargarPDFPres(_slPresId)" title="Descargar / imprimir PDF">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v9M5 7l4 4 4-4"/><path d="M3 14h12"/></svg> PDF
+      </button>
+      <button class="btn btn--ghost btn--sm" style="flex:1" onclick="emailPres(_slPresId)" title="Enviar por email">
+        <svg class="icon" viewBox="0 0 18 18"><rect x="2" y="3" width="14" height="12" rx="2"/><path d="M2 5l7 4 7-4"/></svg> Email
+      </button>
+      <button class="btn btn--sm" style="flex:1;background:#25D366;color:#fff;border:none" onclick="whatsappPres(_slPresId)" title="Enviar por WhatsApp">
+        <svg class="icon" viewBox="0 0 18 18" style="stroke:#fff"><path d="M9 2a7 7 0 00-6 10.5L2 16l3.7-1a7 7 0 103.3-13z"/><path d="M6.5 6.5c0 3 2 5 5 5"/></svg> WhatsApp
+      </button>
+    </div>
     <!-- botones de estado -->
     <div id="slEstBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   </div>
@@ -3174,6 +3187,100 @@ function cerrarPresSlideover() {
   if(!sl) return;
   sl.style.transform='translateX(100%)';
   setTimeout(()=>{ sl.style.display='none'; document.getElementById('presSlideScrim').style.display='none'; },280);
+}
+
+// ── PDF / ENVÍO DE PRESUPUESTO GUARDADO ───────────────────────────────
+function _presById(id){ return _presCache.find(x => Number(x.id) === Number(id)); }
+
+// Texto resumido para email/whatsapp
+function _resumenPres(p){
+  const num = '#'+String(p.numero||p.id).padStart(4,'0');
+  const cliente = p.cliente_nombre || p.cliente || '';
+  const lineas = [
+    `Presupuesto ${num} — ArteLab UY`,
+    cliente ? `Cliente: ${cliente}` : '',
+    `Trabajo: ${p.pieza||'—'}${p.qty>1?` (x${p.qty})`:''}`,
+    p.mat ? `Material: ${p.mat}` : '',
+    `Precio: $ ${fmtMoney(p.precio)} ${p.moneda||'UYU'}`,
+    p.fecha_entrega ? `Entrega: ${p.fecha_entrega}` : '',
+    p.notas ? `Notas: ${p.notas}` : '',
+    '',
+    'Presupuesto válido por 15 días.',
+    'ArteLab UY · Impresión 3D'
+  ].filter(Boolean);
+  return lineas.join('\n');
+}
+
+function descargarPDFPres(id){
+  const p = _presById(id);
+  if(!p){ showToast('No se encontró el presupuesto','err'); return; }
+  const num = String(p.numero||p.id).padStart(4,'0');
+  const cliente = p.cliente_nombre || p.cliente || '';
+  const email = p.cliente_email || p.snap?.cEmail || '';
+  const tel = p.cliente_tel || p.snap?.cPhone || '';
+  const grams = p.snap?.grams ? `${p.snap.grams}g` : '';
+  const qtyLine = (p.qty>1) ? `<div class="pd-br">Cantidad: <strong>${p.qty} unidades</strong></div>` : '';
+  const clientBlock = (cliente||email||tel) ? `
+    <div class="pd-box">
+      <div class="pd-bt">Cliente</div>
+      ${cliente?`<div class="pd-br"><strong>${cliente}</strong></div>`:''}
+      ${email?`<div class="pd-br">${email}</div>`:''}
+      ${tel?`<div class="pd-br">${tel}</div>`:''}
+    </div>` : '';
+
+  document.getElementById('printDoc').innerHTML = `
+  <div class="pd">
+    <div class="pd-hdr">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>
+        <div><div class="pd-brand">ArteLab UY</div><div class="pd-brand-sub">IMPRESIÓN 3D · URUGUAY</div></div>
+      </div>
+      <div class="pd-meta">
+        <div class="pd-qlabel">Presupuesto</div>
+        <div class="pd-qno">#${num}</div>
+        <div class="pd-date">${p.fecha||''}</div>
+      </div>
+    </div>
+    <div class="pd-boxes" style="${clientBlock?'':'grid-template-columns:1fr'}">
+      <div class="pd-box">
+        <div class="pd-bt">Detalle del pedido</div>
+        ${p.pieza?`<div class="pd-br"><strong>${p.pieza}</strong></div>`:''}
+        ${qtyLine}
+        ${(p.mat||grams)?`<div class="pd-br">Material: ${p.mat||'—'}${grams?` · ${grams}`:''}</div>`:''}
+        ${p.fecha_entrega?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${p.fecha_entrega}</div>`:''}
+      </div>
+      ${clientBlock}
+    </div>
+    <div class="pd-total">
+      <div><div class="pd-tl">Precio de venta</div></div>
+      <div class="pd-tp">$ ${fmtMoney(p.precio)} ${p.moneda||'UYU'}</div>
+    </div>
+    ${p.notas?`<div class="pd-notes"><strong>Notas:</strong> ${p.notas}</div>`:''}
+    <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
+    <div class="pd-footer">ArteLab UY · Impresión 3D · Uruguay</div>
+  </div>`;
+  window.print();
+}
+
+function emailPres(id){
+  const p = _presById(id);
+  if(!p) return;
+  const num = String(p.numero||p.id).padStart(4,'0');
+  const to = p.cliente_email || p.snap?.cEmail || '';
+  const asunto = encodeURIComponent(`Presupuesto #${num} — ArteLab UY`);
+  const cuerpo = encodeURIComponent(_resumenPres(p) + '\n\n(Adjuntá el PDF que descargaste con el botón "PDF".)');
+  window.location.href = `mailto:${to}?subject=${asunto}&body=${cuerpo}`;
+}
+
+function whatsappPres(id){
+  const p = _presById(id);
+  if(!p) return;
+  let tel = (p.cliente_tel || p.snap?.cPhone || '').replace(/[^\d]/g,'');
+  // Normalizar a formato internacional Uruguay si parece local (09x...)
+  if(tel && !tel.startsWith('598') && tel.length <= 9) tel = '598' + tel.replace(/^0/,'');
+  const texto = encodeURIComponent(_resumenPres(p));
+  const base = tel ? `https://wa.me/${tel}` : `https://wa.me/`;
+  window.open(`${base}?text=${texto}`, '_blank');
 }
 
 async function cambiarEstado(presId, nuevoEstado, nota, reloadPage) {
