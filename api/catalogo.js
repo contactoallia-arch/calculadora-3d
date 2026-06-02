@@ -203,19 +203,35 @@ export default async function handler(req, res) {
 
     // ───────────────────────── REPARTOS DE UTILIDADES ────────────────────
     if (recurso === "repartos") {
+      // Auto-crear tabla si no existe (por si setup no fue llamado)
+      await db.execute(`CREATE TABLE IF NOT EXISTS repartos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        descripcion TEXT NOT NULL, destinatario TEXT, monto REAL NOT NULL DEFAULT 0,
+        fecha TEXT, estado TEXT NOT NULL DEFAULT 'pendiente', notas TEXT,
+        created_by INTEGER, executed_at TEXT, created_at TEXT DEFAULT (datetime('now'))
+      )`);
+      // Auto-agregar columna costos_internos si no existe
+      try { await db.execute("ALTER TABLE presupuestos ADD COLUMN costos_internos TEXT"); } catch {}
+
       function calcUtilidad(p) {
         const precio = Number(p.precio) || 0;
         if (p.costos_internos) {
-          try { const c = JSON.parse(p.costos_internos); return precio - c.reduce((s,x)=>s+(Number(x.m)||0),0); } catch {}
+          try { const c = JSON.parse(p.costos_internos); const totalCostos = c.reduce((s,x)=>s+(Number(x.m)||0),0); return precio - totalCostos; } catch {}
         }
-        return precio * ((Number(p.margen)||0) / 100);
+        const margen = Number(p.margen) || 0;
+        if (margen > 0) return precio * (margen / 100);
+        return null; // sin margen ni costos definidos
       }
 
       if (m === "GET") {
         const rep = await db.execute("SELECT * FROM repartos ORDER BY created_at DESC");
         const pres = await db.execute("SELECT precio,margen,costos_internos,pieza,numero,id FROM presupuestos WHERE estado='cobrado'");
         let total_utilidad = 0;
-        const detalle = pres.rows.map(p => { const u=calcUtilidad(p); total_utilidad+=u; return {id:p.id,pieza:p.pieza,numero:p.numero,precio:p.precio,utilidad:u}; }).filter(x=>x.utilidad>0);
+        const detalle = pres.rows.map(p => {
+          const u = calcUtilidad(p);
+          if (u !== null) total_utilidad += u;
+          return { id:p.id, pieza:p.pieza, numero:p.numero, precio:Number(p.precio)||0, utilidad:u, sin_margen: u === null };
+        }); // mostramos TODOS los cobrados aunque no tengan utilidad definida
         const ejecutado = rep.rows.filter(r=>r.estado==="ejecutado").reduce((s,r)=>s+Number(r.monto),0);
         const pendiente = rep.rows.filter(r=>r.estado==="pendiente").reduce((s,r)=>s+Number(r.monto),0);
         return res.status(200).json({ ok:true, data:rep.rows, bolsa:{total_utilidad,ejecutado,pendiente,disponible:total_utilidad-ejecutado,disponible_libre:total_utilidad-ejecutado-pendiente,detalle} });

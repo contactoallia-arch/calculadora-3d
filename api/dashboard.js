@@ -91,8 +91,9 @@ export default async function handler(req, res) {
   const pendientesR = await db.execute(`
     SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.precio, p.moneda, p.fecha, p.estado
     FROM presupuestos p
-    WHERE p.estado IN ('aprobado','produccion','listo','entregado')
-    AND (SELECT COALESCE(SUM(monto),0) FROM cobros WHERE presupuesto_id=p.id) < p.precio
+    WHERE p.estado IN ('aprobado','produccion','listo','entregado','cobrado')
+    AND COALESCE(p.precio,0) > 0
+    AND (SELECT COALESCE(SUM(monto),0) FROM cobros WHERE presupuesto_id=p.id) < COALESCE(p.precio,0)
     ORDER BY p.fecha ASC LIMIT 20
   `);
   const listosR = await db.execute("SELECT id,COALESCE(numero,id) as numero,pieza,cliente,precio,moneda,fecha_entrega,fecha FROM presupuestos WHERE estado='listo' ORDER BY fecha_entrega ASC LIMIT 5");

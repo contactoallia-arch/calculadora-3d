@@ -6328,7 +6328,8 @@ function renderRepartoKPIs() {
   const b = _repartoBolsa;
   const fmt2 = v => '$ ' + Math.round(v||0).toLocaleString('es-UY');
   document.getElementById('rKpiBolsa').textContent      = fmt2(b.total_utilidad);
-  document.getElementById('rKpiBolsaSub').textContent   = `${(b.detalle||[]).length} presupuestos cobrados`;
+  const sinMargen = (b.detalle||[]).filter(x=>x.sin_margen).length;
+  document.getElementById('rKpiBolsaSub').textContent   = `${(b.detalle||[]).length} cobrados${sinMargen?' · '+sinMargen+' sin margen definido':''}`;
   document.getElementById('rKpiEjecutado').textContent  = fmt2(b.ejecutado);
   document.getElementById('rKpiEjecutadoSub').textContent = `${_repartoCache.filter(r=>r.estado==='ejecutado').length} órdenes ejecutadas`;
   document.getElementById('rKpiDisponible').textContent = fmt2(b.disponible);
@@ -6385,15 +6386,20 @@ function renderRepartoTabla() {
 function renderRepartoBolsaDetalle() {
   const det = _repartoBolsa.detalle || [];
   const el = document.getElementById('rBolsaDetalleList');
-  if (!det.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:8px 0">No hay presupuestos cobrados con utilidad registrada.</div>'; return; }
-  el.innerHTML = det.map(p => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--surface-2);border-radius:var(--r-sm);font-size:13px">
+  if (!det.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:8px 0">No hay presupuestos cobrados aún.</div>'; return; }
+  el.innerHTML = det.map(p => {
+    const tieneUtil = p.utilidad !== null && p.utilidad > 0;
+    const utilText = p.sin_margen
+      ? `<span style="font-size:11px;color:var(--warn-fg);font-weight:600">Sin margen/costos definidos</span>`
+      : `<span style="font-family:var(--mono);font-weight:700;color:var(--ok-fg)">+ $ ${Math.round(p.utilidad||0).toLocaleString('es-UY')}</span>`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--surface-2);border-radius:var(--r-sm);font-size:13px;margin-bottom:4px">
       <div>
         <span style="font-weight:600">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza}</span>
-        <span style="color:var(--text-3);margin-left:8px">Precio: $ ${Math.round(p.precio).toLocaleString('es-UY')}</span>
+        <span style="color:var(--text-3);margin-left:8px">Precio: $ ${Math.round(p.precio||0).toLocaleString('es-UY')}</span>
       </div>
-      <span style="font-family:var(--mono);font-weight:700;color:var(--ok-fg)">+ $ ${Math.round(p.utilidad).toLocaleString('es-UY')}</span>
-    </div>`).join('');
+      ${utilText}
+    </div>`;
+  }).join('');
 }
 
 function openRepartoForm() {
