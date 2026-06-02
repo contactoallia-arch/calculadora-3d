@@ -206,6 +206,12 @@ export default async function handler(req, res) {
     )
   `);
 
+  for (const col of [
+    "ADD COLUMN razon_social TEXT",
+    "ADD COLUMN celular TEXT",
+    "ADD COLUMN vendedor TEXT"
+  ]) { try { await db.execute(`ALTER TABLE proveedores ${col}`); } catch {} }
+
   // Insumos
   await db.execute(`
     CREATE TABLE IF NOT EXISTS insumos (

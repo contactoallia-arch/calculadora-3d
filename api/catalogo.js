@@ -114,20 +114,20 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, data: r.rows });
       }
       if (m === "POST") {
-        const { nombre, rubro, contacto, telefono, email, rut, direccion, notas } = req.body || {};
+        const { nombre, rubro, contacto, telefono, celular, email, rut, razon_social, direccion, vendedor, notas } = req.body || {};
         if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
         const r = await db.execute({
-          sql: "INSERT INTO proveedores (nombre,rubro,contacto,telefono,email,rut,direccion,notas) VALUES (?,?,?,?,?,?,?,?)",
-          args: [nombre, rubro||null, contacto||null, telefono||null, email||null, rut||null, direccion||null, notas||null]
+          sql: "INSERT INTO proveedores (nombre,rubro,contacto,telefono,celular,email,rut,razon_social,direccion,vendedor,notas) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          args: [nombre, rubro||null, contacto||null, telefono||null, celular||null, email||null, rut||null, razon_social||null, direccion||null, vendedor||null, notas||null]
         });
         await logAction(db, user, "CREAR_PROVEEDOR", "proveedor", Number(r.lastInsertRowid));
         return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
       }
       if (m === "PUT" && id) {
-        const { nombre, rubro, contacto, telefono, email, rut, direccion, notas } = req.body || {};
+        const { nombre, rubro, contacto, telefono, celular, email, rut, razon_social, direccion, vendedor, notas } = req.body || {};
         await db.execute({
-          sql: "UPDATE proveedores SET nombre=?,rubro=?,contacto=?,telefono=?,email=?,rut=?,direccion=?,notas=? WHERE id=?",
-          args: [nombre, rubro||null, contacto||null, telefono||null, email||null, rut||null, direccion||null, notas||null, id]
+          sql: "UPDATE proveedores SET nombre=?,rubro=?,contacto=?,telefono=?,celular=?,email=?,rut=?,razon_social=?,direccion=?,vendedor=?,notas=? WHERE id=?",
+          args: [nombre, rubro||null, contacto||null, telefono||null, celular||null, email||null, rut||null, razon_social||null, direccion||null, vendedor||null, notas||null, id]
         });
         await logAction(db, user, "EDITAR_PROVEEDOR", "proveedor", id);
         return res.status(200).json({ ok: true });

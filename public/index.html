@@ -1614,7 +1614,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div class="frow">
       <div class="fgrp"><label>Fecha *</label><input id="gastoFecha" type="date"></div>
       <div class="fgrp"><label>Categoría</label>
-        <select id="gastoCatInput"><option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option></select>
+        <select id="gastoCatInput"><option value="">— categoría —</option><option>filamento</option><option>resina</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option></select>
       </div>
       <div class="fgrp"><label>Moneda</label><select id="gastoMoneda"><option>UYU</option><option>USD</option></select></div>
     </div>
@@ -1630,13 +1630,22 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
         <div id="nuevoPanelProv" style="display:none;margin-top:8px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rs);padding:10px 12px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:8px">Nuevo proveedor</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Nombre *</label><input id="newProvNombre" placeholder="Ej: FilaFlex UY" style="height:34px"></div>
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Rubro</label><input id="newProvRubro" placeholder="Ej: Filamentos" style="height:34px"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px">
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Nombre</label><input id="newProvNombre" placeholder="Ej: FilaFlex UY" style="height:32px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Razón social</label><input id="newProvRazonSocial" placeholder="Ej: FilaFlex UY S.A." style="height:32px"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:7px">
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">RUT</label><input id="newProvRut" placeholder="Ej: 214567890017" style="height:32px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Rubro</label><input id="newProvRubro" placeholder="Ej: Filamentos" style="height:32px"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:7px">
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Teléfono</label><input id="newProvTel" placeholder="+598 2x xx xx xx" style="height:32px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Celular</label><input id="newProvCelular" placeholder="+598 9x xxx xxx" style="height:32px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Email</label><input id="newProvEmail" placeholder="proveedor@mail.com" style="height:32px"></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Teléfono</label><input id="newProvTel" placeholder="+598 9x xxx xxx" style="height:34px"></div>
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Email</label><input id="newProvEmail" placeholder="proveedor@mail.com" style="height:34px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Dirección</label><input id="newProvDireccion" placeholder="Calle y número" style="height:32px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:3px">Vendedor</label><input id="newProvVendedor" placeholder="Nombre del vendedor" style="height:32px"></div>
           </div>
         </div>
       </div>
@@ -2007,22 +2016,27 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="mh"><div class="mt" id="mProveedorTit">Nuevo proveedor</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div class="frow">
-      <div class="fgrp" style="flex:2"><label>Nombre *</label><input id="provNombre" placeholder="Ej: FilaFlex Uruguay"></div>
+      <div class="fgrp" style="flex:2"><label>Nombre</label><input id="provNombre" placeholder="Ej: FilaFlex Uruguay"></div>
       <div class="fgrp"><label>Rubro</label><input id="provRubro" placeholder="Ej: Filamentos"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Contacto</label><input id="provContacto" placeholder="Nombre de la persona"></div>
-      <div class="fgrp"><label>Teléfono</label><input id="provTel" placeholder="+598 9x xxx xxx"></div>
-    </div>
-    <div class="frow">
-      <div class="fgrp"><label>Email</label><input id="provEmail" type="email" placeholder="proveedor@ejemplo.com"></div>
+      <div class="fgrp" style="flex:2"><label>Razón social</label><input id="provRazonSocial" placeholder="Ej: FilaFlex Uruguay S.A."></div>
       <div class="fgrp"><label>RUT</label><input id="provRut" placeholder="Ej: 214567890017"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Dirección</label><input id="provDireccion" placeholder="Ej: Av. 18 de Julio 1234, Montevideo"></div>
+      <div class="fgrp"><label>Teléfono</label><input id="provTel" placeholder="+598 2x xx xx xx"></div>
+      <div class="fgrp"><label>Celular</label><input id="provCelular" placeholder="+598 9x xxx xxx"></div>
+      <div class="fgrp"><label>Email</label><input id="provEmail" type="email" placeholder="proveedor@ejemplo.com"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Notas</label><textarea id="provNotas" placeholder="Condiciones de pago, tiempo de entrega, etc." style="height:72px"></textarea></div>
+      <div class="fgrp" style="flex:2"><label>Dirección</label><input id="provDireccion" placeholder="Ej: Av. 18 de Julio 1234, Montevideo"></div>
+      <div class="fgrp"><label>Vendedor</label><input id="provVendedor" placeholder="Nombre del vendedor"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Contacto</label><input id="provContacto" placeholder="Nombre de contacto"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Notas</label><textarea id="provNotas" placeholder="Condiciones de pago, tiempo de entrega, etc." style="height:60px"></textarea></div>
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveProveedor()">Guardar</button></div>
@@ -4100,9 +4114,22 @@ async function loadGastos() {
 function _gastoItemRowHTML(withInsumo) {
   return `<div class="gasto-item-row" style="display:grid;grid-template-columns:1fr 64px 100px 86px 28px;gap:4px;margin-bottom:5px;align-items:start">
     <div>
-      <input class="gi-desc" type="text" placeholder="Ej: PLA 1kg blanco" style="height:34px;width:100%" oninput="updateGastoTotal()">
+      <input class="gi-desc" type="text" placeholder="Descripción del artículo" style="height:34px;width:100%" oninput="updateGastoTotal()">
       <div class="gi-ins-fields" style="display:${withInsumo?'grid':'none'};grid-template-columns:1fr 1fr;gap:4px;margin-top:3px">
-        <select class="gi-tipo" style="height:28px;font-size:11.5px"><option value="">— tipo —</option><option>PLA</option><option>PETG</option><option>ABS</option><option>TPU</option><option>ASA</option><option>Nylon</option><option>Resina</option><option>otro</option></select>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <select class="gi-cat" style="height:28px;font-size:11.5px" onchange="onGiCatChange(this)">
+            <option value="">— categoría —</option>
+            <option value="filamento">Filamento</option>
+            <option value="resina">Resina</option>
+            <option value="componentes">Componentes</option>
+            <option value="packaging">Packaging</option>
+            <option value="otro">Otro</option>
+          </select>
+          <select class="gi-filsub" style="display:none;height:28px;font-size:11.5px">
+            <option value="">— tipo —</option><option>PLA</option><option>PETG</option><option>ABS</option><option>TPU</option><option>ASA</option><option>Nylon</option>
+          </select>
+          <input class="gi-othersub" type="text" placeholder="Especificá el tipo…" style="display:none;height:28px;font-size:11.5px">
+        </div>
         <select class="gi-unidad" style="height:28px;font-size:11.5px"><option value="kg">kg</option><option value="unidad">unidad</option><option value="litro">litro</option><option value="metro">metro</option></select>
       </div>
     </div>
@@ -4154,6 +4181,17 @@ function toggleGastoInsumoMode() {
   document.querySelectorAll('.gi-ins-fields').forEach(el => el.style.display = on ? 'grid' : 'none');
 }
 
+function onGiCatChange(sel) {
+  const wrap = sel.closest('.gi-ins-fields');
+  const filSub = wrap.querySelector('.gi-filsub');
+  const otherSub = wrap.querySelector('.gi-othersub');
+  const v = sel.value;
+  filSub.style.display = v === 'filamento' ? '' : 'none';
+  otherSub.style.display = (v && v !== 'filamento') ? '' : 'none';
+  if (v !== 'filamento') filSub.value = '';
+  if (!v || v === 'filamento') otherSub.value = '';
+}
+
 async function openGastoForm(presIdPresel) {
   document.getElementById('gastoFecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('gastoComoInsumo').checked = false;
@@ -4195,8 +4233,15 @@ async function saveGasto() {
   const nuevoNombre = document.getElementById('newProvNombre').value.trim();
   if (panelAbierto && nuevoNombre) {
     const dp = await apiPost('/api/proveedores', {
-      nombre: nuevoNombre, rubro: document.getElementById('newProvRubro').value.trim(),
-      telefono: document.getElementById('newProvTel').value.trim(), email: document.getElementById('newProvEmail').value.trim()
+      nombre: nuevoNombre,
+      razon_social: document.getElementById('newProvRazonSocial').value.trim(),
+      rut: document.getElementById('newProvRut').value.trim(),
+      rubro: document.getElementById('newProvRubro').value.trim(),
+      telefono: document.getElementById('newProvTel').value.trim(),
+      celular: document.getElementById('newProvCelular').value.trim(),
+      email: document.getElementById('newProvEmail').value.trim(),
+      direccion: document.getElementById('newProvDireccion').value.trim(),
+      vendedor: document.getElementById('newProvVendedor').value.trim()
     });
     if (!dp.ok) { showToast(dp.error||'Error al crear proveedor','err'); return; }
     provId = dp.data.id;
@@ -4208,9 +4253,12 @@ async function saveGasto() {
     const desc = row.querySelector('.gi-desc')?.value?.trim();
     const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
     const price = parseFloat(row.querySelector('.gi-price')?.value||0);
-    const tipo = row.querySelector('.gi-tipo')?.value||'';
+    const cat = row.querySelector('.gi-cat')?.value||'';
+    const filsub = row.querySelector('.gi-filsub')?.value||'';
+    const othersub = row.querySelector('.gi-othersub')?.value||'';
+    const subTipo = filsub || othersub || '';
     const unidad = row.querySelector('.gi-unidad')?.value||'kg';
-    if (desc && qty>0 && price>0) items.push({desc, qty, price, tipo, unidad, total: qty*price});
+    if (desc && qty>0 && price>0) items.push({desc, qty, price, cat, subTipo, unidad, total: qty*price});
   });
   if (!items.length) { showToast('Agregá al menos un artículo con descripción, cantidad y precio', 'err'); return; }
 
@@ -4238,8 +4286,8 @@ async function _upsertInsumo(item, provId, moneda) {
   try {
     const body = {
       nombre: item.desc,
-      categoria: item.tipo ? 'filamento' : 'otros',
-      tipo: item.tipo || null,
+      categoria: item.cat || 'otros',
+      tipo: item.subTipo || null,
       proveedor_id: provId ? Number(provId) : null,
       precio: item.price,
       moneda, unidad: item.unidad, stock: item.qty
@@ -4493,12 +4541,9 @@ function toggleNuevoProv() {
   panel.style.display = visible ? 'none' : 'block';
   btn.textContent = visible ? '+ Nuevo' : '✕ Cancelar';
   if (!visible) {
-    document.getElementById('newProvNombre').value = '';
-    document.getElementById('newProvRubro').value = '';
-    document.getElementById('newProvTel').value = '';
-    document.getElementById('newProvEmail').value = '';
-    document.getElementById('newProvRut').value = '';
-    document.getElementById('newProvDireccion').value = '';
+    ['newProvNombre','newProvRazonSocial','newProvRut','newProvRubro',
+     'newProvTel','newProvCelular','newProvEmail','newProvDireccion','newProvVendedor']
+      .forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
     document.getElementById('newProvNombre').focus();
   }
 }
@@ -5373,7 +5418,7 @@ async function loadProveedores() {
 function openProveedorForm() {
   _editProvId = null;
   document.getElementById('mProveedorTit').textContent = 'Nuevo proveedor';
-  ['provNombre','provRubro','provContacto','provTel','provEmail','provRut','provDireccion','provNotas'].forEach(id => document.getElementById(id).value = '');
+  ['provNombre','provRazonSocial','provRubro','provContacto','provTel','provCelular','provEmail','provRut','provDireccion','provVendedor','provNotas'].forEach(id => document.getElementById(id).value = '');
   openM('mProveedor');
 }
 
@@ -5382,12 +5427,15 @@ function editProveedor(id, encoded) {
   const p = JSON.parse(decodeURIComponent(encoded));
   document.getElementById('mProveedorTit').textContent = 'Editar proveedor';
   document.getElementById('provNombre').value = p.nombre||'';
+  document.getElementById('provRazonSocial').value = p.razon_social||'';
   document.getElementById('provRubro').value = p.rubro||'';
   document.getElementById('provContacto').value = p.contacto||'';
   document.getElementById('provTel').value = p.telefono||'';
+  document.getElementById('provCelular').value = p.celular||'';
   document.getElementById('provEmail').value = p.email||'';
   document.getElementById('provRut').value = p.rut||'';
   document.getElementById('provDireccion').value = p.direccion||'';
+  document.getElementById('provVendedor').value = p.vendedor||'';
   document.getElementById('provNotas').value = p.notas||'';
   openM('mProveedor');
 }
@@ -5395,12 +5443,15 @@ function editProveedor(id, encoded) {
 async function saveProveedor() {
   const body = {
     nombre: document.getElementById('provNombre').value.trim(),
+    razon_social: document.getElementById('provRazonSocial').value.trim(),
     rubro: document.getElementById('provRubro').value.trim(),
     contacto: document.getElementById('provContacto').value.trim(),
     telefono: document.getElementById('provTel').value.trim(),
+    celular: document.getElementById('provCelular').value.trim(),
     email: document.getElementById('provEmail').value.trim(),
     rut: document.getElementById('provRut').value.trim(),
     direccion: document.getElementById('provDireccion').value.trim(),
+    vendedor: document.getElementById('provVendedor').value.trim(),
     notas: document.getElementById('provNotas').value.trim()
   };
   if (!body.nombre) { showToast('Nombre requerido', 'err'); return; }
