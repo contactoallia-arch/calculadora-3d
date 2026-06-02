@@ -24,6 +24,8 @@
     { "source": "/api/agenda/:id",           "destination": "/api/catalogo?recurso=agenda&id=:id" },
     { "source": "/api/agenda",               "destination": "/api/catalogo?recurso=agenda" },
     { "source": "/api/notificaciones/:id",   "destination": "/api/catalogo?recurso=notificaciones&id=:id" },
-    { "source": "/api/notificaciones",       "destination": "/api/catalogo?recurso=notificaciones" }
+    { "source": "/api/notificaciones",       "destination": "/api/catalogo?recurso=notificaciones" },
+    { "source": "/api/repartos/:id",         "destination": "/api/repartos?id=:id" },
+    { "source": "/api/repartos",             "destination": "/api/repartos" }
   ]
 }

@@ -35,10 +35,34 @@ export default async function handler(req, res) {
     "ADD COLUMN enviado_whatsapp INTEGER DEFAULT 0",
     "ADD COLUMN created_by INTEGER",
     "ADD COLUMN updated_at TEXT",
-    "ADD COLUMN updated_by INTEGER"
+    "ADD COLUMN updated_by INTEGER",
+    "ADD COLUMN costos_internos TEXT",
+    "ADD COLUMN cliente_tipo TEXT",
+    "ADD COLUMN cliente_empresa TEXT",
+    "ADD COLUMN cliente_rut TEXT",
+    "ADD COLUMN alto REAL",
+    "ADD COLUMN ancho REAL",
+    "ADD COLUMN profundo REAL",
+    "ADD COLUMN peso REAL"
   ]) {
     try { await db.execute(`ALTER TABLE presupuestos ${col}`); } catch {}
   }
+
+  // Repartos de utilidades
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS repartos (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      descripcion  TEXT NOT NULL,
+      destinatario TEXT,
+      monto        REAL NOT NULL DEFAULT 0,
+      fecha        TEXT,
+      estado       TEXT NOT NULL DEFAULT 'pendiente',
+      notas        TEXT,
+      created_by   INTEGER,
+      executed_at  TEXT,
+      created_at   TEXT DEFAULT (datetime('now'))
+    )
+  `);
 
   // Historial de estados de presupuesto
   await db.execute(`

@@ -923,6 +923,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Reportes
     </button>
+    <button class="nav-item" id="nav-reparto" onclick="showPage('reparto')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 12h8"/></svg>
+      Reparto
+    </button>
     <div class="nav-label">Sistema</div>
     <button class="nav-item" id="nav-config" onclick="showPage('config')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -2548,6 +2552,112 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 <footer>ArteLab UY · Tarifas UTE 2025–2026 · Tipo de cambio referencial BCU · Datos Bambu Lab wiki.bambulab.com</footer>
 
 </div><!-- /page-calculadora -->
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: REPARTO DE UTILIDADES
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-reparto" class="page">
+  <div class="pg-hdr">
+    <h2 class="pg-title">Reparto de utilidades</h2>
+    <button class="btn btn--primary" onclick="openRepartoForm()">
+      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+      Nueva orden
+    </button>
+  </div>
+  <div class="pg-body">
+    <!-- KPIs de la bolsa -->
+    <div class="kpi-row-3" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      <div class="card card-pad" style="padding:16px 20px">
+        <div style="font-size:11.5px;color:var(--text-3);font-weight:600;margin-bottom:6px">💰 Bolsa de utilidades</div>
+        <div class="num" id="rKpiBolsa" style="font-size:26px;font-weight:800;color:var(--brand)">—</div>
+        <div id="rKpiBolsaSub" style="font-size:11.5px;color:var(--text-3);margin-top:3px">de presupuestos cobrados</div>
+      </div>
+      <div class="card card-pad" style="padding:16px 20px">
+        <div style="font-size:11.5px;color:var(--text-3);font-weight:600;margin-bottom:6px">✅ Ya repartido</div>
+        <div class="num" id="rKpiEjecutado" style="font-size:26px;font-weight:800;color:var(--ok-fg)">—</div>
+        <div id="rKpiEjecutadoSub" style="font-size:11.5px;color:var(--text-3);margin-top:3px">órdenes ejecutadas</div>
+      </div>
+      <div class="card card-pad" style="padding:16px 20px;border:2px solid var(--brand)">
+        <div style="font-size:11.5px;color:var(--text-3);font-weight:600;margin-bottom:6px">🎯 Disponible</div>
+        <div class="num" id="rKpiDisponible" style="font-size:26px;font-weight:800;color:var(--brand)">—</div>
+        <div id="rKpiDisponibleSub" style="font-size:11.5px;color:var(--text-3);margin-top:3px">para repartir</div>
+      </div>
+    </div>
+
+    <!-- Pendientes comprometidos -->
+    <div id="rPendienteBanner" style="display:none;margin-bottom:12px;padding:11px 16px;background:var(--warn-soft);border:1px solid var(--warn-fg);border-radius:var(--r-sm);font-size:13px;color:var(--warn-fg);font-weight:600">
+      ⏳ <span id="rPendienteTxt"></span> comprometido en órdenes pendientes
+    </div>
+
+    <!-- Tabla de repartos -->
+    <div class="card" style="overflow:hidden">
+      <div class="card-head" style="padding:14px 18px;border-bottom:1px solid var(--border)">
+        <h3 class="card-title">Órdenes de reparto</h3>
+        <div style="display:flex;gap:6px">
+          <button class="chip on" id="rchip-" onclick="setRepartoChip('')">Todas</button>
+          <button class="chip" id="rchip-pendiente" onclick="setRepartoChip('pendiente')">Pendientes</button>
+          <button class="chip" id="rchip-ejecutado" onclick="setRepartoChip('ejecutado')">Ejecutadas</button>
+          <button class="chip" id="rchip-cancelado" onclick="setRepartoChip('cancelado')">Canceladas</button>
+        </div>
+      </div>
+      <div id="repartoTable" style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--surface-2)">
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Descripción</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Destinatario</th>
+            <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Monto</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Fecha</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Estado</th>
+            <th style="padding:10px 16px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Acciones</th>
+          </tr></thead>
+          <tbody id="repartoBody">
+            <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Detalle bolsa (colapsable) -->
+    <div class="card" style="margin-top:12px">
+      <div class="ch" onclick="tog('rBolsaDetalle')" style="cursor:pointer">
+        <div class="ch-l">
+          <div class="c-icon"><svg class="icon" viewBox="0 0 18 18"><line x1="9" y1="1" x2="9" y2="17"/><path d="M13 4H7a3 3 0 000 6h4a3 3 0 010 6H5"/></svg></div>
+          <div><div class="ctit">Detalle de la bolsa</div><div class="csub">Presupuestos cobrados que aportan utilidades</div></div>
+        </div>
+        <div class="ch-r"><span class="arr">▼</span></div>
+      </div>
+      <div class="cb col" id="body-rBolsaDetalle">
+        <div id="rBolsaDetalleList" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nueva orden de reparto -->
+<div class="modal" id="mReparto" style="max-width:480px">
+  <div class="mh"><div class="mt" id="mRepartoTit">Nueva orden de reparto</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp" style="flex:2"><label>Descripción *</label><input id="rDesc" placeholder="Ej: Reparto enero 2026, retiro personal…"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Destinatario</label><input id="rDest" placeholder="Nombre de quien recibe"></div>
+      <div class="fgrp"><label>Fecha</label><input id="rFecha" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Monto *</label><input id="rMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <!-- Saldo disponible -->
+    <div id="rSaldoInfo" style="padding:10px 14px;background:var(--brand-soft);border:1px solid rgba(242,106,33,.25);border-radius:var(--r-sm);font-size:13px;margin-top:4px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Disponible para repartir</span><span id="rSaldoDisp" style="font-weight:700;color:var(--brand)">—</span></div>
+    </div>
+    <div class="frow"><div class="fgrp"><label>Notas</label><textarea id="rNotas" style="height:56px" placeholder="Observaciones…"></textarea></div></div>
+  </div>
+  <div class="mf">
+    <button class="bs2" onclick="closeM()">Cancelar</button>
+    <button class="bp2" onclick="saveReparto()">Crear orden</button>
+  </div>
+</div>
+
 </main><!-- /app-main -->
 </div><!-- /app-wrap -->
 </div><!-- /app -->
@@ -2623,7 +2733,7 @@ async function doLogout() {
 let _activePage = 'dashboard';
 const _chartInstances = {};
 
-const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', agenda:'Agenda', reportes:'Reportes', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
+const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', agenda:'Agenda', reportes:'Reportes', reparto:'Reparto de utilidades', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -2649,6 +2759,7 @@ function showPage(page) {
   if (page === 'agenda') loadAgenda();
   if (page === 'proveedores') loadProveedores();
   if (page === 'reportes') loadReportes();
+  if (page === 'reparto') loadRepartos();
   if (page === 'config') loadConfig();
   if (page === 'logs') loadLogs();
   // sync bottom nav
@@ -6191,6 +6302,143 @@ async function fetchRate(){
     setTimeout(()=>{hint.textContent='Referencial BCU';hint.style.color='';},3000);
   }
   lbl.textContent='BCU';btn.disabled=false;
+}
+
+// ── REPARTO DE UTILIDADES ─────────────────────────────────────────────
+let _repartoCache = [];
+let _repartoBolsa = {};
+let _repartoChip  = '';
+
+async function loadRepartos() {
+  try {
+    const d = await apiGet('/api/repartos');
+    if (!d.ok) throw new Error(d.error);
+    _repartoCache = d.data || [];
+    _repartoBolsa = d.bolsa || {};
+    renderRepartoKPIs();
+    renderRepartoTabla();
+    renderRepartoBolsaDetalle();
+  } catch(e) {
+    document.getElementById('repartoBody').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">Error al cargar: ${e.message}</td></tr>`;
+  }
+}
+
+function renderRepartoKPIs() {
+  const b = _repartoBolsa;
+  const fmt2 = v => '$ ' + Math.round(v||0).toLocaleString('es-UY');
+  document.getElementById('rKpiBolsa').textContent      = fmt2(b.total_utilidad);
+  document.getElementById('rKpiBolsaSub').textContent   = `${(b.detalle||[]).length} presupuestos cobrados`;
+  document.getElementById('rKpiEjecutado').textContent  = fmt2(b.ejecutado);
+  document.getElementById('rKpiEjecutadoSub').textContent = `${_repartoCache.filter(r=>r.estado==='ejecutado').length} órdenes ejecutadas`;
+  document.getElementById('rKpiDisponible').textContent = fmt2(b.disponible);
+  const pend = b.pendiente || 0;
+  const banner = document.getElementById('rPendienteBanner');
+  if (pend > 0) {
+    banner.style.display = '';
+    document.getElementById('rPendienteTxt').textContent = fmt2(pend);
+    document.getElementById('rKpiDisponibleSub').textContent = `${fmt2(b.disponible_libre)} libre (sin comprometidos)`;
+  } else {
+    banner.style.display = 'none';
+    document.getElementById('rKpiDisponibleSub').textContent = 'para repartir';
+  }
+}
+
+const REPARTO_ESTADO_BADGE = {
+  pendiente: `<span style="background:var(--warn-soft);color:var(--warn-fg);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700">⏳ Pendiente</span>`,
+  ejecutado: `<span style="background:var(--ok-soft);color:var(--ok-fg);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700">✅ Ejecutado</span>`,
+  cancelado: `<span style="background:var(--surface-hover);color:var(--text-3);padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700">✕ Cancelado</span>`
+};
+
+function setRepartoChip(v) {
+  _repartoChip = v;
+  document.querySelectorAll('[id^="rchip-"]').forEach(b => b.classList.toggle('on', b.id === 'rchip-'+v));
+  renderRepartoTabla();
+}
+
+function renderRepartoTabla() {
+  const items = _repartoChip ? _repartoCache.filter(r=>r.estado===_repartoChip) : _repartoCache;
+  const body = document.getElementById('repartoBody');
+  if (!items.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">No hay órdenes de reparto.</td></tr>';
+    return;
+  }
+  body.innerHTML = items.map(r => `
+    <tr style="border-bottom:1px solid var(--border-2)">
+      <td style="padding:11px 16px;font-size:13.5px;font-weight:600">${r.descripcion}</td>
+      <td style="padding:11px 16px;font-size:13px;color:var(--text-2)">${r.destinatario||'—'}</td>
+      <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--brand)">$ ${Math.round(r.monto).toLocaleString('es-UY')}</td>
+      <td style="padding:11px 16px;font-size:12.5px;color:var(--text-3)">${r.fecha||r.executed_at||r.created_at?.slice(0,10)||'—'}</td>
+      <td style="padding:11px 16px">${REPARTO_ESTADO_BADGE[r.estado]||r.estado}</td>
+      <td style="padding:11px 16px;text-align:center">
+        <div style="display:flex;gap:5px;justify-content:center">
+          ${r.estado==='pendiente'?`
+            <button onclick="ejecutarReparto(${r.id})" class="btn btn--primary btn--sm">✓ Ejecutar</button>
+            <button onclick="cancelarReparto(${r.id})" class="btn btn--ghost btn--sm">Cancelar</button>
+          `:''}
+          ${r.estado!=='ejecutado'?`<button onclick="eliminarReparto(${r.id})" class="btn btn--danger btn--sm">🗑</button>`:''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function renderRepartoBolsaDetalle() {
+  const det = _repartoBolsa.detalle || [];
+  const el = document.getElementById('rBolsaDetalleList');
+  if (!det.length) { el.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:8px 0">No hay presupuestos cobrados con utilidad registrada.</div>'; return; }
+  el.innerHTML = det.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--surface-2);border-radius:var(--r-sm);font-size:13px">
+      <div>
+        <span style="font-weight:600">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza}</span>
+        <span style="color:var(--text-3);margin-left:8px">Precio: $ ${Math.round(p.precio).toLocaleString('es-UY')}</span>
+      </div>
+      <span style="font-family:var(--mono);font-weight:700;color:var(--ok-fg)">+ $ ${Math.round(p.utilidad).toLocaleString('es-UY')}</span>
+    </div>`).join('');
+}
+
+function openRepartoForm() {
+  document.getElementById('rDesc').value = '';
+  document.getElementById('rDest').value = '';
+  document.getElementById('rMonto').value = '';
+  document.getElementById('rNotas').value = '';
+  document.getElementById('rFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('rSaldoDisp').textContent = '$ ' + Math.round(_repartoBolsa.disponible_libre||_repartoBolsa.disponible||0).toLocaleString('es-UY');
+  openM('mReparto');
+  setTimeout(()=>document.getElementById('rDesc').focus(),120);
+}
+
+async function saveReparto() {
+  const desc  = document.getElementById('rDesc').value.trim();
+  const monto = parseFloat(document.getElementById('rMonto').value);
+  if (!desc || isNaN(monto) || monto <= 0) { showToast('Descripción y monto requeridos','err'); return; }
+  const body = { descripcion: desc, destinatario: document.getElementById('rDest').value.trim()||null, monto, fecha: document.getElementById('rFecha').value||null, notas: document.getElementById('rNotas').value.trim()||null };
+  const d = await apiPost('/api/repartos', body);
+  if (d.ok) { showToast('Orden creada','ok'); closeM(); loadRepartos(); }
+  else showToast(d.error||'Error','err');
+}
+
+async function ejecutarReparto(id) {
+  showConfirm('¿Ejecutar esta orden? Se descontará del saldo de utilidades disponible.', async () => {
+    const d = await apiPut('/api/repartos/'+id, { accion:'ejecutar' });
+    if (d.ok) { showToast('Orden ejecutada ✓','ok'); loadRepartos(); }
+    else showToast(d.error||'Error','err');
+  }, { title:'Ejecutar reparto', btnLabel:'Ejecutar', danger:false });
+}
+
+async function cancelarReparto(id) {
+  showConfirm('¿Cancelar esta orden de reparto?', async () => {
+    const d = await apiPut('/api/repartos/'+id, { accion:'cancelar' });
+    if (d.ok) { showToast('Orden cancelada','ok'); loadRepartos(); }
+    else showToast(d.error||'Error','err');
+  }, { title:'Cancelar reparto', btnLabel:'Cancelar' });
+}
+
+async function eliminarReparto(id) {
+  showConfirm('¿Eliminar esta orden de reparto?', async () => {
+    const d = await apiDelete('/api/repartos/'+id);
+    if (d.ok) { showToast('Eliminado','ok'); loadRepartos(); }
+    else showToast(d.error||'Error','err');
+  }, { title:'Eliminar orden' });
 }
 
 // Recalcular total al cambiar tipo de cambio (afecta a todos los artículos)
