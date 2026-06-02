@@ -925,7 +925,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </button>
     <button class="nav-item" id="nav-reparto" onclick="showPage('reparto')">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 12h8"/></svg>
-      Reparto
+      Utilidades
     </button>
     <div class="nav-label">Sistema</div>
     <button class="nav-item" id="nav-config" onclick="showPage('config')">
@@ -2554,7 +2554,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="page-reparto" class="page">
   <div class="pg-hdr">
-    <h2 class="pg-title">Reparto de utilidades</h2>
+    <h2 class="pg-title">Utilidades</h2>
     <button class="btn btn--primary" onclick="openRepartoForm()">
       <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
       Nueva orden
@@ -2588,7 +2588,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <!-- Tabla de repartos -->
     <div class="card" style="overflow:hidden">
       <div class="card-head" style="padding:14px 18px;border-bottom:1px solid var(--border)">
-        <h3 class="card-title">Órdenes de reparto</h3>
+        <h3 class="card-title">Órdenes de utilidades</h3>
         <div style="display:flex;gap:6px">
           <button class="chip on" id="rchip-" onclick="setRepartoChip('')">Todas</button>
           <button class="chip" id="rchip-pendiente" onclick="setRepartoChip('pendiente')">Pendientes</button>
@@ -2631,10 +2631,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 
 <!-- Modal: nueva orden de reparto -->
 <div class="modal" id="mReparto" style="max-width:480px">
-  <div class="mh"><div class="mt" id="mRepartoTit">Nueva orden de reparto</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mh"><div class="mt" id="mRepartoTit">Nueva distribución de utilidades</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div class="frow">
-      <div class="fgrp" style="flex:2"><label>Descripción *</label><input id="rDesc" placeholder="Ej: Reparto enero 2026, retiro personal…"></div>
+      <div class="fgrp" style="flex:2"><label>Descripción *</label><input id="rDesc" placeholder="Ej: Utilidades enero 2026, retiro personal…"></div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Destinatario</label><input id="rDest" placeholder="Nombre de quien recibe"></div>
@@ -2730,7 +2730,7 @@ async function doLogout() {
 let _activePage = 'dashboard';
 const _chartInstances = {};
 
-const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', agenda:'Agenda', reportes:'Reportes', reparto:'Reparto de utilidades', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
+const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', agenda:'Agenda', reportes:'Reportes', reparto:'Utilidades', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -6540,7 +6540,7 @@ function renderRepartoTabla() {
   const items = _repartoChip ? _repartoCache.filter(r=>r.estado===_repartoChip) : _repartoCache;
   const body = document.getElementById('repartoBody');
   if (!items.length) {
-    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">No hay órdenes de reparto.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">No hay órdenes de utilidades.</td></tr>';
     return;
   }
   body.innerHTML = items.map(r => `
@@ -6607,19 +6607,19 @@ async function ejecutarReparto(id) {
     const d = await apiPut('/api/repartos/'+id, { accion:'ejecutar' });
     if (d.ok) { showToast('Orden ejecutada ✓','ok'); loadRepartos(); }
     else showToast(d.error||'Error','err');
-  }, { title:'Ejecutar reparto', btnLabel:'Ejecutar', danger:false });
+  }, { title:'Ejecutar utilidades', btnLabel:'Ejecutar', danger:false });
 }
 
 async function cancelarReparto(id) {
-  showConfirm('¿Cancelar esta orden de reparto?', async () => {
+  showConfirm('¿Cancelar esta orden de utilidades?', async () => {
     const d = await apiPut('/api/repartos/'+id, { accion:'cancelar' });
     if (d.ok) { showToast('Orden cancelada','ok'); loadRepartos(); }
     else showToast(d.error||'Error','err');
-  }, { title:'Cancelar reparto', btnLabel:'Cancelar' });
+  }, { title:'Cancelar utilidades', btnLabel:'Cancelar' });
 }
 
 async function eliminarReparto(id) {
-  showConfirm('¿Eliminar esta orden de reparto?', async () => {
+  showConfirm('¿Eliminar esta orden de utilidades?', async () => {
     const d = await apiDelete('/api/repartos/'+id);
     if (d.ok) { showToast('Eliminado','ok'); loadRepartos(); }
     else showToast(d.error||'Error','err');
