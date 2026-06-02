@@ -5405,9 +5405,9 @@ function exportPDF(){
   const iva=precioFinal*0.22, conIVA=precioFinal+iva;
   const overrideLabel=S.overridePrice!==null?` <span style="font-size:11px;opacity:.7">(precio editado)</span>`:'';
   const clientBlock=(cn||ce||cp)?`<div class="pd-box"><div class="pd-bt">Cliente</div>${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}${ce?`<div class="pd-br">${ce}</div>`:''}${cp?`<div class="pd-br">${cp}</div>`:''}</div>`:'';
-  // Bloque de total — solo aparece si "Sumar precios" está activado
+  // Bloque de total — aparece si "Sumar precios" está activado O si hay precio editado manualmente
   let totalBlock='';
-  if(S.sumPrecios){
+  if(S.sumPrecios || S.overridePrice!==null){
     totalBlock=S.ivaOnBill?`
       <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
         <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)${overrideLabel}</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
