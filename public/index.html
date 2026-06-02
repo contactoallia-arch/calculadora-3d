@@ -5300,7 +5300,8 @@ function computeArt(aid){
   const a=_art(aid); if(!a)return null;
   const ex=exRate();
   const qtyEnabled=document.getElementById('qtyEnabled-'+aid)?.checked||false;
-  const qty=qtyEnabled?Math.max(1,gn('qty',aid)||1):1;
+  const rawQty=Math.max(1,gn('qty',aid)||1);   // cantidad real ingresada (para mostrar)
+  const qty=qtyEnabled?rawQty:1;               // cantidad para cálculo
   // Material
   const spRaw=gn('spoolPrice',aid);
   const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
@@ -5338,7 +5339,7 @@ function computeArt(aid){
   const totalP=a.overridePrice!=null?a.overridePrice:calcTotalP;
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
-  return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,totalP,totalCost:totalCostAll,profit,effM,totalH,
+  return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,rawQty,totalP,totalCost:totalCostAll,profit,effM,totalH,
     desc:gv('desc',aid)||'Pieza', mat:gv('matType',aid), grams:g, margin,
     caract:gv('caract',aid), notasPieza:gv('notasPieza',aid),
     alto:gv('alto',aid), ancho:gv('ancho',aid), profundo:gv('profundo',aid), peso:gv('peso',aid)};
@@ -5353,7 +5354,7 @@ function renderArt(aid){
   document.getElementById('profitDisp-'+aid).textContent=fmtC(r.profit,C,ex);
   document.getElementById('effMargin-'+aid).textContent=r.effM.toFixed(1)+'%';
   const price=document.getElementById('art-price-'+aid); if(price)price.textContent=fmtC(r.totalP,C,ex);
-  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g${r.qty>1?' · ×'+r.qty:''} · ${fmtC(r.totalP,C,ex)}`;
+  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g${r.rawQty>1?' · ×'+r.rawQty:''} · ${fmtC(r.totalP,C,ex)}`;
   const mets=[{l:'Material',v:r.matC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
   const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
   return r;
@@ -5382,7 +5383,7 @@ function recalcTotal(){
   if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
   // Lista por artículo
   const tA=document.getElementById('tArticulos');
-  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.qty>1?` <span style="font-size:11px;color:var(--t3)">×${r.qty}</span>`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g${r.qty>1?` · precio unit. ${fmtC(r.unitPrice,C,ex)}`:''} · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
+  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.rawQty>1?` <span style="font-size:11px;color:var(--t3)">×${r.rawQty}</span>`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g${r.rawQty>1?` · precio unit. ${fmtC(r.unitPrice,C,ex)}`:''} · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
 }
 
 // ── DISPLAY (global) ──────────────────────────────────────────────────
@@ -5416,7 +5417,7 @@ function exportPDF(){
     const dimParts=[r.alto&&`${r.alto}mm alt`,r.ancho&&`${r.ancho}mm anch`,r.profundo&&`${r.profundo}mm prof`,r.peso&&`${r.peso}g`].filter(Boolean).join(' · ');
     const caractLine=r.caract?`<div style="font-size:11px;color:#888;margin-top:2px">${r.caract}</div>`:'';
     const notaLine=r.notasPieza?`<div style="font-size:11px;color:#888;margin-top:1px;font-style:italic">${r.notasPieza}</div>`:'';
-    const qtyLabel=r.qty>1?`<div style="font-size:11px;color:#888;margin-top:2px">Cant.: ${r.qty} × $ ${fmt(r.unitPrice)} c/u</div>`:'';
+    const qtyLabel=r.rawQty>1?`<div style="font-size:11px;color:#888;margin-top:2px">Cant.: ${r.rawQty}${r.qty>1?` × $ ${fmt(r.unitPrice)} c/u`:''}</div>`:'';
     return `<tr>
       <td><strong>${r.desc}</strong>${caractLine}${notaLine}${qtyLabel}</td>
       <td style="color:#666">${r.mat} · ${r.grams}g${dimParts?`<br><span style="font-size:11px">${dimParts}</span>`:''}</td>
@@ -5466,7 +5467,7 @@ function exportPDF(){
 function buildWALink(el){
   if(!S.articulos.length){alert('Agregá al menos una pieza.');return false;}
   let totalP=0; const lines=[];
-  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}${r.qty>1?` ×${r.qty}`:''}: $ ${fmt(r.totalP)}`);});
+  S.articulos.forEach(a=>{const r=computeArt(a.id);totalP+=r.totalP;lines.push(`• ${r.desc}${r.rawQty>1?` ×${r.rawQty}`:''}: $ ${fmt(r.totalP)}`);});
   const pedido=document.getElementById('pieceName').value||'';
   const cn=document.getElementById('cName')?.value||'';
   const dv=document.getElementById('delivDate')?.value||'';
