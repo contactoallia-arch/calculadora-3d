@@ -1907,9 +1907,24 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       </div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Precio *</label><input id="editPresPrecio" type="number" min="0" step="0.01" placeholder="0.00"></div>
       <div class="fgrp"><label>Moneda</label><select id="editPresMoneda"><option>UYU</option><option>USD</option></select></div>
-      <div class="fgrp"><label>Margen %</label><input id="editPresMargen" type="number" min="0" max="100" value="50"></div>
+      <div class="fgrp"><label>Costo</label>
+        <input id="editPresCosto" type="number" min="0" step="0.01" placeholder="0.00"
+          oninput="recalcEditPresPrecio()">
+      </div>
+      <div class="fgrp"><label>Margen %</label>
+        <input id="editPresMargen" type="number" min="0" max="500" value="50"
+          oninput="recalcEditPresPrecio()">
+      </div>
+    </div>
+    <div class="frow" style="align-items:flex-end">
+      <div class="fgrp" style="flex:2">
+        <label>Precio final
+          <span id="editPresPrecioCalcBadge" style="display:none;font-size:10px;font-weight:700;background:var(--ok-soft);color:var(--ok-fg);padding:1px 7px;border-radius:99px;margin-left:6px;text-transform:none;letter-spacing:0">calculado</span>
+        </label>
+        <input id="editPresPrecio" type="number" min="0" step="0.01" placeholder="0.00"
+          oninput="document.getElementById('editPresPrecioCalcBadge').style.display='none'">
+      </div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Notas</label><textarea id="editPresNotas" style="height:64px" placeholder="Observaciones, condiciones, etc."></textarea></div>
@@ -3186,8 +3201,10 @@ async function abrirEditPres(id) {
     document.getElementById('editPresPieza').value = '';
     document.getElementById('editPresCliente').value = '';
     document.getElementById('editPresPrecio').value = '';
+    document.getElementById('editPresCosto').value = '';
     document.getElementById('editPresMargen').value = '50';
     document.getElementById('editPresMoneda').value = 'UYU';
+    document.getElementById('editPresPrecioCalcBadge').style.display='none';
     document.getElementById('editPresNotas').value = '';
     document.getElementById('editPresFecha').value = hoy;
     document.getElementById('editPresFechaEntrega').value = '';
@@ -3201,7 +3218,9 @@ async function abrirEditPres(id) {
     document.getElementById('editPresPieza').value = p.pieza || '';
     document.getElementById('editPresCliente').value = p.cliente_nombre || p.cliente || '';
     document.getElementById('editPresPrecio').value = p.precio || '';
+    document.getElementById('editPresCosto').value = p.costo || '';
     document.getElementById('editPresMargen').value = p.margen || 50;
+    document.getElementById('editPresPrecioCalcBadge').style.display='none';
     document.getElementById('editPresMoneda').value = p.moneda || 'UYU';
     document.getElementById('editPresNotas').value = p.notas || '';
     document.getElementById('editPresProducto').value = '';
@@ -3278,11 +3297,20 @@ async function cargarHistorialPres(id) {
   } catch {}
 }
 
+function recalcEditPresPrecio() {
+  const costo = parseFloat(document.getElementById('editPresCosto').value) || 0;
+  const margen = parseFloat(document.getElementById('editPresMargen').value) || 0;
+  if (costo > 0) {
+    const precioCalc = costo * (1 + margen / 100);
+    document.getElementById('editPresPrecio').value = precioCalc.toFixed(2);
+    document.getElementById('editPresPrecioCalcBadge').style.display = '';
+  }
+}
+
 async function guardarEditPres() {
   const pieza = document.getElementById('editPresPieza').value.trim();
-  const precio = parseFloat(document.getElementById('editPresPrecio').value);
+  const precio = parseFloat(document.getElementById('editPresPrecio').value) || 0;
   if (!pieza) { showToast('Nombre requerido', 'err'); return; }
-  if (isNaN(precio)) { showToast('Precio requerido', 'err'); return; }
 
   const body = {
     pieza,
@@ -3296,6 +3324,7 @@ async function guardarEditPres() {
     precio,
     moneda: document.getElementById('editPresMoneda').value,
     margen: parseFloat(document.getElementById('editPresMargen').value) || 0,
+    costo: parseFloat(document.getElementById('editPresCosto').value) || null,
     fecha: fechaISOtoUY(document.getElementById('editPresFecha').value) || new Date().toLocaleDateString('es-UY'),
     fecha_entrega: fechaISOtoUY(document.getElementById('editPresFechaEntrega').value) || null,
     notas: document.getElementById('editPresNotas').value.trim() || null,
