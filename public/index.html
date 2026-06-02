@@ -2377,7 +2377,28 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div class="price-hero">
       <div class="ph-main">
         <div class="ph-label">Precio total del presupuesto</div>
-        <div class="ph-price" id="tMain">—</div>
+        <!-- Precio calculado + botón editar -->
+        <div id="tMainRow" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="ph-price" id="tMain">—</div>
+          <button id="tEditBtn" onclick="startOverridePrice()" title="Editar precio final"
+            style="border:none;background:rgba(242,106,33,.18);color:var(--ac);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0;transition:all var(--tr)">✏ Editar</button>
+        </div>
+        <!-- Fila de edición inline -->
+        <div id="tOverrideRow" style="display:none;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px">
+          <input type="number" id="tOverrideInput" placeholder="Precio final UYU…" min="0" step="1"
+            style="width:190px;height:44px;font-size:20px;font-family:var(--mono);font-weight:700;border:2px solid var(--ac);border-radius:var(--rs);background:var(--surface);color:var(--ac);padding:0 12px;outline:none"
+            onkeydown="if(event.key==='Enter')confirmOverridePrice();if(event.key==='Escape')cancelOverridePrice()">
+          <button onclick="confirmOverridePrice()"
+            style="height:44px;padding:0 16px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">✓ Aplicar</button>
+          <button onclick="cancelOverridePrice()"
+            style="height:44px;padding:0 12px;background:var(--surface);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:13px;cursor:pointer;font-family:var(--fb)">✕</button>
+        </div>
+        <!-- Indicador precio editado -->
+        <div id="tOverrideBadge" style="display:none;margin-top:10px;font-size:12px;color:var(--warn-fg);font-weight:600">
+          ⚠ Precio editado manualmente ·
+          <button onclick="clearOverridePrice()"
+            style="border:none;background:none;color:var(--warn-fg);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:var(--fb);padding:0">Recalcular</button>
+        </div>
       </div>
       <div class="ph-stats">
         <div class="ph-stat"><div class="ph-stl">Costo total</div><div class="ph-stv" id="tCost">—</div></div>
@@ -4874,7 +4895,8 @@ let S={
   pieces:[], pieceId:0,        // compat
   editingId:null, editingNum:null,
   lc:null, lcArts:null,
-  sumPrecios:false
+  sumPrecios:false,
+  overridePrice:null
 };
 try{const p=JSON.parse(localStorage.getItem('al-prices'));if(p)S.prices={...DEF,...p}}catch(e){}
 
@@ -5325,11 +5347,14 @@ function recalcTotal(){
   const card=document.getElementById('rcardTotal');
   if(card) card.style.display=S.articulos.length?'':'none';
   const iva=totalP*0.22, conIVA=totalP+iva;
-  const disp=S.ivaOnBill?conIVA:totalP;
+  // Si hay precio manual, usarlo como display; de lo contrario usar el calculado
+  const calcDisp=S.ivaOnBill?conIVA:totalP;
+  const finalDisp=S.overridePrice!==null?S.overridePrice:calcDisp;
+  const overProfit=S.overridePrice!==null?S.overridePrice-totalCost:profit;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('tMain',fmtC(disp,C,ex));
+  set('tMain',fmtC(finalDisp,C,ex));
   set('tCost',fmtC(totalCost,C,ex));
-  set('tProfit',fmtC(profit,C,ex));
+  set('tProfit',fmtC(overProfit,C,ex));
   set('tCount',S.articulos.length);
   const ivaRow=document.getElementById('ivaDesglose');
   if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
@@ -5376,19 +5401,22 @@ function exportPDF(){
       <td style="text-align:right;font-weight:700;white-space:nowrap">$ ${fmt(r.totalP)}</td>
     </tr>`;
   }).join('');
-  const iva=totalP*0.22, conIVA=totalP+iva;
+  // Precio final: override manual o calculado
+  const precioFinal=S.overridePrice!==null?S.overridePrice:totalP;
+  const iva=precioFinal*0.22, conIVA=precioFinal+iva;
+  const overrideLabel=S.overridePrice!==null?` <span style="font-size:11px;opacity:.7">(precio editado)</span>`:'';
   const clientBlock=(cn||ce||cp)?`<div class="pd-box"><div class="pd-bt">Cliente</div>${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}${ce?`<div class="pd-br">${ce}</div>`:''}${cp?`<div class="pd-br">${cp}</div>`:''}</div>`:'';
   // Bloque de total — solo aparece si "Sumar precios" está activado
   let totalBlock='';
   if(S.sumPrecios){
     totalBlock=S.ivaOnBill?`
       <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
-        <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
+        <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)${overrideLabel}</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
         <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(totalP)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(precioFinal)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(iva)}</span></div>
         </div>
-      </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})</div></div><div class="pd-tp">$ ${fmt(totalP)}</div></div>`;
+      </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})${overrideLabel}</div></div><div class="pd-tp">$ ${fmt(precioFinal)}</div></div>`;
   }
   const logoBlock=`<div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>`;
   document.getElementById('printDoc').innerHTML=`
@@ -5468,7 +5496,36 @@ function confirmEditNum(){
   if(v>0){S.editingNum=v;document.getElementById('presNumLabel').textContent='#'+String(v).padStart(4,'0');}
   cancelEditNum();
 }
-function newPresupuesto(){S.editingId=null;S.editingNum=null;updatePresBar();}
+function newPresupuesto(){S.editingId=null;S.editingNum=null;updatePresBar();clearOverridePrice?.();}
+
+// ── PRECIO MANUAL (override) ──────────────────────────────────────────
+function startOverridePrice(){
+  const base=S.overridePrice!==null?S.overridePrice:(S.lc?.totalP||0);
+  document.getElementById('tOverrideInput').value=Math.round(base);
+  document.getElementById('tMainRow').style.display='none';
+  document.getElementById('tOverrideRow').style.display='flex';
+  setTimeout(()=>{document.getElementById('tOverrideInput').focus();document.getElementById('tOverrideInput').select();},60);
+}
+function confirmOverridePrice(){
+  const val=parseFloat(document.getElementById('tOverrideInput').value);
+  if(isNaN(val)||val<0){cancelOverridePrice();return;}
+  S.overridePrice=val;
+  document.getElementById('tOverrideRow').style.display='none';
+  document.getElementById('tMainRow').style.display='flex';
+  document.getElementById('tOverrideBadge').style.display='';
+  recalcTotal();
+}
+function cancelOverridePrice(){
+  document.getElementById('tOverrideRow').style.display='none';
+  document.getElementById('tMainRow').style.display='flex';
+}
+function clearOverridePrice(){
+  S.overridePrice=null;
+  document.getElementById('tOverrideRow').style.display='none';
+  document.getElementById('tMainRow').style.display='flex';
+  document.getElementById('tOverrideBadge').style.display='none';
+  recalcTotal();
+}
 
 async function savePresupuesto(){
   if(!S.articulos.length){alert('Agregá al menos un artículo.');return;}
@@ -5488,7 +5545,7 @@ async function savePresupuesto(){
     cliente_email:document.getElementById('cEmail').value?.trim()||'',
     cliente_tel:document.getElementById('cPhone').value?.trim()||'',
     mat:arts[0]?arts[0].mat:'PLA',
-    qty:S.articulos.length||1, precio:S.lc.totalP, margen:arts[0]?arts[0].margin:0,
+    qty:S.articulos.length||1, precio:S.overridePrice!==null?S.overridePrice:(S.lc?.totalP||0), margen:arts[0]?arts[0].margin:0,
     fecha:new Date().toLocaleDateString('es-UY'),
     fecha_entrega:document.getElementById('delivDate').value||null,
     notas:document.getElementById('notes').value||null,
@@ -5625,7 +5682,7 @@ function captureForm(){
     cName:document.getElementById('cName').value, cEmail:document.getElementById('cEmail').value,
     cPhone:document.getElementById('cPhone').value, delivDate:document.getElementById('delivDate').value,
     notes:document.getElementById('notes').value,
-    exRate:document.getElementById('exRate').value, disp:S.disp, ivaOnBill:S.ivaOnBill,
+    exRate:document.getElementById('exRate').value, disp:S.disp, ivaOnBill:S.ivaOnBill, overridePrice:S.overridePrice,
     articulos:S.articulos.map(a=>art(a.id))
   };
 }
@@ -5673,6 +5730,8 @@ function restoreForm(snap){
   if(snap.exRate)setg('exRate',snap.exRate);
   if(snap.disp)S.disp=snap.disp;
   S.ivaOnBill=!!snap.ivaOnBill; const ib=document.getElementById('ivaOnBill'); if(ib)ib.checked=S.ivaOnBill;
+  if(snap.overridePrice!=null){S.overridePrice=snap.overridePrice;document.getElementById('tOverrideBadge').style.display='';}
+  else{S.overridePrice=null;document.getElementById('tOverrideBadge').style.display='none';}
   let arts=snap.articulos;
   if(!arts||!arts.length){ arts=[legacyToArt(snap)]; }
   arts.forEach(d=>addArticulo(d));
