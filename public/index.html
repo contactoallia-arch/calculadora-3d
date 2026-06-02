@@ -3397,7 +3397,7 @@ async function abrirEditPres(id) {
     resetCostosPres();
     // Restaurar costos si estaban guardados
     if (p.costos_internos) {
-      try { JSON.parse(p.costos_internos).forEach(c => { agregarCostoPres(); const last=_editPresCostosItems[_editPresCostosItems.length-1]; last.el.querySelector('.cpres-desc').value=c.d||''; last.el.querySelector('.cpres-monto').value=c.m||''; }); } catch {}
+      try { JSON.parse(p.costos_internos).forEach(c => agregarCostoPres(c)); } catch {}
     }
     recalcEditPresUtilidad();
     document.getElementById('editPresMoneda').value = p.moneda || 'UYU';
@@ -3507,17 +3507,95 @@ function recalcEditPresUtilidad() {
   }
 }
 
-function agregarCostoPres() {
+function agregarCostoPres(opts) {
   const id = _editPresCostosId++;
   const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:6px;align-items:center';
+  row.dataset.costoId = id;
+  row.style.cssText = 'background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;display:flex;flex-direction:column;gap:4px';
   row.innerHTML = `
-    <input type="text" class="cpres-desc" placeholder="Descripción (ej: filamento)" style="flex:2;height:36px">
-    <input type="number" class="cpres-monto" placeholder="$ monto" min="0" step="0.01" style="flex:1;height:36px" oninput="recalcEditPresUtilidad()">
-    <button type="button" onclick="quitarCostoPres(${id})" style="width:28px;height:28px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:18px;border-radius:50%;flex-shrink:0" onmouseover="this.style.color='var(--bad-fg)'" onmouseout="this.style.color='var(--text-3)'">×</button>`;
+    <div style="display:flex;gap:5px;align-items:center">
+      <input type="text" class="cpres-desc" placeholder="Descripción o buscar insumo…" style="flex:2;height:34px;min-width:0" oninput="onCpresDescInput(this,${id})" autocomplete="off">
+      <span class="cpres-qty-wrap" style="display:none;align-items:center;gap:3px">
+        <input type="number" class="cpres-insumo-qty" min="0.001" step="0.001" placeholder="cant." style="height:34px;width:60px;text-align:center" oninput="recalcCostoPresRow(this)">
+        <span class="cpres-insumo-unit" style="font-size:11px;color:var(--text-3);white-space:nowrap;flex-shrink:0"></span>
+      </span>
+      <input type="number" class="cpres-monto" placeholder="$ monto" min="0" step="0.01" style="width:90px;height:34px;text-align:right" oninput="onCpresMontoManual(this)">
+      <button type="button" onclick="quitarCostoPres(${id})" style="width:26px;height:26px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:17px;flex-shrink:0;border-radius:50%" onmouseover="this.style.color='var(--bad-fg)'" onmouseout="this.style.color='var(--text-3)'">×</button>
+    </div>
+    <div class="cpres-insumo-badge" style="display:none;font-size:11px;color:var(--brand);padding:0 2px"></div>`;
   document.getElementById('editPresCostosList').appendChild(row);
   _editPresCostosItems.push({id, el: row});
-  row.querySelector('.cpres-desc').focus();
+  if (opts) {
+    // Restore from saved JSON
+    row.querySelector('.cpres-desc').value = opts.d || '';
+    row.querySelector('.cpres-monto').value = opts.m || '';
+    if (opts.iid) {
+      row.dataset.insumoId = opts.iid;
+      row.dataset.insumoPrecio = opts.iprecio || '';
+      row.dataset.insumoUnit = opts.iunit || '';
+      if (opts.ideducted) row.dataset.insumoDeducted = '1';
+      const wrap = row.querySelector('.cpres-qty-wrap');
+      wrap.style.display = 'flex';
+      row.querySelector('.cpres-insumo-unit').textContent = opts.iunit || '';
+      row.querySelector('.cpres-insumo-qty').value = opts.iqty || '';
+      const badge = row.querySelector('.cpres-insumo-badge');
+      badge.style.display = 'block';
+      badge.textContent = (opts.ideducted ? '✅ Stock descontado · ' : '📦 Insumo vinculado · ') + (opts.d||'');
+    }
+  } else {
+    row.querySelector('.cpres-desc').focus();
+  }
+}
+
+async function onCpresDescInput(input, id) {
+  recalcEditPresUtilidad();
+  const q = input.value.toLowerCase().trim();
+  if (q.length < 2) { _acHide(); return; }
+  const items = await _getInsumos();
+  const matches = items.filter(i => i.nombre.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { _acHide(); return; }
+  _acShow(input, matches.map(i => ({
+    label: i.nombre,
+    sub: `Stock: ${i.stock} ${i.unidad} · $ ${fmtMoney(i.precio)}/${i.unidad}`,
+    data: i
+  })), item => {
+    const row = document.querySelector(`[data-costo-id="${id}"]`);
+    if (!row) return;
+    input.value = item.data.nombre;
+    row.dataset.insumoId = item.data.id;
+    row.dataset.insumoPrecio = item.data.precio;
+    row.dataset.insumoUnit = item.data.unidad;
+    delete row.dataset.montoManual;
+    delete row.dataset.insumoDeducted;
+    const wrap = row.querySelector('.cpres-qty-wrap');
+    wrap.style.display = 'flex';
+    row.querySelector('.cpres-insumo-unit').textContent = item.data.unidad;
+    const badge = row.querySelector('.cpres-insumo-badge');
+    badge.style.display = 'block';
+    badge.textContent = `📦 Insumo vinculado · Stock actual: ${item.data.stock} ${item.data.unidad} · $ ${fmtMoney(item.data.precio)}/${item.data.unidad}`;
+    row.querySelector('.cpres-insumo-qty').focus();
+  });
+}
+
+function recalcCostoPresRow(qtyInput) {
+  const row = qtyInput.closest('[data-costo-id]');
+  if (!row || row.dataset.montoManual) return;
+  const precio = parseFloat(row.dataset.insumoPrecio || 0);
+  const qty = parseFloat(qtyInput.value || 0);
+  if (precio > 0 && qty > 0) {
+    row.querySelector('.cpres-monto').value = (precio * qty).toFixed(2);
+    recalcEditPresUtilidad();
+  }
+}
+
+function onCpresMontoManual(input) {
+  const row = input.closest('[data-costo-id]');
+  if (row && row.dataset.insumoId) {
+    row.dataset.montoManual = '1';
+    const badge = row.querySelector('.cpres-insumo-badge');
+    if (badge && badge.textContent && !badge.textContent.includes('editado')) badge.textContent += ' · ✏️ monto editado manualmente';
+  }
+  recalcEditPresUtilidad();
 }
 
 function quitarCostoPres(id) {
@@ -3549,7 +3627,15 @@ async function guardarEditPres() {
     precio,
     moneda: document.getElementById('editPresMoneda').value,
     margen: parseFloat(document.getElementById('editPresMargen').value) || 0,
-    costos_internos: _editPresCostosItems.length ? JSON.stringify(_editPresCostosItems.map(i=>({d:i.el.querySelector('.cpres-desc').value,m:parseFloat(i.el.querySelector('.cpres-monto').value)||0}))) : null,
+    costos_internos: _editPresCostosItems.length ? JSON.stringify(_editPresCostosItems.map(i=>{
+      const el=i.el;
+      return {d:el.querySelector('.cpres-desc').value, m:parseFloat(el.querySelector('.cpres-monto').value)||0,
+        iid:el.dataset.insumoId?Number(el.dataset.insumoId):null,
+        iqty:parseFloat(el.querySelector('.cpres-insumo-qty')?.value||0)||null,
+        iprecio:el.dataset.insumoPrecio?parseFloat(el.dataset.insumoPrecio):null,
+        iunit:el.dataset.insumoUnit||null,
+        ideducted:el.dataset.insumoDeducted==='1'};
+    })) : null,
     fecha: fechaISOtoUY(document.getElementById('editPresFecha').value) || new Date().toLocaleDateString('es-UY'),
     fecha_entrega: fechaISOtoUY(document.getElementById('editPresFechaEntrega').value) || null,
     notas: document.getElementById('editPresNotas').value.trim() || null,
@@ -3565,7 +3651,22 @@ async function guardarEditPres() {
   } else {
     d = await apiPost('/api/presupuestos', body);
   }
-  if (d.ok) { showToast(_editPresId ? 'Presupuesto actualizado' : 'Presupuesto creado', 'ok'); closeM(); loadPresupuestos(); }
+  if (d.ok) {
+    // Descontar stock de insumos vinculados a costos (solo los no descontados aún)
+    for (const item of _editPresCostosItems) {
+      const el = item.el;
+      if (el.dataset.insumoId && el.dataset.insumoDeducted !== '1') {
+        const qty = parseFloat(el.querySelector('.cpres-insumo-qty')?.value||0);
+        if (qty > 0) {
+          await apiPut(`/api/insumos/${el.dataset.insumoId}?action=add-stock`, { qty: -qty });
+          el.dataset.insumoDeducted = '1';
+          _clearInsumosCache();
+        }
+      }
+    }
+    showToast(_editPresId ? 'Presupuesto actualizado' : 'Presupuesto creado', 'ok');
+    closeM(); loadPresupuestos();
+  }
   else showToast(d.error || 'Error', 'err');
 }
 
@@ -4049,6 +4150,34 @@ async function _doEliminarCobro(id) {
   else showToast(d.error || 'Error', 'err');
 }
 
+// ── AUTOCOMPLETE GLOBAL ───────────────────────────────────────────────
+let _acCb = null;
+function _acShow(input, items, onSelect) {
+  _acCb = onSelect;
+  let dd = document.getElementById('_acDd');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = '_acDd';
+    dd.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border-2);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);overflow:hidden;max-height:260px;overflow-y:auto;display:none';
+    document.body.appendChild(dd);
+    document.addEventListener('mousedown', e => { if (!dd.contains(e.target)) _acHide(); }, true);
+  }
+  dd._items = items;
+  dd.innerHTML = items.map((it,i) =>
+    `<div onmousedown="event.preventDefault();_acPick(${i})" style="padding:8px 13px;cursor:pointer;border-bottom:1px solid var(--border-2)" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''"><div style="font-size:13px;font-weight:600">${it.label}</div>${it.sub?`<div style="font-size:11px;color:var(--text-3);margin-top:1px">${it.sub}</div>`:''}</div>`
+  ).join('');
+  const r = input.getBoundingClientRect();
+  dd.style.left=r.left+'px'; dd.style.top=(r.bottom+3)+'px'; dd.style.width=Math.max(r.width,260)+'px'; dd.style.display='block';
+}
+function _acHide(){ const dd=document.getElementById('_acDd'); if(dd) dd.style.display='none'; _acCb=null; }
+function _acPick(i){ const dd=document.getElementById('_acDd'); if(dd&&dd._items&&_acCb) _acCb(dd._items[i]); _acHide(); }
+
+// ── CACHES ────────────────────────────────────────────────────────────
+let _insumosAcCache=null, _clientesAcCache=null;
+async function _getInsumos(){ if(_insumosAcCache) return _insumosAcCache; try{const d=await apiGet('/api/insumos');_insumosAcCache=d.ok?d.data:[];}catch{_insumosAcCache=[];} return _insumosAcCache; }
+function _clearInsumosCache(){ _insumosAcCache=null; }
+async function _getClientes(){ if(_clientesAcCache) return _clientesAcCache; try{const d=await apiGet('/api/clientes');_clientesAcCache=d.ok?d.data:[];}catch{_clientesAcCache=[];} return _clientesAcCache; }
+
 // ── GASTOS ────────────────────────────────────────────────────────────
 const _CAT_COLOR = {
   filamento:'#16A34A', materiales:'#16A34A', alquiler:'#0D9488', 'mano de obra':'#2563EB',
@@ -4147,7 +4276,7 @@ function _gastoItemRowHTML(withInsumo) {
   ).join('');
   return `<div class="gasto-item-row" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface)">
     <div style="display:grid;grid-template-columns:1fr 60px 100px 82px 28px;gap:4px;align-items:center">
-      <input class="gi-desc" type="text" placeholder="Descripción del artículo" style="height:34px;width:100%" oninput="updateGastoTotal()">
+      <input class="gi-desc" type="text" placeholder="Descripción del artículo o buscar insumo…" style="height:34px;width:100%" oninput="onGiDescInput(this)" autocomplete="off">
       <input class="gi-qty" type="number" min="0.001" step="1" value="1" style="height:34px;text-align:center" oninput="calcGastoItemTotal(this)" title="Cantidad de unidades / carretes">
       <input class="gi-price" type="number" min="0" step="0.01" placeholder="$ unit." style="height:34px;text-align:right" oninput="calcGastoItemTotal(this)">
       <div class="gi-total num" style="height:34px;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:13px;color:var(--ok-fg)">—</div>
@@ -4253,6 +4382,35 @@ function onGiCatChange(sel) {
   if (row) calcGastoItemTotal(row.querySelector('.gi-qty'));
 }
 
+async function onGiDescInput(input) {
+  updateGastoTotal();
+  const q = input.value.toLowerCase().trim();
+  if (q.length < 2) { _acHide(); return; }
+  const items = await _getInsumos();
+  const matches = items.filter(i => i.nombre.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { _acHide(); return; }
+  _acShow(input, matches.map(i => ({
+    label: i.nombre,
+    sub: `${i.categoria}${i.tipo?' · '+i.tipo:''} · Stock: ${i.stock} ${i.unidad} · $ ${fmtMoney(i.precio)}/${i.unidad}`,
+    data: i
+  })), item => {
+    const row = input.closest('.gasto-item-row');
+    input.value = item.data.nombre;
+    row.dataset.insumoId = item.data.id;
+    row.dataset.insumoPrecio = item.data.precio;
+    const priceInput = row.querySelector('.gi-price');
+    if (priceInput && !priceInput.value) priceInput.value = item.data.precio;
+    const cat = row.querySelector('.gi-cat');
+    if (cat) {
+      cat.value = item.data.categoria || '';
+      onGiCatChange(cat);
+      const filsub = row.querySelector('.gi-filsub');
+      if (filsub && item.data.tipo && item.data.categoria === 'filamento') filsub.value = item.data.tipo;
+    }
+    calcGastoItemTotal(row.querySelector('.gi-qty'));
+  });
+}
+
 async function openGastoForm(presIdPresel) {
   document.getElementById('gastoFecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('gastoComoInsumo').checked = false;
@@ -4323,7 +4481,8 @@ async function saveGasto() {
     const colorBtn = row.querySelector('.gi-color-btn[data-selected="1"]');
     const colorLabel = colorBtn ? colorBtn.dataset.label : '';
     const stockQty = cat === 'filamento' ? qty * peso : qty;
-    if (desc && qty>0 && price>0) items.push({desc, qty, price, cat, subTipo, unidad, peso, colorLabel, stockQty, total: qty*price});
+    const insumoId = row.dataset.insumoId || '';
+    if (desc && qty>0 && price>0) items.push({desc, qty, price, cat, subTipo, unidad, peso, colorLabel, stockQty, insumoId, total: qty*price});
   });
   if (!items.length) { showToast('Agregá al menos un artículo con descripción, cantidad y precio', 'err'); return; }
 
@@ -4351,6 +4510,13 @@ async function saveGasto() {
 
 async function _upsertInsumo(item, provId, moneda) {
   try {
+    // Si ya sabemos el insumo (seleccionado por autocomplete), sumar stock directamente
+    if (item.insumoId) {
+      await apiPut(`/api/insumos/${item.insumoId}?action=add-stock`, { qty: item.stockQty, precio: item.price });
+      _clearInsumosCache();
+      if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();
+      return;
+    }
     const nombre = item.cat === 'filamento'
       ? [item.subTipo, item.desc, item.colorLabel].filter(Boolean).join(' ')
       : item.desc;
@@ -4368,6 +4534,7 @@ async function _upsertInsumo(item, provId, moneda) {
     if (!r.ok && r.duplicate && r.existing_id) {
       await apiPut(`/api/insumos/${r.existing_id}?action=add-stock`, { qty: item.stockQty, precio: item.price });
     }
+    _clearInsumosCache();
     if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();
   } catch {}
 }
@@ -5031,20 +5198,19 @@ let _buscarClienteTimeout = null;
 async function buscarClienteExistente(q) {
   clearTimeout(_buscarClienteTimeout);
   const div = document.getElementById('clienteSugerencias');
-  if (!q || q.length < 2) { div.style.display = 'none'; return; }
+  if (div) div.style.display = 'none';
+  const input = document.getElementById('editPresCliente');
+  if (!q || q.length < 2) { _acHide(); return; }
   _buscarClienteTimeout = setTimeout(async () => {
-    try {
-      const d = await apiGet('/api/clientes');
-      if (!d.ok) return;
-      const matches = d.data.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()) || (c.empresa||'').toLowerCase().includes(q.toLowerCase())).slice(0,5);
-      if (!matches.length) { div.style.display = 'none'; return; }
-      div.style.display = 'block';
-      div.innerHTML = matches.map(c => `
-        <div onclick="seleccionarCliente(${JSON.stringify(c).replace(/"/g,'&quot;')})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--bd)" onmouseover="this.style.background='var(--sf2)'" onmouseout="this.style.background=''">
-          <strong>${c.nombre}</strong>${c.empresa?` — ${c.empresa}`:''}${c.telefono?` · ${c.telefono}`:''}
-        </div>`).join('');
-    } catch {}
-  }, 300);
+    const clients = await _getClientes();
+    const matches = clients.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()) || (c.empresa||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);
+    if (!matches.length) { _acHide(); return; }
+    _acShow(input, matches.map(c => ({
+      label: c.nombre,
+      sub: [c.empresa, c.email, c.telefono].filter(Boolean).join(' · '),
+      data: c
+    })), item => { seleccionarCliente(item.data); });
+  }, 200);
 }
 
 function seleccionarCliente(c) {
