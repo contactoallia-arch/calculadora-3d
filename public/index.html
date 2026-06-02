@@ -4508,7 +4508,7 @@ async function openClientePickerPres() {
     const d = await apiGet('/api/clientes');
     _clientePickerCache = d.ok ? d.data : [];
     // Usar función especial que completa el formulario de presupuesto
-    _clientePickerCallback = (c) => { _aplicarClienteEnPres(c); closeM(); showToast(`Cliente "${c.nombre}" cargado`,'ok'); };
+    _clientePickerCallback = (c) => { _aplicarClienteEnPres(c); closeOneModal('mClientePicker'); showToast(`Cliente "${c.nombre}" cargado`,'ok'); };
     renderClientePickerListPres('');
     setTimeout(() => document.getElementById('cPickerSearch')?.focus(), 120);
   } catch(e) {
@@ -5104,6 +5104,12 @@ syncThemeToggle();
 // ── MODALS ────────────────────────────────────────────────────────────
 function openM(id){document.getElementById('ov').classList.add('open');document.getElementById(id).classList.add('open')}
 function closeM(){document.getElementById('ov').classList.remove('open');document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'))}
+// Cierra solo un modal específico; si quedan otros abiertos mantiene el overlay
+function closeOneModal(id){
+  document.getElementById(id)?.classList.remove('open');
+  const stillOpen=document.querySelectorAll('.modal.open').length>0;
+  if(!stillOpen) document.getElementById('ov').classList.remove('open');
+}
 
 // ── CONFIRM DIALOG (reemplaza window.confirm nativo) ──────────────────
 let _confirmCb=null;
@@ -5160,7 +5166,7 @@ function selectClienteEnCalc(id){
   const c=(_clientePickerCache||[]).find(x=>x.id===id); if(!c)return;
   const set=(elId,val)=>{const el=document.getElementById(elId);if(el&&val)el.value=val;};
   set('cName',c.nombre); set('cEmail',c.email||''); set('cPhone',c.telefono||'');
-  closeM();
+  closeOneModal('mClientePicker');
   showToast(`Cliente "${c.nombre}" seleccionado`,'ok');
 }
 
