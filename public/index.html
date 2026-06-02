@@ -1664,8 +1664,8 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 
     <!-- Tabla de ítems -->
     <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">
-      <div id="gastoItemsHead" style="display:grid;grid-template-columns:1fr 64px 100px 86px 28px;gap:0;padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border)">
-        <span>Artículo / descripción</span><span style="text-align:center">Cant.</span><span style="text-align:right">P. Unit.</span><span style="text-align:right">Total</span><span></span>
+      <div id="gastoItemsHead" style="display:grid;grid-template-columns:1fr 60px 100px 82px 28px;gap:0;padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border)">
+        <span>Artículo / descripción</span><span style="text-align:center">Cant.</span><span style="text-align:right">$ Unit.</span><span style="text-align:right">Total</span><span></span>
       </div>
       <div id="gastoItems" style="padding:6px 10px 2px"></div>
     </div>
@@ -4113,32 +4113,78 @@ async function loadGastos() {
 }
 
 // ── GASTO MULTI-ÍTEM ──────────────────────────────────────────────────
+const _filColors = [
+  {v:'blanco',l:'Blanco',hex:'#F0F0F0'},{v:'negro',l:'Negro',hex:'#1A1A1A'},
+  {v:'gris',l:'Gris',hex:'#9CA3AF'},{v:'rojo',l:'Rojo',hex:'#EF4444'},
+  {v:'azul',l:'Azul',hex:'#3B82F6'},{v:'azul_marino',l:'Azul marino',hex:'#1E3A8A'},
+  {v:'verde',l:'Verde',hex:'#22C55E'},{v:'verde_oliva',l:'Verde oliva',hex:'#65A30D'},
+  {v:'amarillo',l:'Amarillo',hex:'#EAB308'},{v:'naranja',l:'Naranja',hex:'#F97316'},
+  {v:'rosa',l:'Rosa',hex:'#EC4899'},{v:'fucsia',l:'Fucsia',hex:'#DB2777'},
+  {v:'violeta',l:'Violeta',hex:'#8B5CF6'},{v:'lila',l:'Lila',hex:'#C084FC'},
+  {v:'marron',l:'Marrón',hex:'#92400E'},{v:'beige',l:'Beige',hex:'#D2B48C'},
+  {v:'celeste',l:'Celeste',hex:'#38BDF8'},{v:'dorado',l:'Dorado',hex:'#F59E0B'},
+  {v:'plateado',l:'Plateado',hex:'#94A3B8'},{v:'transparente',l:'Transparente',hex:'#E8E8F4'},
+  {v:'natural',l:'Natural',hex:'#F5F0E8'}
+];
+
+function selectGiColor(btn) {
+  const wrap = btn.closest('.gi-ins-fields');
+  wrap.querySelectorAll('.gi-color-btn').forEach(b => {
+    b.style.border = '2px solid transparent';
+    b.style.transform = '';
+    b.removeAttribute('data-selected');
+  });
+  btn.style.border = '2px solid var(--text-1)';
+  btn.style.transform = 'scale(1.2)';
+  btn.setAttribute('data-selected', '1');
+  const lbl = wrap.querySelector('.gi-color-label');
+  if (lbl) lbl.textContent = btn.dataset.label;
+}
+
 function _gastoItemRowHTML(withInsumo) {
-  return `<div class="gasto-item-row" style="display:grid;grid-template-columns:1fr 64px 100px 86px 28px;gap:4px;margin-bottom:5px;align-items:start">
-    <div>
+  const colorBtns = _filColors.map(c =>
+    '<button type="button" class="gi-color-btn" data-color="'+c.v+'" data-label="'+c.l+'" title="'+c.l+'" onclick="selectGiColor(this)" style="width:22px;height:22px;border-radius:50%;background:'+c.hex+';border:2px solid transparent;flex-shrink:0;cursor:pointer;transition:transform .1s"></button>'
+  ).join('');
+  return `<div class="gasto-item-row" style="margin-bottom:8px;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--surface)">
+    <div style="display:grid;grid-template-columns:1fr 60px 100px 82px 28px;gap:4px;align-items:center">
       <input class="gi-desc" type="text" placeholder="Descripción del artículo" style="height:34px;width:100%" oninput="updateGastoTotal()">
-      <div class="gi-ins-fields" style="display:${withInsumo?'grid':'none'};grid-template-columns:1fr 1fr;gap:4px;margin-top:3px">
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <select class="gi-cat" style="height:28px;font-size:11.5px" onchange="onGiCatChange(this)">
-            <option value="">— categoría —</option>
-            <option value="filamento">Filamento</option>
-            <option value="resina">Resina</option>
-            <option value="componentes">Componentes</option>
-            <option value="packaging">Packaging</option>
-            <option value="otro">Otro</option>
-          </select>
-          <select class="gi-filsub" style="display:none;height:28px;font-size:11.5px">
-            <option value="">— tipo —</option><option>PLA</option><option>PETG</option><option>ABS</option><option>TPU</option><option>ASA</option><option>Nylon</option>
-          </select>
-          <input class="gi-othersub" type="text" placeholder="Especificá el tipo…" style="display:none;height:28px;font-size:11.5px">
+      <input class="gi-qty" type="number" min="0.001" step="1" value="1" style="height:34px;text-align:center" oninput="calcGastoItemTotal(this)" title="Cantidad de unidades / carretes">
+      <input class="gi-price" type="number" min="0" step="0.01" placeholder="$ unit." style="height:34px;text-align:right" oninput="calcGastoItemTotal(this)">
+      <div class="gi-total num" style="height:34px;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:13px;color:var(--ok-fg)">—</div>
+      <button type="button" onclick="removeGastoItem(this)" style="height:34px;width:28px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:17px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:6px" onmouseover="this.style.color='var(--bad-fg)'" onmouseout="this.style.color='var(--text-3)'">✕</button>
+    </div>
+    <div class="gi-ins-fields" style="display:${withInsumo?'block':'none'};margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-2)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+        <select class="gi-cat" style="height:30px;font-size:12px;flex:1;min-width:120px" onchange="onGiCatChange(this)">
+          <option value="">— categoría insumo —</option>
+          <option value="filamento">Filamento</option>
+          <option value="resina">Resina</option>
+          <option value="componentes">Componentes</option>
+          <option value="packaging">Packaging</option>
+          <option value="otro">Otro</option>
+        </select>
+        <select class="gi-filsub" style="display:none;height:30px;font-size:12px;min-width:90px">
+          <option value="">— tipo —</option><option>PLA</option><option>PETG</option><option>ABS</option><option>TPU</option><option>ASA</option><option>Nylon</option><option>PLA+</option>
+        </select>
+        <input class="gi-othersub" type="text" placeholder="Especificá el tipo…" style="display:none;height:30px;font-size:12px;flex:1">
+        <select class="gi-unidad" style="height:30px;font-size:12px;width:72px">
+          <option value="kg">kg</option><option value="unidad">unidad</option><option value="litro">litro</option><option value="metro">metro</option>
+        </select>
+      </div>
+      <div class="gi-fil-extras" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:700;color:var(--text-3);white-space:nowrap">Peso por carrete</span>
+          <input class="gi-peso" type="number" min="0.01" step="0.01" value="1" style="height:28px;width:60px;text-align:center;font-size:12px" oninput="calcGastoItemTotal(this)">
+          <span style="font-size:11px;color:var(--text-3)">kg / u</span>
+          <span class="gi-stock-preview" style="font-size:11.5px;color:var(--brand);font-weight:700"></span>
         </div>
-        <select class="gi-unidad" style="height:28px;font-size:11.5px"><option value="kg">kg</option><option value="unidad">unidad</option><option value="litro">litro</option><option value="metro">metro</option></select>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap">
+          <span style="font-size:11px;font-weight:700;color:var(--text-3);white-space:nowrap;flex-shrink:0">Color</span>
+          <div style="overflow-x:auto;display:flex;gap:5px;padding:3px 2px;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch">${colorBtns}</div>
+          <span class="gi-color-label" style="font-size:11px;color:var(--text-2);white-space:nowrap;min-width:52px;text-align:right"></span>
+        </div>
       </div>
     </div>
-    <input class="gi-qty" type="number" min="0.001" step="0.001" value="1" style="height:34px;text-align:center" oninput="calcGastoItemTotal(this)">
-    <input class="gi-price" type="number" min="0" step="0.01" placeholder="0.00" style="height:34px;text-align:right" oninput="calcGastoItemTotal(this)">
-    <div class="gi-total num" style="height:34px;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:13px;color:var(--text-2)">—</div>
-    <button type="button" onclick="removeGastoItem(this)" style="height:34px;width:28px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:17px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:6px" onmouseover="this.style.color='var(--bad-fg)'" onmouseout="this.style.color='var(--text-3)'">✕</button>
   </div>`;
 }
 
@@ -4159,11 +4205,19 @@ function removeGastoItem(btn) {
 }
 
 function calcGastoItemTotal(input) {
-  const row = input.closest('.gasto-item-row');
+  const row = input?.closest('.gasto-item-row');
+  if (!row) return;
   const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
   const price = parseFloat(row.querySelector('.gi-price')?.value||0);
   const total = qty * price;
   row.querySelector('.gi-total').textContent = (qty&&price) ? '$ '+fmtMoney(total) : '—';
+  // Preview stock filamento
+  const cat = row.querySelector('.gi-cat')?.value||'';
+  const preview = row.querySelector('.gi-stock-preview');
+  if (preview && cat === 'filamento') {
+    const peso = parseFloat(row.querySelector('.gi-peso')?.value||1);
+    preview.textContent = (qty>0 && peso>0) ? '→ '+fmtMoney(qty*peso)+' kg en stock' : '';
+  } else if (preview) { preview.textContent = ''; }
   updateGastoTotal();
 }
 
@@ -4180,18 +4234,23 @@ function updateGastoTotal() {
 
 function toggleGastoInsumoMode() {
   const on = document.getElementById('gastoComoInsumo')?.checked;
-  document.querySelectorAll('.gi-ins-fields').forEach(el => el.style.display = on ? 'grid' : 'none');
+  document.querySelectorAll('.gi-ins-fields').forEach(el => el.style.display = on ? 'block' : 'none');
 }
 
 function onGiCatChange(sel) {
   const wrap = sel.closest('.gi-ins-fields');
   const filSub = wrap.querySelector('.gi-filsub');
   const otherSub = wrap.querySelector('.gi-othersub');
+  const filExtras = wrap.querySelector('.gi-fil-extras');
   const v = sel.value;
   filSub.style.display = v === 'filamento' ? '' : 'none';
   otherSub.style.display = (v && v !== 'filamento') ? '' : 'none';
-  if (v !== 'filamento') filSub.value = '';
+  filExtras.style.display = v === 'filamento' ? 'block' : 'none';
+  if (v !== 'filamento') { filSub.value = ''; wrap.querySelectorAll('.gi-color-btn').forEach(b => { b.style.border='2px solid transparent'; b.style.transform=''; b.removeAttribute('data-selected'); }); const lbl=wrap.querySelector('.gi-color-label'); if(lbl) lbl.textContent=''; }
   if (!v || v === 'filamento') otherSub.value = '';
+  // recalcular preview
+  const row = sel.closest('.gasto-item-row');
+  if (row) calcGastoItemTotal(row.querySelector('.gi-qty'));
 }
 
 async function openGastoForm(presIdPresel) {
@@ -4260,7 +4319,11 @@ async function saveGasto() {
     const othersub = row.querySelector('.gi-othersub')?.value||'';
     const subTipo = filsub || othersub || '';
     const unidad = row.querySelector('.gi-unidad')?.value||'kg';
-    if (desc && qty>0 && price>0) items.push({desc, qty, price, cat, subTipo, unidad, total: qty*price});
+    const peso = cat === 'filamento' ? parseFloat(row.querySelector('.gi-peso')?.value||1) : 1;
+    const colorBtn = row.querySelector('.gi-color-btn[data-selected="1"]');
+    const colorLabel = colorBtn ? colorBtn.dataset.label : '';
+    const stockQty = cat === 'filamento' ? qty * peso : qty;
+    if (desc && qty>0 && price>0) items.push({desc, qty, price, cat, subTipo, unidad, peso, colorLabel, stockQty, total: qty*price});
   });
   if (!items.length) { showToast('Agregá al menos un artículo con descripción, cantidad y precio', 'err'); return; }
 
@@ -4268,7 +4331,9 @@ async function saveGasto() {
   for (const item of items) {
     const body = {
       descripcion: item.desc,
-      para_que: `${item.qty} ${item.unidad} × $ ${fmtMoney(item.price)} c/u`,
+      para_que: item.cat === 'filamento'
+        ? `${item.qty} carrete${item.qty>1?'s':''} × ${item.peso}kg/u — $ ${fmtMoney(item.price)}/u`
+        : `${item.qty} ${item.unidad} × $ ${fmtMoney(item.price)} c/u`,
       categoria, medio_pago: medioPago, moneda, fecha,
       monto: item.total,
       proveedor_id: provId ? Number(provId) : null,
@@ -4286,17 +4351,22 @@ async function saveGasto() {
 
 async function _upsertInsumo(item, provId, moneda) {
   try {
+    const nombre = item.cat === 'filamento'
+      ? [item.subTipo, item.desc, item.colorLabel].filter(Boolean).join(' ')
+      : item.desc;
     const body = {
-      nombre: item.desc,
+      nombre,
       categoria: item.cat || 'otros',
       tipo: item.subTipo || null,
       proveedor_id: provId ? Number(provId) : null,
       precio: item.price,
-      moneda, unidad: item.unidad, stock: item.qty
+      moneda,
+      unidad: item.cat === 'filamento' ? 'kg' : item.unidad,
+      stock: item.stockQty
     };
     const r = await apiPost('/api/insumos', body);
     if (!r.ok && r.duplicate && r.existing_id) {
-      await apiPut(`/api/insumos/${r.existing_id}?action=add-stock`, { qty: item.qty, precio: item.price });
+      await apiPut(`/api/insumos/${r.existing_id}?action=add-stock`, { qty: item.stockQty, precio: item.price });
     }
     if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();
   } catch {}
