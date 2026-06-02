@@ -9,7 +9,7 @@ const FLUJO = {
   produccion: ["listo", "entregado", "cobrado", "cancelado"],
   listo:      ["entregado", "cobrado", "cancelado"],
   entregado:  ["cobrado", "cancelado"],
-  cobrado:    [],
+  cobrado:    ["entregado", "aprobado", "sin_enviar"],
   rechazado:  ["enviado", "sin_enviar"],
   cancelado:  ["sin_enviar"]
 };

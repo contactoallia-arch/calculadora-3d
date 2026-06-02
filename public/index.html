@@ -3087,7 +3087,8 @@ const _FLUJO_NEXT = {
   produccion:['listo','entregado','cobrado','cancelado'],
   listo:['entregado','cobrado','cancelado'],
   entregado:['cobrado','cancelado'],
-  cobrado:[],rechazado:[],cancelado:[]
+  cobrado:['entregado','aprobado','sin_enviar'],
+  rechazado:[],cancelado:[]
 };
 
 function abrirPresSlideover(id) {
@@ -3140,7 +3141,7 @@ function abrirPresSlideover(id) {
   ).join('');
   // Botones de estado
   const siguientes = (_FLUJO_NEXT[estado]||[]);
-  const BTN_LBL = {enviado:'Marcar enviado',aprobado:'✓ Aprobado',rechazado:'✗ Rechazado',produccion:'→ Producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',cancelado:'Cancelar'};
+  const BTN_LBL = {enviado:'Marcar enviado',aprobado:estado==='cobrado'?'↩ Volver a aprobado':'✓ Aprobado',rechazado:'✗ Rechazado',produccion:'→ Producción',listo:'Listo',entregado:estado==='cobrado'?'↩ Volver a entregado':'Entregado',cobrado:'Cobrado',cancelado:'Cancelar',sin_enviar:'↩ Reabrir'};
   document.getElementById('slEstBtns').innerHTML = siguientes.map(s=>
     `<button class="est-btn to-${s}" onclick="cambiarEstado(${id},'${s}',null,'presupuestos');cerrarPresSlideover()">${BTN_LBL[s]||s}</button>`
   ).join('');
@@ -3382,8 +3383,8 @@ function fechaISOtoUY(fecha) {
 function renderEstadoEditPres(p) {
   const estado = p.estado || 'sin_enviar';
   const LABELS_EST = { sin_enviar:'Sin enviar', borrador:'Sin enviar', enviado:'Enviado', aprobado:'Aprobado', rechazado:'Rechazado', cobrado:'Cobrado', cancelado:'Cancelado', produccion:'Producción', listo:'Listo', entregado:'Entregado' };
-  const FLUJO_FRONT = { sin_enviar:['enviado','aprobado'], borrador:['enviado','aprobado'], enviado:['aprobado','rechazado'], rechazado:['enviado','sin_enviar'], aprobado:['produccion','listo','entregado','cobrado','rechazado'], produccion:['listo','entregado','cobrado'], listo:['entregado','cobrado'], entregado:['cobrado'], cobrado:[], cancelado:['sin_enviar'] };
-  const LABELS_BTN = { sin_enviar:'Sin enviar', enviado:'Marcar enviado', aprobado:'Aprobar', rechazado:'Rechazar', produccion:'→ Producción', listo:'Listo', entregado:'Entregado', cobrado:'✓ Cobrado' };
+  const FLUJO_FRONT = { sin_enviar:['enviado','aprobado'], borrador:['enviado','aprobado'], enviado:['aprobado','rechazado'], rechazado:['enviado','sin_enviar'], aprobado:['produccion','listo','entregado','cobrado','rechazado'], produccion:['listo','entregado','cobrado'], listo:['entregado','cobrado'], entregado:['cobrado'], cobrado:['entregado','aprobado','sin_enviar'], cancelado:['sin_enviar'] };
+  const LABELS_BTN = { sin_enviar:'↩ Reabrir', enviado:'Marcar enviado', aprobado:'↩ Volver a aprobado', rechazado:'Rechazar', produccion:'→ Producción', listo:'Listo', entregado:'↩ Volver a entregado', cobrado:'✓ Cobrado' };
   const badge = document.getElementById('editPresEstadoBadge');
   badge.className = `badge b-${estado}`;
   badge.innerHTML = `<span class="bdot"></span>${LABELS_EST[estado] || estado}`;
