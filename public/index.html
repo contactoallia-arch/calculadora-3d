@@ -1958,6 +1958,23 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveProveedor()">Guardar</button></div>
 </div>
 
+<!-- MODAL: PICKER DE CLIENTE -->
+<div class="modal" id="mClientePicker" style="max-width:500px">
+  <div class="mh">
+    <div class="mt">
+      <svg class="icon" style="display:inline;vertical-align:middle;margin-right:6px" viewBox="0 0 18 18"><circle cx="9" cy="6" r="3.5"/><path d="M2 17c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+      Elegir cliente
+    </div>
+    <button class="mx" onclick="closeM()">✕</button>
+  </div>
+  <div class="mb" style="padding:14px 16px">
+    <input type="text" id="cPickerSearch" placeholder="Buscar por nombre, email…"
+      oninput="renderClientePickerList(this.value)"
+      style="width:100%;margin-bottom:12px">
+    <div id="cPickerList" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- MODAL: NUEVA PIEZA -->
 <div class="modal" id="mPieza" style="max-width:520px">
   <div class="mh">
@@ -2295,6 +2312,13 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
   </div>
   <div class="cb col" id="body-client">
+    <!-- Selector de cliente existente -->
+    <div style="margin-bottom:14px">
+      <button onclick="openClientePicker()" style="display:flex;align-items:center;gap:7px;height:38px;padding:0 14px;border:1.5px dashed var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-2);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;transition:all var(--tr);width:100%" onmouseover="this.style.borderColor='var(--brand)';this.style.color='var(--brand)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+        <svg class="icon" viewBox="0 0 18 18"><circle cx="9" cy="6" r="3.5"/><path d="M2 17c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+        Elegir de lista de clientes
+      </button>
+    </div>
     <div class="two">
       <div class="f"><label class="fl">Nombre</label><input type="text" id="cName" placeholder="Nombre completo"></div>
       <div class="f"><label class="fl">Email</label><input type="text" id="cEmail" placeholder="email@ejemplo.com"></div>
@@ -4917,6 +4941,50 @@ syncThemeToggle();
 function openM(id){document.getElementById('ov').classList.add('open');document.getElementById(id).classList.add('open')}
 function closeM(){document.getElementById('ov').classList.remove('open');document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'))}
 
+// ── PICKER DE CLIENTE ────────────────────────────────────────────────
+let _clientePickerCache = null;
+
+async function openClientePicker(){
+  openM('mClientePicker');
+  document.getElementById('cPickerSearch').value='';
+  document.getElementById('cPickerList').innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">Cargando…</div>';
+  try{
+    const d=await apiGet('/api/clientes');
+    _clientePickerCache=d.ok?d.data:[];
+    renderClientePickerList('');
+    setTimeout(()=>document.getElementById('cPickerSearch')?.focus(),120);
+  }catch(e){
+    document.getElementById('cPickerList').innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">Error al cargar clientes.</div>';
+  }
+}
+
+function renderClientePickerList(q){
+  const list=document.getElementById('cPickerList'); if(!list)return;
+  const items=_clientePickerCache||[];
+  const filtered=q?items.filter(c=>(c.nombre||'').toLowerCase().includes(q.toLowerCase())||(c.email||'').toLowerCase().includes(q.toLowerCase())):items;
+  if(!filtered.length){
+    list.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">No se encontraron clientes.</div>';
+    return;
+  }
+  list.innerHTML=filtered.map(c=>`
+    <div onclick="selectClienteEnCalc(${c.id})"
+      style="padding:11px 14px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;transition:all var(--tr);background:var(--surface-2)"
+      onmouseover="this.style.borderColor='var(--brand)';this.style.background='var(--brand-soft)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface-2)'">
+      <div style="font-weight:700;font-size:14px;color:var(--text)">${c.nombre}</div>
+      ${c.email?`<div style="font-size:12px;color:var(--text-3);margin-top:2px">${c.email}${c.telefono?' · '+c.telefono:''}</div>`:''}
+      ${c.total_presupuestos?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${c.total_presupuestos} presupuesto${c.total_presupuestos>1?'s':''}</div>`:''}
+    </div>`).join('');
+}
+
+function selectClienteEnCalc(id){
+  const c=(_clientePickerCache||[]).find(x=>x.id===id); if(!c)return;
+  const set=(elId,val)=>{const el=document.getElementById(elId);if(el&&val)el.value=val;};
+  set('cName',c.nombre); set('cEmail',c.email||''); set('cPhone',c.telefono||'');
+  closeM();
+  showToast(`Cliente "${c.nombre}" seleccionado`,'ok');
+}
+
 // ── MODAL: NUEVA PIEZA ────────────────────────────────────────────────
 function openAddPiezaModal(){
   ['mP-nombre','mP-alto','mP-ancho','mP-profundo','mP-peso','mP-caract','mP-desc'].forEach(id=>{
@@ -5611,7 +5679,10 @@ async function savePresupuesto(){
       try{
         const listR=await fetch('/api/clientes',{headers:authHeaders});
         const listD=await listR.json();
-        const existing=(listD.ok?listD.data:[]).find(c=>c.nombre.toLowerCase()===cNombre.toLowerCase());
+        const existing=(listD.ok?listD.data:[]).find(c=>
+          c.nombre.toLowerCase()===cNombre.toLowerCase() ||
+          (cEmail && c.email && c.email.toLowerCase()===cEmail.toLowerCase())
+        );
         if(existing){
           // Ya existe — actualizar email/tel si cambiaron
           payload.cliente_id=existing.id;
