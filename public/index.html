@@ -1756,9 +1756,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       </div>
     </div>
     <div class="frow" id="insTipoRow">
-      <div class="fgrp"><label>Tipo de filamento</label>
+      <div class="fgrp"><label>Tipo</label>
         <select id="insTipo">
           <option value="PLA">PLA</option>
+          <option value="PLA+">PLA+</option>
           <option value="PETG">PETG</option>
           <option value="ABS">ABS</option>
           <option value="TPU">TPU</option>
@@ -1768,17 +1769,34 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <option value="Otro">Otro</option>
         </select>
       </div>
-      <div class="fgrp"><label>Diámetro</label>
+      <div class="fgrp" id="insDiametroWrap"><label>Diámetro</label>
         <select id="insDiametro">
           <option value="1.75mm">1.75mm</option>
           <option value="2.85mm">2.85mm</option>
         </select>
       </div>
     </div>
+    <!-- Extras solo para filamento -->
+    <div id="insFilExtras" style="display:none">
+      <div class="frow">
+        <div class="fgrp" style="flex:1">
+          <label>Color</label>
+          <div id="insColorScroll" style="overflow-x:auto;display:flex;gap:5px;padding:3px 2px;scrollbar-width:none"></div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:3px;height:14px" id="insColorLabel"></div>
+        </div>
+      </div>
+      <div class="frow" id="insCarretesRow">
+        <div class="fgrp"><label>Nro de carretes</label><input id="insCarretes" type="number" min="1" step="1" value="1" placeholder="1" oninput="recalcInsStock()"></div>
+        <div class="fgrp"><label>Peso por carrete (kg)</label><input id="insKgCarrete" type="number" min="0.01" step="0.01" value="1" placeholder="1" oninput="recalcInsStock()"></div>
+        <div class="fgrp"><label>Total en stock</label>
+          <div id="insStockPreview" style="height:36px;display:flex;align-items:center;font-weight:700;font-size:15px;color:var(--brand)">1 kg</div>
+        </div>
+      </div>
+    </div>
     <div class="frow">
       <div class="fgrp"><label>Precio *</label><input id="insPrecio" type="number" min="0" step="0.01" placeholder="0.00" oninput="verificarDuplicadoInsumo()"></div>
       <div class="fgrp"><label>Moneda</label><select id="insMoneda"><option>UYU</option><option>USD</option></select></div>
-      <div class="fgrp"><label>Unidad</label>
+      <div class="fgrp" id="insUnidadWrap"><label>Unidad</label>
         <select id="insUnidad">
           <option value="kg">kg</option>
           <option value="unidad">unidad</option>
@@ -1795,7 +1813,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <button type="button" onclick="quickAddProveedorInsumo()" style="height:36px;padding:0 10px;border:1px dashed var(--bd);border-radius:var(--rs);background:none;color:var(--ac);font-size:12px;font-weight:600;cursor:pointer">+ Nuevo</button>
         </div>
       </div>
-      <div class="fgrp"><label>Stock actual</label><input id="insStock" type="number" min="0" step="0.1" value="0" placeholder="0"></div>
+      <div class="fgrp" id="insStockWrap"><label>Stock actual</label><input id="insStock" type="number" min="0" step="0.001" value="0" placeholder="0"></div>
     </div>
     <div id="insDuplicadoAviso" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:var(--rs);padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:8px">
       ⚠ Ya existe un insumo con ese nombre, proveedor y precio.
@@ -5365,8 +5383,12 @@ async function abrirInsumoForm(id) {
     document.getElementById('insMoneda').value = 'UYU';
     document.getElementById('insUnidad').value = 'kg';
     document.getElementById('insStock').value = '0';
+    document.getElementById('insCarretes').value = '1';
+    document.getElementById('insKgCarrete').value = '1';
     document.getElementById('insNotas').value = '';
     document.getElementById('insProveedor').value = '';
+    document.querySelectorAll('.ins-color-btn').forEach(b => { b.style.border='2px solid transparent'; b.style.transform=''; b.removeAttribute('data-selected'); });
+    document.getElementById('insColorLabel').textContent = '';
     toggleInsCategoria();
   } else {
     const item = _insumosCache.find(x => Number(x.id) === Number(id));
@@ -5388,7 +5410,40 @@ async function abrirInsumoForm(id) {
 
 function toggleInsCategoria() {
   const cat = document.getElementById('insCat').value;
-  document.getElementById('insTipoRow').style.display = (cat === 'filamento' || cat === 'resina') ? '' : 'none';
+  const isFil = cat === 'filamento';
+  const isFilOrRes = cat === 'filamento' || cat === 'resina';
+  document.getElementById('insTipoRow').style.display = isFilOrRes ? '' : 'none';
+  document.getElementById('insDiametroWrap').style.display = isFil ? '' : 'none';
+  document.getElementById('insFilExtras').style.display = isFil ? '' : 'none';
+  // Stock: oculto cuando es filamento nuevo (se calcula desde carretes)
+  document.getElementById('insStockWrap').style.display = (isFil && !_editInsumoId) ? 'none' : '';
+  document.getElementById('insCarretesRow').style.display = (isFil && !_editInsumoId) ? '' : 'none';
+  // Unidad fija en kg para filamento
+  if (isFil) document.getElementById('insUnidad').value = 'kg';
+  document.getElementById('insUnidadWrap').style.display = isFil ? 'none' : '';
+  // Inicializar color buttons si no están
+  if (isFil && !document.getElementById('insColorScroll').children.length) {
+    document.getElementById('insColorScroll').innerHTML = _filColors.map(c =>
+      '<button type="button" class="ins-color-btn" data-color="'+c.v+'" data-label="'+c.l+'" title="'+c.l+'" onclick="selectInsColor(this)" style="width:22px;height:22px;border-radius:50%;background:'+c.hex+';border:2px solid transparent;flex-shrink:0;cursor:pointer;transition:transform .1s"></button>'
+    ).join('');
+  }
+  if (isFil && !_editInsumoId) recalcInsStock();
+}
+
+function recalcInsStock() {
+  const carretes = parseFloat(document.getElementById('insCarretes').value||1);
+  const kg = parseFloat(document.getElementById('insKgCarrete').value||1);
+  const total = carretes * kg;
+  document.getElementById('insStockPreview').textContent = fmtMoney(total) + ' kg';
+  document.getElementById('insStock').value = total.toFixed(3);
+}
+
+function selectInsColor(btn) {
+  document.querySelectorAll('.ins-color-btn').forEach(b => { b.style.border='2px solid transparent'; b.style.transform=''; b.removeAttribute('data-selected'); });
+  btn.style.border = '2px solid var(--text-1)';
+  btn.style.transform = 'scale(1.2)';
+  btn.setAttribute('data-selected','1');
+  document.getElementById('insColorLabel').textContent = btn.dataset.label;
 }
 
 let _dupCheckTimeout = null;
@@ -5413,13 +5468,20 @@ function verificarDuplicadoInsumo() {
 }
 
 async function guardarInsumo() {
-  const nombre = document.getElementById('insNombre').value.trim();
+  const cat = document.getElementById('insCat').value;
+  const colorBtn = document.querySelector('.ins-color-btn[data-selected="1"]');
+  const colorLabel = colorBtn ? colorBtn.dataset.label : '';
+  // Construir nombre con color si es filamento y no lo tiene ya
+  let nombre = document.getElementById('insNombre').value.trim();
+  if (cat === 'filamento' && colorLabel && !nombre.toLowerCase().includes(colorLabel.toLowerCase())) {
+    nombre = [nombre, colorLabel].filter(Boolean).join(' ');
+    document.getElementById('insNombre').value = nombre;
+  }
   const precio = parseFloat(document.getElementById('insPrecio').value);
   if (!nombre) { showToast('Nombre requerido', 'err'); return; }
   if (document.getElementById('insDuplicadoAviso').style.display !== 'none' && !_editInsumoId) {
     showToast('Ya existe ese insumo. Editá el existente.', 'err'); return;
   }
-  const cat = document.getElementById('insCat').value;
   const tipo = (cat === 'filamento' || cat === 'resina')
     ? document.getElementById('insTipo').value + (cat==='filamento'?' '+document.getElementById('insDiametro').value:'')
     : null;
