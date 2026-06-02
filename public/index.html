@@ -1288,6 +1288,21 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 5 5 15 5"/><path d="M14 5l-1 11H5L4 5"/><path d="M7 5V3h4v2"/></svg>
       </button>
     </div>
+    <!-- cobros registrados -->
+    <div id="slCobrosWrap" style="display:none;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px">Pagos registrados</div>
+      <div id="slCobrosList" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn--ghost btn--sm" style="flex:1" onclick="cerrarPresSlideover();setTimeout(()=>registrarAdelanto(_slPresId),80)">
+          <svg class="icon" viewBox="0 0 18 18"><line x1="9" y1="1" x2="9" y2="17"/><path d="M13 4H7a3 3 0 000 6h4a3 3 0 010 6H5"/></svg>
+          Registrar adelanto
+        </button>
+        <button class="btn btn--ghost btn--sm" style="flex:1" onclick="cerrarPresSlideover();setTimeout(()=>registrarCobroDesde(_slPresId),80)">
+          <svg class="icon" viewBox="0 0 18 18"><polyline points="1 9 5 5 9 9 13 5 17 9"/><line x1="5" y1="5" x2="5" y2="17"/><line x1="13" y1="5" x2="13" y2="17"/></svg>
+          Cobro total
+        </button>
+      </div>
+    </div>
     <!-- compartir / enviar -->
     <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin:6px 0 8px">Enviar presupuesto</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -1448,20 +1463,35 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 
 <!-- Modal: registrar cobro -->
 <div class="modal" id="mCobro">
-  <div class="mh"><div class="mt">Registrar cobro</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mh"><div class="mt" id="mCobroTit">Registrar cobro</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div class="frow">
       <div class="fgrp" style="flex:2"><label>Presupuesto *</label><select id="cobroPres"></select></div>
       <div class="fgrp"><label>Fecha *</label><input id="cobroFecha" type="date"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Monto *</label><input id="cobroMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
-      <div class="fgrp"><label>Moneda</label><select id="cobroMoneda"><option>UYU</option><option>USD</option></select></div>
+      <div class="fgrp"><label>Tipo de pago</label>
+        <select id="cobroTipo">
+          <option value="total">Pago total</option>
+          <option value="adelanto">Adelanto / Seña</option>
+          <option value="parcial">Pago parcial</option>
+        </select>
+      </div>
       <div class="fgrp"><label>Medio de pago</label>
         <select id="cobroMedioPago">
           <option>efectivo</option><option>transferencia</option><option>mercadopago</option><option>paypal</option><option>crypto</option><option>otro</option>
         </select>
       </div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Monto *</label><input id="cobroMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp"><label>Moneda</label><select id="cobroMoneda"><option>UYU</option><option>USD</option></select></div>
+    </div>
+    <!-- Resumen saldo -->
+    <div id="cobroSaldoInfo" style="display:none;margin:6px 0 2px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px">
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Total presupuesto</span><span id="cobroSaldoTotal" style="font-weight:700">—</span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:var(--text-3)">Ya cobrado</span><span id="cobroSaldoPagado" style="font-weight:700;color:var(--ok-fg)">—</span></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;border-top:1px solid var(--border);padding-top:6px"><span style="font-weight:700">Saldo pendiente</span><span id="cobroSaldoPend" style="font-weight:700;color:var(--brand)">—</span></div>
     </div>
     <div class="frow"><div class="fgrp"><label>Nota</label><input id="cobroNota" placeholder="Referencia, comprobante…"></div></div>
   </div>
@@ -2970,6 +3000,36 @@ function abrirPresSlideover(id) {
   sl.style.display='flex';
   sl.style.transform='translateX(100%)';
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ sl.style.transition='transform .28s cubic-bezier(.3,.8,.3,1)'; sl.style.transform='translateX(0)'; }));
+  // Cargar cobros del presupuesto
+  cargarCobrosEnSlideover(id, p.precio||0);
+}
+
+async function cargarCobrosEnSlideover(presId, precioTotal) {
+  const wrap = document.getElementById('slCobrosWrap');
+  const lista = document.getElementById('slCobrosList');
+  try {
+    const d = await apiGet('/api/cobros?presupuesto_id='+presId);
+    const cobros = d.ok ? d.data : [];
+    const pagado = cobros.reduce((s,c)=>s+Number(c.monto||0),0);
+    const pendiente = Math.max(0, precioTotal - pagado);
+    wrap.style.display = '';
+    if(!cobros.length){
+      lista.innerHTML=`<div style="padding:10px 14px;font-size:13px;color:var(--text-3)">Sin pagos registrados · Saldo pendiente: <strong>$ ${fmtMoney(precioTotal)}</strong></div>`;
+    } else {
+      const filas = cobros.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border-2);font-size:13px">
+        <div>
+          <span style="font-weight:600;color:var(--text)">${c.nota||c.medio_pago||'Pago'}</span>
+          <span style="color:var(--text-3);margin-left:6px;font-size:11px">${c.fecha||''}</span>
+        </div>
+        <span style="font-weight:700;color:var(--ok-fg)">$ ${fmtMoney(c.monto)}</span>
+      </div>`).join('');
+      const resumen = `<div style="display:flex;justify-content:space-between;padding:8px 14px;background:var(--brand-soft);font-size:13px;font-weight:700">
+        <span style="color:var(--text-2)">Saldo pendiente</span>
+        <span style="color:var(--brand)">$ ${fmtMoney(pendiente)}</span>
+      </div>`;
+      lista.innerHTML = filas + resumen;
+    }
+  } catch { wrap.style.display='none'; }
 }
 
 function cerrarPresSlideover() {
@@ -3542,12 +3602,13 @@ async function cobrarPendiente(presId) {
   } catch { openCobroForm(); }
 }
 
-async function openCobroForm(presObj) {
+async function openCobroForm(presObj, tipo='total') {
   document.getElementById('cobroFecha').value = new Date().toISOString().slice(0,10);
-  document.getElementById('cobroMonto').value = presObj ? presObj.precio : '';
-  document.getElementById('cobroNota').value = '';
+  document.getElementById('cobroNota').value = tipo==='adelanto'?'Adelanto / Seña':'';
+  document.getElementById('cobroTipo').value = tipo;
+  document.getElementById('mCobroTit').textContent = tipo==='adelanto'?'Registrar adelanto':'Registrar cobro';
+  document.getElementById('cobroSaldoInfo').style.display='none';
   openM('mCobro');
-  // Cargar presupuestos en background (no bloquea la apertura del modal)
   try {
     const d = await apiGet('/api/presupuestos');
     const sel = document.getElementById('cobroPres');
@@ -3556,8 +3617,29 @@ async function openCobroForm(presObj) {
     sel.innerHTML = all.length
       ? all.map(p => `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza} (${p.estado}) — $ ${fmtMoney(p.precio)}</option>`).join('')
       : '<option value="">Sin presupuestos disponibles</option>';
-    if (presObj) sel.value = presObj.id;
-  } catch { }
+    if (presObj) { sel.value = presObj.id; await actualizarSaldoCobro(presObj.id, presObj.precio, tipo); }
+  } catch {}
+}
+
+async function actualizarSaldoCobro(presId, precioTotal, tipo) {
+  try {
+    const dc = await apiGet('/api/cobros?presupuesto_id='+presId);
+    const pagado = dc.ok ? dc.data.reduce((s,c)=>s+Number(c.monto||0),0) : 0;
+    const pendiente = Math.max(0, precioTotal - pagado);
+    document.getElementById('cobroSaldoTotal').textContent = '$ '+fmtMoney(precioTotal);
+    document.getElementById('cobroSaldoPagado').textContent = '$ '+fmtMoney(pagado);
+    document.getElementById('cobroSaldoPend').textContent = '$ '+fmtMoney(pendiente);
+    document.getElementById('cobroSaldoInfo').style.display = pagado>0?'':'none';
+    // Sugerir monto: si es adelanto → 50% del pendiente; si es total → saldo pendiente
+    document.getElementById('cobroMonto').value = tipo==='adelanto'
+      ? Math.round(pendiente*0.5)
+      : Math.round(pendiente);
+  } catch { document.getElementById('cobroMonto').value = tipo==='adelanto'?'':Math.round(precioTotal); }
+}
+
+function registrarAdelanto(presId) {
+  const p = _presCache.find(x=>Number(x.id)===Number(presId));
+  openCobroForm(p, 'adelanto');
 }
 
 async function saveCobro() {

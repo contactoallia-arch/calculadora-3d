@@ -5,13 +5,13 @@ const FLUJO = {
   sin_enviar: ["enviado", "aprobado", "rechazado", "cancelado"],
   borrador:   ["enviado", "aprobado", "rechazado", "cancelado"],
   enviado:    ["aprobado", "rechazado", "cancelado"],
-  aprobado:   ["produccion", "cancelado"],
-  produccion: ["listo", "cancelado"],
-  listo:      ["entregado", "cancelado"],
+  aprobado:   ["produccion", "listo", "entregado", "cobrado", "cancelado"],
+  produccion: ["listo", "entregado", "cobrado", "cancelado"],
+  listo:      ["entregado", "cobrado", "cancelado"],
   entregado:  ["cobrado", "cancelado"],
   cobrado:    [],
-  rechazado:  [],
-  cancelado:  []
+  rechazado:  ["enviado", "sin_enviar"],
+  cancelado:  ["sin_enviar"]
 };
 
 async function resolveCliente(db, body) {
