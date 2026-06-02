@@ -1958,6 +1958,21 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveProveedor()">Guardar</button></div>
 </div>
 
+<!-- MODAL: CONFIRMACIÓN GENÉRICA -->
+<div class="modal" id="mConfirm" style="max-width:400px">
+  <div class="mh">
+    <div class="mt" id="mConfirmTitle">Confirmar</div>
+    <button class="mx" onclick="_confirmCancel()">✕</button>
+  </div>
+  <div class="mb" style="padding:20px 22px">
+    <p id="mConfirmMsg" style="font-size:14px;color:var(--text-2);line-height:1.55;margin:0"></p>
+  </div>
+  <div class="mf">
+    <button class="bs2" onclick="_confirmCancel()">Cancelar</button>
+    <button class="btn btn--danger" id="mConfirmBtn" onclick="_confirmOk()">Eliminar</button>
+  </div>
+</div>
+
 <!-- MODAL: PICKER DE CLIENTE -->
 <div class="modal" id="mClientePicker" style="max-width:500px">
   <div class="mh">
@@ -3245,7 +3260,9 @@ function cargarDesdeProducto() {
 }
 
 async function eliminarPresupuesto(id) {
-  if (!confirm('¿Eliminar este presupuesto? No se puede deshacer.')) return;
+  showConfirm('¿Eliminar este presupuesto? Esta acción no se puede deshacer.',()=>_doEliminarPresupuesto(id),{title:'Eliminar presupuesto'});
+}
+async function _doEliminarPresupuesto(id) {
   const d = await apiDelete('/api/presupuestos/' + id);
   if (d.ok) { showToast('Presupuesto eliminado', 'ok'); loadPresupuestos(); }
   else showToast(d.error || 'Error', 'err');
@@ -3396,7 +3413,9 @@ async function saveCliente() {
 }
 
 async function eliminarCliente(id) {
-  if (!confirm('¿Eliminar cliente?')) return;
+  showConfirm('¿Eliminar este cliente? Esta acción no se puede deshacer.',()=>_doEliminarCliente(id),{title:'Eliminar cliente'});
+}
+async function _doEliminarCliente(id) {
   const d = await apiDelete('/api/clientes/' + id);
   if (d.ok) { showToast('Cliente eliminado', 'ok'); loadClientes(); }
   else showToast(d.error || 'Error', 'err');
@@ -3557,7 +3576,9 @@ async function saveCobro() {
 }
 
 async function eliminarCobro(id) {
-  if (!confirm('¿Eliminar este cobro?')) return;
+  showConfirm('¿Eliminar este cobro?',()=>_doEliminarCobro(id),{title:'Eliminar cobro'});
+}
+async function _doEliminarCobro(id) {
   const d = await apiDelete('/api/cobros/' + id);
   if (d.ok) { showToast('Cobro eliminado', 'ok'); loadCobros(); }
   else showToast(d.error || 'Error', 'err');
@@ -3692,7 +3713,9 @@ async function saveGasto() {
 }
 
 async function eliminarGasto(id) {
-  if (!confirm('¿Eliminar este gasto?')) return;
+  showConfirm('¿Eliminar este gasto?',()=>_doEliminarGasto(id),{title:'Eliminar gasto'});
+}
+async function _doEliminarGasto(id) {
   const d = await apiDelete('/api/gastos/' + id);
   if (d.ok) { showToast('Gasto eliminado', 'ok'); loadGastos(); }
   else showToast(d.error || 'Error', 'err');
@@ -3898,7 +3921,10 @@ async function desactivarUser(id) {
 async function eliminarUsuario(id) {
   const u = _usersCache.find(x => Number(x.id) === Number(id));
   const nombre = u ? u.nombre : 'este usuario';
-  if (!confirm(`¿Eliminar a ${nombre}? Se borra del sistema, pero su historial en Auditoría se conserva.`)) return;
+  showConfirm(`¿Eliminar a "${nombre}"? Se borra del sistema, pero su historial en Auditoría se conserva.`,
+    ()=>_doEliminarUsuario(id),{title:'Eliminar usuario'});
+}
+async function _doEliminarUsuario(id) {
   const d = await apiDelete('/api/usuarios/'+id);
   if (d.ok) { showToast('Usuario eliminado','ok'); loadConfig(); }
   else showToast(d.error||'Error al eliminar','err');
@@ -3912,7 +3938,9 @@ async function saveGastoFijo() {
   else showToast(d.error||'Error','err');
 }
 async function eliminarGastoFijo(id) {
-  if (!confirm('¿Eliminar gasto fijo?')) return;
+  showConfirm('¿Eliminar este gasto fijo?',()=>_doEliminarGastoFijo(id),{title:'Eliminar gasto fijo'});
+}
+async function _doEliminarGastoFijo(id) {
   const d = await apiDelete('/api/gastos-fijos/'+id);
   if (d.ok) { showToast('Eliminado','ok'); loadConfig(); }
 }
@@ -4330,9 +4358,10 @@ async function guardarAgenda() {
 }
 
 async function eliminarAgenda(id) {
-  if (!confirm('¿Eliminar?')) return;
-  const d = await apiDelete('/api/agenda/'+id);
-  if (d.ok) { showToast('Eliminado','ok'); loadAgenda(); }
+  showConfirm('¿Eliminar esta tarea de la agenda?',async()=>{
+    const d=await apiDelete('/api/agenda/'+id);
+    if(d.ok){showToast('Eliminado','ok');loadAgenda();}
+  },{title:'Eliminar tarea'});
 }
 
 // ── PRESUPUESTO: CAMPOS CLIENTE ────────────────────────────────────────
@@ -4556,9 +4585,10 @@ async function guardarInsumo() {
 }
 
 async function eliminarInsumo(id) {
-  if (!confirm('¿Eliminar este insumo?')) return;
-  const d = await apiDelete('/api/insumos/'+id);
-  if (d.ok) { showToast('Insumo eliminado','ok'); loadInsumos(); cargarInsumosEnCalculadora(); }
+  showConfirm('¿Eliminar este insumo?',async()=>{
+    const d=await apiDelete('/api/insumos/'+id);
+    if(d.ok){showToast('Insumo eliminado','ok');loadInsumos();cargarInsumosEnCalculadora();}
+  },{title:'Eliminar insumo'});
 }
 
 async function quickAddProveedorInsumo() {
@@ -4774,10 +4804,11 @@ async function guardarProducto() {
 }
 
 async function eliminarProducto(id) {
-  if (!confirm('¿Eliminar este producto?')) return;
-  const d = await apiDelete('/api/productos/'+id);
-  if (d.ok) { showToast('Producto eliminado', 'ok'); loadProductos(); }
-  else showToast(d.error || 'Error', 'err');
+  showConfirm('¿Eliminar este producto?',async()=>{
+    const d=await apiDelete('/api/productos/'+id);
+    if(d.ok){showToast('Producto eliminado','ok');loadProductos();}
+    else showToast(d.error||'Error','err');
+  },{title:'Eliminar producto'});
 }
 
 // ── PROVEEDORES ───────────────────────────────────────────────────────
@@ -4869,10 +4900,11 @@ async function saveProveedor() {
 }
 
 async function eliminarProveedor(id) {
-  if (!confirm('¿Eliminar este proveedor?')) return;
-  const d = await apiDelete('/api/proveedores/' + id);
-  if (d.ok) { showToast('Proveedor eliminado', 'ok'); loadProveedores(); }
-  else showToast(d.error || 'Error', 'err');
+  showConfirm('¿Eliminar este proveedor?',async()=>{
+    const d=await apiDelete('/api/proveedores/'+id);
+    if(d.ok){showToast('Proveedor eliminado','ok');loadProveedores();}
+    else showToast(d.error||'Error','err');
+  },{title:'Eliminar proveedor'});
 }
 
 // ── LOGS ──────────────────────────────────────────────────────────────
@@ -4940,6 +4972,20 @@ syncThemeToggle();
 // ── MODALS ────────────────────────────────────────────────────────────
 function openM(id){document.getElementById('ov').classList.add('open');document.getElementById(id).classList.add('open')}
 function closeM(){document.getElementById('ov').classList.remove('open');document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'))}
+
+// ── CONFIRM DIALOG (reemplaza window.confirm nativo) ──────────────────
+let _confirmCb=null;
+function showConfirm(msg, onOk, {title='Confirmar', btnLabel='Eliminar', danger=true}={}){
+  document.getElementById('mConfirmMsg').textContent=msg;
+  document.getElementById('mConfirmTitle').textContent=title;
+  const btn=document.getElementById('mConfirmBtn');
+  btn.textContent=btnLabel;
+  btn.className=danger?'btn btn--danger':'btn btn--primary';
+  _confirmCb=onOk;
+  openM('mConfirm');
+}
+function _confirmOk(){closeM();if(_confirmCb){const cb=_confirmCb;_confirmCb=null;cb();}}
+function _confirmCancel(){closeM();_confirmCb=null;}
 
 // ── PICKER DE CLIENTE ────────────────────────────────────────────────
 let _clientePickerCache = null;
@@ -5770,16 +5816,18 @@ function loadSnap(id){
 }
 
 async function delFromHist(id,btn){
-  if(!confirm('¿Eliminar este presupuesto?'))return;
-  btn.textContent='…';
-  try{await fetch('/api/presupuestos/'+id,{method:'DELETE'});renderHist();}
-  catch{btn.textContent='❌';}
+  showConfirm('¿Eliminar este presupuesto del historial?',async()=>{
+    btn.textContent='…';
+    try{await fetch('/api/presupuestos/'+id,{method:'DELETE'});renderHist();}
+    catch{btn.textContent='❌';}
+  },{title:'Eliminar presupuesto'});
 }
 
 async function clearHist(){
-  if(!confirm('¿Limpiar todo el historial?'))return;
-  try{await fetch('/api/presupuestos',{method:'DELETE'});}catch{}
-  renderHist();
+  showConfirm('¿Limpiar todo el historial de presupuestos? Esta acción no se puede deshacer.',async()=>{
+    try{await fetch('/api/presupuestos',{method:'DELETE'});}catch{}
+    renderHist();
+  },{title:'Limpiar historial',btnLabel:'Limpiar todo'});
 }
 
 // ── PROFILES ─────────────────────────────────────────────────────────
