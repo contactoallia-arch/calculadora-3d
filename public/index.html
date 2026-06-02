@@ -4563,24 +4563,32 @@ async function saveGasto() {
 
   let errores = 0;
   for (const item of items) {
-    const body = {
-      descripcion: item.desc,
-      para_que: item.cat === 'filamento'
-        ? `${item.qty} carrete${item.qty>1?'s':''} × ${item.peso}kg/u — $ ${fmtMoney(item.price)}/u${!_gastoIVAIncluido?' (+ IVA 22%)':''}`
-        : `${item.qty} ${item.unidad} × $ ${fmtMoney(item.price)} c/u${!_gastoIVAIncluido?' (+ IVA 22%)':''}`,
-      categoria, medio_pago: medioPago, moneda, fecha,
-      monto: _gastoIVAIncluido ? item.total : item.total * 1.22,
-      proveedor_id: provId ? Number(provId) : null,
-      presupuesto_id: presId ? Number(presId) : null
-    };
-    const d = await apiPost('/api/gastos', body);
-    if (!d.ok) { errores++; continue; }
-    if (registrarInsumos) await _upsertInsumo(item, provId, moneda);
+    try {
+      const montoFinal = (_gastoIVAIncluido === false) ? item.total * 1.22 : item.total;
+      const para_que = item.cat === 'filamento'
+        ? `${item.qty} carrete${item.qty>1?'s':''} × ${item.peso}kg/u — $ ${fmtMoney(item.price)}/u${_gastoIVAIncluido===false?' (+ IVA 22%)':''}`
+        : `${item.qty} ${item.unidad||'u'} × $ ${fmtMoney(item.price)} c/u${_gastoIVAIncluido===false?' (+ IVA 22%)':''}`;
+      const body = {
+        descripcion: item.desc,
+        para_que,
+        categoria: categoria || 'otros',
+        medio_pago: medioPago,
+        moneda, fecha,
+        monto: montoFinal,
+        proveedor_id: provId ? Number(provId) : null,
+        presupuesto_id: presId ? Number(presId) : null
+      };
+      const d = await apiPost('/api/gastos', body);
+      if (!d.ok) { errores++; showToast(d.error || 'Error al guardar gasto', 'err'); continue; }
+      if (registrarInsumos) await _upsertInsumo(item, provId, moneda);
+    } catch(e) { errores++; showToast('Error inesperado: ' + e.message, 'err'); }
   }
 
-  if (errores===0) showToast(`${items.length} gasto${items.length>1?'s':''} guardado${items.length>1?'s':''}${registrarInsumos?' e insumos actualizados':''}`, 'ok');
-  else showToast(`${errores} error(es) al guardar`, 'err');
-  closeM(); loadGastos();
+  if (errores === 0) {
+    showToast(`${items.length} gasto${items.length>1?'s':''} guardado${items.length>1?'s':''}${registrarInsumos?' e insumos actualizados':''}`, 'ok');
+    closeM(); loadGastos();
+  }
+  // Si hay errores: el modal queda abierto para que el usuario vea qué pasó
 }
 
 async function _upsertInsumo(item, provId, moneda) {
@@ -5392,11 +5400,18 @@ function renderInsumos() {
     const min = Number(i.stock_min||1);
     const st = Number(i.stock||0);
     const pct = Math.min(100, min ? (st/(min*2))*100 : (st>0?100:0));
-    const color = _catColor(i.categoria) || _avColor(i.nombre);
+    // Color real para filamentos
+    const filColor = (i.categoria==='filamento' && typeof _filColors!=='undefined')
+      ? (_filColors.find(c => (i.nombre||'').toLowerCase().includes(c.l.toLowerCase()))?.hex || null)
+      : null;
+    const dotColor = filColor || _catColor(i.categoria) || _avColor(i.nombre);
+    const dotStyle = filColor
+      ? `width:22px;height:22px;border-radius:50%;background:${filColor};border:2px solid var(--border);flex-shrink:0`
+      : `width:26px;height:26px;border-radius:8px;background:${dotColor};border:1px solid var(--border);flex-shrink:0`;
     return `<tr>
       <td>
         <div style="display:flex;align-items:center;gap:11px">
-          <span style="width:26px;height:26px;border-radius:8px;background:${color};border:1px solid var(--border);flex-shrink:0"></span>
+          <span style="${dotStyle}"></span>
           <div><b style="font-size:13.5px">${i.nombre}</b><div style="font-size:11px;color:var(--text-3)">${i.notas||i.tipo||'—'}</div></div>
         </div>
       </td>
