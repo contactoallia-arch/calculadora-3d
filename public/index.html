@@ -312,7 +312,10 @@ input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12)}
 /* ─── PRINT ─── */
 #printDoc{display:none}
 @media print{
-  body>*:not(#printDoc){display:none!important}
+  .m-topbar,.m-bottomnav,aside,#sidebarOv,#toast,#scrim,#drawer,
+  .app-wrap,#appWrap,.modal,#ov,#presBar,#notifPanel,
+  .page,.nav-item,footer{display:none!important}
+  .app{background:#fff!important;padding:0!important;display:block!important}
   #printDoc{display:block!important;font-family:'Arial',sans-serif;color:#1a1a1a;background:#fff}
   .pd{padding:40px 48px;max-width:800px;margin:0 auto}
   .pd-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:2.5px solid #d4601a}
@@ -5387,11 +5390,12 @@ function exportPDF(){
         </div>
       </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})</div></div><div class="pd-tp">$ ${fmt(totalP)}</div></div>`;
   }
+  const logoBlock=`<div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>`;
   document.getElementById('printDoc').innerHTML=`
   <div class="pd">
     <div class="pd-hdr">
       <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>
+        ${logoBlock}
         <div><div class="pd-brand">ArteLab UY</div><div class="pd-brand-sub">IMPRESIÓN 3D · URUGUAY</div></div>
       </div>
       <div class="pd-meta"><div class="pd-qlabel">Presupuesto</div><div class="pd-qno">#${num}</div><div class="pd-date">${dt}</div></div>
@@ -5406,7 +5410,7 @@ function exportPDF(){
     <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
     <div class="pd-footer">ArteLab UY · Impresión 3D · Uruguay</div>
   </div>`;
-  window.print();
+  setTimeout(()=>window.print(), 80);
 }
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────
