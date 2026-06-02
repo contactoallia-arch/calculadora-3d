@@ -1874,8 +1874,19 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="fgrp"><label>Fecha</label><input id="editPresFecha" type="date"></div>
     </div>
     <!-- Cliente -->
-    <div class="frow" style="margin-bottom:6px">
-      <div class="fgrp"><label>Cliente</label><input id="editPresCliente" placeholder="Nombre del cliente" oninput="buscarClienteExistente(this.value)"></div>
+    <div class="frow" style="margin-bottom:4px">
+      <div class="fgrp" style="flex:2">
+        <label>Cliente</label>
+        <div style="display:flex;gap:6px">
+          <input id="editPresCliente" placeholder="Escribí el nombre…" oninput="buscarClienteExistente(this.value)" style="flex:1">
+          <button type="button" onclick="openClientePickerPres()" title="Elegir de la lista"
+            style="flex-shrink:0;height:44px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:all var(--tr)"
+            onmouseover="this.style.borderColor='var(--brand)';this.style.color='var(--brand)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">
+            <svg style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:3px" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="6" r="3.5"/><path d="M2 17c0-3.866 3.134-7 7-7s7 3.134 7 7"/></svg>
+            Lista
+          </button>
+        </div>
+      </div>
       <div class="fgrp"><label>Fecha entrega</label><input id="editPresFechaEntrega" type="date"></div>
     </div>
     <div id="clienteSugerencias" style="display:none;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);max-height:120px;overflow-y:auto;margin-top:-10px;margin-bottom:8px;z-index:10;position:relative"></div>
@@ -2014,7 +2025,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   </div>
   <div class="mb" style="padding:14px 16px">
     <input type="text" id="cPickerSearch" placeholder="Buscar por nombre, email…"
-      oninput="renderClientePickerList(this.value)"
+      oninput="_clientePickerCallback ? renderClientePickerListPres(this.value) : renderClientePickerList(this.value)"
       style="width:100%;margin-bottom:12px">
     <div id="cPickerList" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto"></div>
   </div>
@@ -4473,6 +4484,11 @@ async function buscarClienteExistente(q) {
 }
 
 function seleccionarCliente(c) {
+  _aplicarClienteEnPres(c);
+  document.getElementById('clienteSugerencias').style.display = 'none';
+}
+
+function _aplicarClienteEnPres(c) {
   document.getElementById('editPresCliente').value = c.nombre;
   document.getElementById('editPresClienteEmail').value = c.email||'';
   document.getElementById('editPresClienteTel').value = c.telefono||'';
@@ -4480,7 +4496,41 @@ function seleccionarCliente(c) {
   toggleEmpresaFields();
   if (c.empresa) document.getElementById('editPresEmpresa').value = c.empresa||'';
   if (c.rut) document.getElementById('editPresRut').value = c.rut||'';
-  document.getElementById('clienteSugerencias').style.display = 'none';
+}
+
+// Abre el picker de clientes para el modal de presupuesto
+async function openClientePickerPres() {
+  // Reutiliza el mismo modal pero cambia la acción al seleccionar
+  openM('mClientePicker');
+  document.getElementById('cPickerSearch').value = '';
+  document.getElementById('cPickerList').innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3)">Cargando…</div>';
+  try {
+    const d = await apiGet('/api/clientes');
+    _clientePickerCache = d.ok ? d.data : [];
+    // Usar función especial que completa el formulario de presupuesto
+    _clientePickerCallback = (c) => { _aplicarClienteEnPres(c); closeM(); showToast(`Cliente "${c.nombre}" cargado`,'ok'); };
+    renderClientePickerListPres('');
+    setTimeout(() => document.getElementById('cPickerSearch')?.focus(), 120);
+  } catch(e) {
+    document.getElementById('cPickerList').innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3)">Error al cargar clientes.</div>';
+  }
+}
+
+let _clientePickerCallback = null;
+
+function renderClientePickerListPres(q) {
+  const list = document.getElementById('cPickerList'); if (!list) return;
+  const items = _clientePickerCache || [];
+  const filtered = q ? items.filter(c => (c.nombre||'').toLowerCase().includes(q.toLowerCase()) || (c.email||'').toLowerCase().includes(q.toLowerCase())) : items;
+  if (!filtered.length) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3)">No se encontraron clientes.</div>'; return; }
+  list.innerHTML = filtered.map(c => `
+    <div onclick="_clientePickerCallback && _clientePickerCallback(${JSON.stringify(c).replace(/"/g,'&quot;')})"
+      style="padding:11px 14px;border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;transition:all var(--tr);background:var(--surface-2);margin-bottom:4px"
+      onmouseover="this.style.borderColor='var(--brand)';this.style.background='var(--brand-soft)'"
+      onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface-2)'">
+      <div style="font-weight:700;font-size:14px;color:var(--text)">${c.nombre}</div>
+      ${c.email ? `<div style="font-size:12px;color:var(--text-3);margin-top:2px">${c.email}${c.telefono?' · '+c.telefono:''}</div>` : ''}
+    </div>`).join('');
 }
 
 // ── FIX: abrirEditPres carga cliente correctamente ─────────────────────
@@ -5073,6 +5123,7 @@ function _confirmCancel(){closeM();_confirmCb=null;}
 let _clientePickerCache = null;
 
 async function openClientePicker(){
+  _clientePickerCallback=null; // reset: usar comportamiento de calculadora
   openM('mClientePicker');
   document.getElementById('cPickerSearch').value='';
   document.getElementById('cPickerList').innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">Cargando…</div>';
