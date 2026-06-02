@@ -5146,7 +5146,28 @@ function articuloHTML(aid){
 
       <!-- 11. Resultado de la pieza -->
       <div class="price-hero" style="margin-bottom:0">
-        <div class="ph-main"><div class="ph-label">Presupuesto de esta pieza</div><div class="ph-price" id="pMain-${aid}" style="font-size:32px">—</div></div>
+        <div class="ph-main">
+          <div class="ph-label">Presupuesto de esta pieza</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div class="ph-price" id="pMain-${aid}" style="font-size:32px">—</div>
+            <button onclick="startOverrideArt(${aid})" title="Editar precio de esta pieza"
+              style="border:none;background:rgba(242,106,33,.18);color:var(--ac);border-radius:7px;padding:4px 9px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--fb);flex-shrink:0">✏</button>
+          </div>
+          <div id="artOverrideRow-${aid}" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px">
+            <input type="number" id="artOverrideInput-${aid}" placeholder="Precio…" min="0" step="1"
+              style="width:140px;height:40px;font-size:17px;font-family:var(--mono);font-weight:700;border:2px solid var(--ac);border-radius:var(--rs);background:var(--surface);color:var(--ac);padding:0 10px;outline:none"
+              onkeydown="if(event.key==='Enter')confirmOverrideArt(${aid});if(event.key==='Escape')cancelOverrideArt(${aid})">
+            <button onclick="confirmOverrideArt(${aid})"
+              style="height:40px;padding:0 13px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">✓</button>
+            <button onclick="cancelOverrideArt(${aid})"
+              style="height:40px;padding:0 10px;background:var(--surface);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:13px;cursor:pointer;font-family:var(--fb)">✕</button>
+          </div>
+          <div id="artOverrideBadge-${aid}" style="display:none;margin-top:6px;font-size:11.5px;color:var(--warn-fg);font-weight:600">
+            ⚠ Editado ·
+            <button onclick="clearOverrideArt(${aid})"
+              style="border:none;background:none;color:var(--warn-fg);font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:var(--fb);padding:0">Recalcular</button>
+          </div>
+        </div>
         <div class="ph-stats">
           <div class="ph-stat"><div class="ph-stl">Costo</div><div class="ph-stv" id="costDisp-${aid}">—</div></div>
           <div class="ph-stat"><div class="ph-stl">Ganancia</div><div class="ph-stv g" id="profitDisp-${aid}">—</div></div>
@@ -5162,7 +5183,7 @@ function articuloHTML(aid){
 // ── ARTÍCULO: gestión ────────────────────────────────────────────────
 function addArticulo(snapData){
   const aid=S.artId++;
-  S.articulos.push({id:aid, sec:{...ART_DEF.sec}, col:{}, margin:50, spoolCur:'UYU', pkgCur:'UYU', ivaOnSpool:false, matPill:'PLA', extras:[], extId:0});
+  S.articulos.push({id:aid, sec:{...ART_DEF.sec}, col:{}, margin:50, spoolCur:'UYU', pkgCur:'UYU', ivaOnSpool:false, matPill:'PLA', extras:[], extId:0, overridePrice:null});
   const wrap=document.getElementById('articulosWrap');
   wrap.insertAdjacentHTML('beforeend', articuloHTML(aid));
   const bloque=document.getElementById('art-'+aid);
@@ -5311,8 +5332,10 @@ function computeArt(aid){
   const totalC=sub+failA;
   const margin=a.margin||0;
   const unitPrice=totalC*(1+margin/100);
-  const totalP=unitPrice*qty;
+  const calcTotalP=unitPrice*qty;
   const totalCostAll=totalC*qty;
+  // Override de precio a nivel de pieza (ej: redondeo manual)
+  const totalP=a.overridePrice!=null?a.overridePrice:calcTotalP;
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
   return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,totalP,totalCost:totalCostAll,profit,effM,totalH,
@@ -5403,19 +5426,18 @@ function exportPDF(){
   // Precio final: override manual o calculado
   const precioFinal=S.overridePrice!==null?S.overridePrice:totalP;
   const iva=precioFinal*0.22, conIVA=precioFinal+iva;
-  const overrideLabel=S.overridePrice!==null?` <span style="font-size:11px;opacity:.7">(precio editado)</span>`:'';
   const clientBlock=(cn||ce||cp)?`<div class="pd-box"><div class="pd-bt">Cliente</div>${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}${ce?`<div class="pd-br">${ce}</div>`:''}${cp?`<div class="pd-br">${cp}</div>`:''}</div>`:'';
   // Bloque de total — aparece si "Sumar precios" está activado O si hay precio editado manualmente
   let totalBlock='';
   if(S.sumPrecios || S.overridePrice!==null){
     totalBlock=S.ivaOnBill?`
       <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
-        <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)${overrideLabel}</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
+        <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
         <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
           <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(precioFinal)}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(iva)}</span></div>
         </div>
-      </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})${overrideLabel}</div></div><div class="pd-tp">$ ${fmt(precioFinal)}</div></div>`;
+      </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})</div></div><div class="pd-tp">$ ${fmt(precioFinal)}</div></div>`;
   }
   const logoBlock=`<div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>`;
   document.getElementById('printDoc').innerHTML=`
@@ -5496,6 +5518,35 @@ function confirmEditNum(){
   cancelEditNum();
 }
 function newPresupuesto(){S.editingId=null;S.editingNum=null;updatePresBar();clearOverridePrice?.();}
+
+// ── PRECIO MANUAL POR PIEZA ───────────────────────────────────────────
+function startOverrideArt(aid){
+  const a=_art(aid); if(!a)return;
+  const r=computeArt(aid);
+  const cur=a.overridePrice!=null?a.overridePrice:(r?r.totalP:0);
+  document.getElementById('artOverrideInput-'+aid).value=Math.round(cur);
+  document.getElementById('artOverrideRow-'+aid).style.display='flex';
+  setTimeout(()=>{const el=document.getElementById('artOverrideInput-'+aid);el?.focus();el?.select();},60);
+}
+function confirmOverrideArt(aid){
+  const a=_art(aid); if(!a)return;
+  const val=parseFloat(document.getElementById('artOverrideInput-'+aid).value);
+  if(isNaN(val)||val<0){cancelOverrideArt(aid);return;}
+  a.overridePrice=val;
+  document.getElementById('artOverrideRow-'+aid).style.display='none';
+  document.getElementById('artOverrideBadge-'+aid).style.display='';
+  renderArt(aid);recalcTotal();
+}
+function cancelOverrideArt(aid){
+  document.getElementById('artOverrideRow-'+aid).style.display='none';
+}
+function clearOverrideArt(aid){
+  const a=_art(aid); if(!a)return;
+  a.overridePrice=null;
+  document.getElementById('artOverrideRow-'+aid).style.display='none';
+  document.getElementById('artOverrideBadge-'+aid).style.display='none';
+  renderArt(aid);recalcTotal();
+}
 
 // ── PRECIO MANUAL (override) ──────────────────────────────────────────
 function startOverridePrice(){
@@ -5672,7 +5723,7 @@ function captureForm(){
       printerCost:gv('printerCost',id),printerLife:gv('printerLife',id),maintenance:gv('maintenance',id),pieces:gv('pieces',id),
       hourly:gv('hourly',id),laborH:gv('laborH',id),overhead:gv('overhead',id),failBuf:gv('failBuf',id),
       packaging:gv('packaging',id),
-      sec:{...a.sec}, margin:a.margin, spoolCur:a.spoolCur, pkgCur:a.pkgCur, ivaOnSpool:a.ivaOnSpool, matPill:a.matPill,
+      sec:{...a.sec}, margin:a.margin, spoolCur:a.spoolCur, pkgCur:a.pkgCur, ivaOnSpool:a.ivaOnSpool, matPill:a.matPill, overridePrice:a.overridePrice||null,
       extras:a.extras.map(e=>({desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value}))
     };
   };
@@ -5694,6 +5745,7 @@ function restoreArticulo(aid,d){
   const qe=document.getElementById('qtyEnabled-'+aid); if(qe)qe.checked=!!d.qtyEnabled;
   ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
   a.margin=d.margin!==undefined?d.margin:50; a.spoolCur=d.spoolCur||'UYU'; a.pkgCur=d.pkgCur||'UYU'; a.ivaOnSpool=!!d.ivaOnSpool; a.matPill=d.matPill||'PLA';
+  if(d.overridePrice!=null){a.overridePrice=d.overridePrice;const b=document.getElementById('artOverrideBadge-'+aid);if(b)b.style.display='';} else a.overridePrice=null;
   if(d.sec)a.sec={elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
   ['elec','time','printer','labor','extras'].forEach(sec=>{
     const on=a.sec[sec]!==false;
