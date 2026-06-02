@@ -1320,8 +1320,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <svg class="icon" viewBox="0 0 18 18" style="stroke:#fff"><path d="M9 2a7 7 0 00-6 10.5L2 16l3.7-1a7 7 0 103.3-13z"/><path d="M6.5 6.5c0 3 2 5 5 5"/></svg> WhatsApp
       </button>
     </div>
-    <!-- botones de estado -->
-    <div id="slEstBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <!-- selector de estado -->
+    <div style="margin-top:4px">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:6px">Cambiar estado</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="slEstSelect" style="flex:1;height:38px;font-size:13px;font-weight:600;border-radius:var(--r-sm)"></select>
+        <button onclick="aplicarEstadoSlideover()" class="btn btn--primary btn--sm">Aplicar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3079,17 +3085,8 @@ function filterPresupuestos() {
 let _slPresId = null;
 const _FLOW_STEPS = ['sin_enviar','enviado','aprobado','produccion','listo','entregado','cobrado'];
 const _FLOW_LBL = {sin_enviar:'Sin enviar',enviado:'Enviado',aprobado:'Aprobado',produccion:'En producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',rechazado:'Rechazado',cancelado:'Cancelado'};
-const _FLUJO_NEXT = {
-  sin_enviar:['enviado','aprobado','rechazado'],
-  borrador:['enviado','aprobado','rechazado'],
-  enviado:['aprobado','rechazado'],
-  aprobado:['produccion','listo','entregado','cobrado','cancelado'],
-  produccion:['listo','entregado','cobrado','cancelado'],
-  listo:['entregado','cobrado','cancelado'],
-  entregado:['cobrado','cancelado'],
-  cobrado:['entregado','aprobado','sin_enviar'],
-  rechazado:[],cancelado:[]
-};
+const _TODOS_ESTADOS = ['sin_enviar','enviado','aprobado','produccion','listo','entregado','cobrado','rechazado','cancelado'];
+const _FLUJO_NEXT = Object.fromEntries(_TODOS_ESTADOS.map(e=>[e,_TODOS_ESTADOS.filter(x=>x!==e)]));
 
 function abrirPresSlideover(id) {
   const p = _presCache.find(x=>Number(x.id)===Number(id));
@@ -3140,11 +3137,12 @@ function abrirPresSlideover(id) {
     </div>`
   ).join('');
   // Botones de estado
-  const siguientes = (_FLUJO_NEXT[estado]||[]);
-  const BTN_LBL = {enviado:'Marcar enviado',aprobado:estado==='cobrado'?'↩ Volver a aprobado':'✓ Aprobado',rechazado:'✗ Rechazado',produccion:'→ Producción',listo:'Listo',entregado:estado==='cobrado'?'↩ Volver a entregado':'Entregado',cobrado:'Cobrado',cancelado:'Cancelar',sin_enviar:'↩ Reabrir'};
-  document.getElementById('slEstBtns').innerHTML = siguientes.map(s=>
-    `<button class="est-btn to-${s}" onclick="cambiarEstado(${id},'${s}',null,'presupuestos');cerrarPresSlideover()">${BTN_LBL[s]||s}</button>`
-  ).join('');
+  const LABELS_EST_ALL = {sin_enviar:'Sin enviar',enviado:'Enviado',aprobado:'Aprobado',produccion:'En producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',rechazado:'Rechazado',cancelado:'Cancelado'};
+  const sel = document.getElementById('slEstSelect');
+  sel.innerHTML = _TODOS_ESTADOS.filter(s=>s!==estado).map(s=>`<option value="${s}">${LABELS_EST_ALL[s]||s}</option>`).join('');
+  // Pre-seleccionar el "siguiente lógico"
+  const logico = {sin_enviar:'enviado',enviado:'aprobado',aprobado:'produccion',produccion:'listo',listo:'entregado',entregado:'cobrado',cobrado:'entregado',rechazado:'enviado',cancelado:'sin_enviar'};
+  if (logico[estado]) sel.value = logico[estado];
   // Mostrar
   document.getElementById('presSlideScrim').style.display='block';
   const sl = document.getElementById('presSlideover');
@@ -3284,6 +3282,13 @@ function whatsappPres(id){
   window.open(`${base}?text=${texto}`, '_blank');
 }
 
+function aplicarEstadoSlideover() {
+  const nuevoEstado = document.getElementById('slEstSelect').value;
+  if (!nuevoEstado) return;
+  cambiarEstado(_slPresId, nuevoEstado, null, 'presupuestos');
+  cerrarPresSlideover();
+}
+
 async function cambiarEstado(presId, nuevoEstado, nota, reloadPage) {
   const d = await apiPut(`/api/presupuestos/${presId}/estado`, { estado_nuevo: nuevoEstado, nota });
   if (d.ok) {
@@ -3383,15 +3388,17 @@ function fechaISOtoUY(fecha) {
 function renderEstadoEditPres(p) {
   const estado = p.estado || 'sin_enviar';
   const LABELS_EST = { sin_enviar:'Sin enviar', borrador:'Sin enviar', enviado:'Enviado', aprobado:'Aprobado', rechazado:'Rechazado', cobrado:'Cobrado', cancelado:'Cancelado', produccion:'Producción', listo:'Listo', entregado:'Entregado' };
-  const FLUJO_FRONT = { sin_enviar:['enviado','aprobado'], borrador:['enviado','aprobado'], enviado:['aprobado','rechazado'], rechazado:['enviado','sin_enviar'], aprobado:['produccion','listo','entregado','cobrado','rechazado'], produccion:['listo','entregado','cobrado'], listo:['entregado','cobrado'], entregado:['cobrado'], cobrado:['entregado','aprobado','sin_enviar'], cancelado:['sin_enviar'] };
-  const LABELS_BTN = { sin_enviar:'↩ Reabrir', enviado:'Marcar enviado', aprobado:'↩ Volver a aprobado', rechazado:'Rechazar', produccion:'→ Producción', listo:'Listo', entregado:'↩ Volver a entregado', cobrado:'✓ Cobrado' };
+  const LABELS_EST_ALL = {sin_enviar:'Sin enviar',enviado:'Enviado',aprobado:'Aprobado',produccion:'En producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',rechazado:'Rechazado',cancelado:'Cancelado'};
   const badge = document.getElementById('editPresEstadoBadge');
   badge.className = `badge b-${estado}`;
   badge.innerHTML = `<span class="bdot"></span>${LABELS_EST[estado] || estado}`;
-  const siguientes = FLUJO_FRONT[estado] || [];
-  document.getElementById('editPresBotonesEstado').innerHTML = siguientes.map(s =>
-    `<button class="est-btn to-${s}" onclick="cambiarEstadoModal(${p.id},'${s}')">${LABELS_BTN[s]||s}</button>`
-  ).join('');
+  document.getElementById('editPresBotonesEstado').innerHTML = `
+    <div style="display:flex;gap:7px;align-items:center">
+      <select id="editPresEstadoSel" style="flex:1;height:36px;font-size:13px;font-weight:600;border-radius:var(--r-sm)">
+        ${_TODOS_ESTADOS.filter(s=>s!==estado).map(s=>`<option value="${s}">${LABELS_EST_ALL[s]||s}</option>`).join('')}
+      </select>
+      <button type="button" onclick="cambiarEstadoModal(${p.id}, document.getElementById('editPresEstadoSel').value)" class="btn btn--primary btn--sm">Cambiar</button>
+    </div>`;
 }
 
 async function cambiarEstadoModal(id, nuevoEstado) {

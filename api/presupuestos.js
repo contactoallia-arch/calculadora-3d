@@ -1,17 +1,12 @@
 import { getDB } from "./_lib/db.js";
 import { getToken, verifyToken, requireAuth, logAction } from "./_lib/auth.js";
 
+const TODOS_ESTADOS = ["sin_enviar","enviado","aprobado","produccion","listo","entregado","cobrado","rechazado","cancelado"];
 const FLUJO = {
-  sin_enviar: ["enviado", "aprobado", "rechazado", "cancelado"],
-  borrador:   ["enviado", "aprobado", "rechazado", "cancelado"],
-  enviado:    ["aprobado", "rechazado", "cancelado"],
-  aprobado:   ["produccion", "listo", "entregado", "cobrado", "cancelado"],
-  produccion: ["listo", "entregado", "cobrado", "cancelado"],
-  listo:      ["entregado", "cobrado", "cancelado"],
-  entregado:  ["cobrado", "cancelado"],
-  cobrado:    ["entregado", "aprobado", "sin_enviar"],
-  rechazado:  ["enviado", "sin_enviar"],
-  cancelado:  ["sin_enviar"]
+  sin_enviar: TODOS_ESTADOS, borrador: TODOS_ESTADOS, enviado: TODOS_ESTADOS,
+  aprobado: TODOS_ESTADOS, produccion: TODOS_ESTADOS, listo: TODOS_ESTADOS,
+  entregado: TODOS_ESTADOS, cobrado: TODOS_ESTADOS,
+  rechazado: TODOS_ESTADOS, cancelado: TODOS_ESTADOS
 };
 
 async function resolveCliente(db, body) {
