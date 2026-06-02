@@ -2393,12 +2393,6 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <button onclick="cancelOverridePrice()"
             style="height:44px;padding:0 12px;background:var(--surface);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:13px;cursor:pointer;font-family:var(--fb)">✕</button>
         </div>
-        <!-- Indicador precio editado -->
-        <div id="tOverrideBadge" style="display:none;margin-top:10px;font-size:12px;color:var(--warn-fg);font-weight:600">
-          ⚠ Precio editado manualmente ·
-          <button onclick="clearOverridePrice()"
-            style="border:none;background:none;color:var(--warn-fg);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:var(--fb);padding:0">Recalcular</button>
-        </div>
       </div>
       <div class="ph-stats">
         <div class="ph-stat"><div class="ph-stl">Costo total</div><div class="ph-stv" id="tCost">—</div></div>
@@ -2413,6 +2407,11 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <div style="display:flex;justify-content:space-between;font-size:16px;border-top:1px solid var(--acg);padding-top:8px;margin-top:2px"><span style="font-weight:700">Total a cobrar</span><span id="iva-total" style="font-weight:700;color:var(--ac)">—</span></div>
         </div>
       </div>
+    </div>
+    <!-- Banner precio editado manualmente -->
+    <div id="tOverrideBadge" style="display:none;margin-bottom:16px;padding:12px 16px;background:var(--warn-soft);border:1px solid var(--warn-fg);border-radius:var(--rs);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--warn-fg)">⚠ Precio editado manualmente</span>
+      <button onclick="clearOverridePrice()" style="height:34px;padding:0 14px;background:var(--surface);color:var(--warn-fg);border:1.5px solid var(--warn-fg);border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb);white-space:nowrap">↺ Recalcular</button>
     </div>
     <div class="bars-ttl">Cotización por pieza</div>
     <div id="tArticulos"></div>
