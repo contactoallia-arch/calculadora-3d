@@ -201,6 +201,52 @@ export default async function handler(req, res) {
       }
     }
 
+    // ───────────────────────── REPARTOS DE UTILIDADES ────────────────────
+    if (recurso === "repartos") {
+      function calcUtilidad(p) {
+        const precio = Number(p.precio) || 0;
+        if (p.costos_internos) {
+          try { const c = JSON.parse(p.costos_internos); return precio - c.reduce((s,x)=>s+(Number(x.m)||0),0); } catch {}
+        }
+        return precio * ((Number(p.margen)||0) / 100);
+      }
+
+      if (m === "GET") {
+        const rep = await db.execute("SELECT * FROM repartos ORDER BY created_at DESC");
+        const pres = await db.execute("SELECT precio,margen,costos_internos,pieza,numero,id FROM presupuestos WHERE estado='cobrado'");
+        let total_utilidad = 0;
+        const detalle = pres.rows.map(p => { const u=calcUtilidad(p); total_utilidad+=u; return {id:p.id,pieza:p.pieza,numero:p.numero,precio:p.precio,utilidad:u}; }).filter(x=>x.utilidad>0);
+        const ejecutado = rep.rows.filter(r=>r.estado==="ejecutado").reduce((s,r)=>s+Number(r.monto),0);
+        const pendiente = rep.rows.filter(r=>r.estado==="pendiente").reduce((s,r)=>s+Number(r.monto),0);
+        return res.status(200).json({ ok:true, data:rep.rows, bolsa:{total_utilidad,ejecutado,pendiente,disponible:total_utilidad-ejecutado,disponible_libre:total_utilidad-ejecutado-pendiente,detalle} });
+      }
+      if (m === "POST") {
+        const { descripcion, destinatario, monto, fecha, notas } = req.body||{};
+        if (!descripcion||!monto) return res.status(400).json({ok:false,error:"Descripción y monto requeridos"});
+        const r = await db.execute({ sql:"INSERT INTO repartos (descripcion,destinatario,monto,fecha,notas,estado,created_by) VALUES (?,?,?,?,?,'pendiente',?)", args:[descripcion,destinatario||null,Number(monto),fecha||null,notas||null,user.id] });
+        await logAction(db,user,"CREAR_REPARTO","reparto",Number(r.lastInsertRowid));
+        return res.status(200).json({ok:true,data:{id:Number(r.lastInsertRowid)}});
+      }
+      if (m === "PUT" && id) {
+        const { accion } = req.body||{};
+        const r = await db.execute({sql:"SELECT estado FROM repartos WHERE id=?",args:[id]});
+        if (!r.rows[0]) return res.status(404).json({ok:false,error:"No encontrado"});
+        if (r.rows[0].estado==="ejecutado") return res.status(400).json({ok:false,error:"Ya fue ejecutado"});
+        const nuevo = accion==="ejecutar"?"ejecutado":"cancelado";
+        await db.execute({sql:"UPDATE repartos SET estado=?,executed_at=? WHERE id=?",args:[nuevo,nuevo==="ejecutado"?new Date().toISOString().slice(0,10):null,id]});
+        await logAction(db,user,nuevo==="ejecutado"?"EJECUTAR_REPARTO":"CANCELAR_REPARTO","reparto",id);
+        return res.status(200).json({ok:true});
+      }
+      if (m === "DELETE" && id) {
+        const r = await db.execute({sql:"SELECT estado FROM repartos WHERE id=?",args:[id]});
+        if (!r.rows[0]) return res.status(404).json({ok:false,error:"No encontrado"});
+        if (r.rows[0].estado==="ejecutado") return res.status(400).json({ok:false,error:"No se puede eliminar un reparto ejecutado"});
+        await db.execute({sql:"DELETE FROM repartos WHERE id=?",args:[id]});
+        await logAction(db,user,"ELIMINAR_REPARTO","reparto",id);
+        return res.status(200).json({ok:true});
+      }
+    }
+
     return res.status(400).json({ ok: false, error: "Recurso o método no soportado" });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
