@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const user = await requireAuth(req, res, db, ["admin", "operador"]);
     if (!user) return;
     const { estado_nuevo, nota } = req.body || {};
-    const r = await db.execute({ sql: "SELECT estado,pieza,snap,precio,margen FROM presupuestos WHERE id=?", args: [id] });
+    const r = await db.execute({ sql: "SELECT estado,pieza,snap,precio,margen,cliente_id,moneda FROM presupuestos WHERE id=?", args: [id] });
     const pres = r.rows[0];
     if (!pres) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
     const estado_actual = pres.estado || "borrador";
@@ -51,6 +51,28 @@ export default async function handler(req, res) {
     }
     await db.execute({ sql: "UPDATE presupuestos SET estado=?,updated_at=datetime('now'),updated_by=? WHERE id=?", args: [estado_nuevo, user.id, id] });
     await db.execute({ sql: "INSERT INTO presupuesto_estados (presupuesto_id,estado_anterior,estado_nuevo,nota,usuario_id,usuario_nombre) VALUES (?,?,?,?,?,?)", args: [id, estado_actual, estado_nuevo, nota||null, user.id, user.nombre] });
+    // Auto-cobro al marcar como cobrado (si queda saldo pendiente)
+    if (estado_nuevo === "cobrado") {
+      try {
+        const cobrRes = await db.execute({ sql: "SELECT COALESCE(SUM(monto),0) as total FROM cobros WHERE presupuesto_id=? AND nota!='[auto] Estado → cobrado'", args: [id] });
+        const totalCobrado = Number(cobrRes.rows[0]?.total || 0);
+        const restante = Number(pres.precio || 0) - totalCobrado;
+        if (restante > 0.01) {
+          const fecha = new Date().toISOString().slice(0, 10);
+          await db.execute({
+            sql: "INSERT INTO cobros (presupuesto_id,cliente_id,monto,moneda,medio_pago,fecha,nota,created_by) VALUES (?,?,?,?,?,?,?,?)",
+            args: [id, pres.cliente_id || null, restante, pres.moneda || "UYU", "efectivo", fecha, "[auto] Estado → cobrado", user.id]
+          });
+        }
+      } catch {}
+    }
+    // Al revertir desde cobrado: eliminar el cobro auto-generado
+    if (estado_actual === "cobrado" && estado_nuevo !== "cobrado") {
+      try {
+        await db.execute({ sql: "DELETE FROM cobros WHERE presupuesto_id=? AND nota='[auto] Estado → cobrado'", args: [id] });
+      } catch {}
+    }
+
     if (estado_nuevo === "produccion" && pres.snap) {
       try {
         const snap = JSON.parse(pres.snap);

@@ -91,7 +91,7 @@ export default async function handler(req, res) {
   const pendientesR = await db.execute(`
     SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.precio, p.moneda, p.fecha, p.estado
     FROM presupuestos p
-    WHERE p.estado IN ('aprobado','produccion','listo','entregado','cobrado')
+    WHERE p.estado IN ('enviado','aprobado','produccion','listo','entregado')
     AND COALESCE(p.precio,0) > 0
     AND (SELECT COALESCE(SUM(monto),0) FROM cobros WHERE presupuesto_id=p.id) < COALESCE(p.precio,0)
     ORDER BY p.fecha ASC LIMIT 20
@@ -114,6 +114,27 @@ export default async function handler(req, res) {
   const pipelineEstados = ['enviado','aprobado','produccion','listo','entregado'];
   const valorPipeline = pipelineEstados.reduce((s,e) => s + (funnel[e]?.valor||0), 0);
 
+  // Rentabilidad: margen ponderado de presupuestos con cobros en el mes
+  // Evita el desfase de tiempo entre gastos (fecha producción) y cobros (fecha pago)
+  const margenR = await db.execute({
+    sql: `SELECT
+            COALESCE(SUM(p.precio * p.margen / 100.0), 0) as ganancia_estimada,
+            COALESCE(SUM(p.precio), 0) as ingresos_estimados
+          FROM presupuestos p
+          WHERE p.estado = 'cobrado'
+            AND p.precio > 0
+            AND p.margen > 0
+            AND EXISTS (
+              SELECT 1 FROM cobros c
+              WHERE c.presupuesto_id = p.id
+                AND (c.fecha LIKE ? OR c.fecha LIKE ?)
+            )`,
+    args: [mesPattern, mesPatternISO]
+  });
+  const gananciaEst = Number(margenR.rows[0]?.ganancia_estimada || 0);
+  const ingresosEst = Number(margenR.rows[0]?.ingresos_estimados || 0);
+  const rentabilidadMes = ingresosEst > 0 ? Math.round((gananciaEst / ingresosEst) * 100) : 0;
+
   return res.status(200).json({
     ok: true,
     data: {
@@ -125,6 +146,7 @@ export default async function handler(req, res) {
         cobradoUSD: Number(cobradoUSD),
         gastosMes: Number(gastosMes),
         gananciaNeta: Number(cobradoUYU) - Number(gastosMes),
+        rentabilidadMes,
         presActivos
       },
       estadosMes: estadosR.rows,

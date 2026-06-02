@@ -19,7 +19,8 @@ export default async function handler(req, res) {
         p.precio - COALESCE(SUM(c.monto),0) as pendiente
       FROM presupuestos p
       LEFT JOIN cobros c ON c.presupuesto_id=p.id
-      WHERE p.estado='entregado'
+      WHERE p.estado IN ('enviado','aprobado','produccion','listo','entregado')
+      AND COALESCE(p.precio,0) > 0
       GROUP BY p.id
       HAVING pendiente > 0
       ORDER BY p.fecha ASC

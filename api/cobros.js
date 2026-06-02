@@ -21,8 +21,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
     if (req.method === "PUT") {
-      const { monto, moneda, medio_pago, fecha, nota } = req.body || {};
-      await db.execute({ sql: "UPDATE cobros SET monto=?,moneda=?,medio_pago=?,fecha=?,nota=? WHERE id=?", args: [monto, moneda||"UYU", medio_pago||"efectivo", fecha, nota||null, id] });
+      const { monto, moneda, medio_pago, fecha, nota, presupuesto_id, cliente_id } = req.body || {};
+      await db.execute({
+        sql: "UPDATE cobros SET monto=?,moneda=?,medio_pago=?,fecha=?,nota=?,presupuesto_id=COALESCE(?,presupuesto_id),cliente_id=COALESCE(?,cliente_id) WHERE id=?",
+        args: [monto, moneda||"UYU", medio_pago||"efectivo", fecha, nota||null, presupuesto_id||null, cliente_id||null, id]
+      });
       await logAction(db, user2, "EDITAR_COBRO", "cobro", id);
       return res.status(200).json({ ok: true });
     }
@@ -31,13 +34,18 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const { mes, cliente_id, presupuesto_id } = req.query || {};
-    let sql = `SELECT co.*, p.pieza, p.numero as pres_numero, c.nombre as cliente_nombre
+    let sql = `SELECT co.*, p.pieza, p.numero as pres_numero,
+               COALESCE(c.nombre, p.cliente) as cliente_nombre
                FROM cobros co
                LEFT JOIN presupuestos p ON p.id=co.presupuesto_id
                LEFT JOIN clientes c ON c.id=co.cliente_id
                WHERE 1=1`;
     const args = [];
-    if (mes) { sql += " AND co.fecha LIKE ?"; args.push(`%${mes}%`); }
+    if (mes) {
+      const [anio, mm] = mes.split("-");
+      sql += " AND (co.fecha LIKE ? OR co.fecha LIKE ?)";
+      args.push(`%/${mm}/${anio}%`, `${anio}-${mm}%`);
+    }
     if (cliente_id) { sql += " AND co.cliente_id=?"; args.push(cliente_id); }
     if (presupuesto_id) { sql += " AND co.presupuesto_id=?"; args.push(presupuesto_id); }
     sql += " ORDER BY co.fecha DESC, co.id DESC LIMIT 500";

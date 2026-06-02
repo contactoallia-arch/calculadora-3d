@@ -80,7 +80,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
-    const { mes, categoria, tipo } = req.query || {};
+    const { mes, categoria, tipo, presupuesto_id } = req.query || {};
     let sql = `SELECT g.*, COALESCE(p.numero,p.id) as pres_numero, p.pieza as pres_pieza
                FROM gastos g
                LEFT JOIN presupuestos p ON p.id=g.presupuesto_id
@@ -89,6 +89,7 @@ export default async function handler(req, res) {
     if (mes) { sql += " AND g.fecha LIKE ?"; args.push(`%${mes}%`); }
     if (categoria) { sql += " AND g.categoria=?"; args.push(categoria); }
     if (tipo) { sql += " AND g.tipo=?"; args.push(tipo); }
+    if (presupuesto_id) { sql += " AND g.presupuesto_id=?"; args.push(presupuesto_id); }
     sql += " ORDER BY g.fecha DESC, g.id DESC LIMIT 500";
     const r = await db.execute({ sql, args });
     return res.status(200).json({ ok: true, data: r.rows });

@@ -47,6 +47,15 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, data: { id: nid } });
       }
       if (m === "PUT" && id) {
+        if (req.query.action === "add-stock") {
+          const { qty, precio } = req.body || {};
+          await db.execute({
+            sql: "UPDATE insumos SET stock=stock+?, precio=COALESCE(?,precio) WHERE id=?",
+            args: [Number(qty)||0, precio||null, id]
+          });
+          await logAction(db, user, "STOCK_INSUMO", "insumo", id);
+          return res.status(200).json({ ok: true });
+        }
         const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, notas } = req.body || {};
         await db.execute({
           sql: "UPDATE insumos SET nombre=?,categoria=?,tipo=?,proveedor_id=?,precio=?,moneda=?,unidad=?,stock=?,notas=? WHERE id=?",

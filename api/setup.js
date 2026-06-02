@@ -303,5 +303,31 @@ export default async function handler(req, res) {
     });
   }
 
+  // Migración única: crear cobros faltantes para presupuestos ya en estado "cobrado"
+  const migKey = "mig_cobros_auto_estado_v1";
+  const migDone = await db.execute({ sql: "SELECT valor FROM configuracion WHERE clave=?", args: [migKey] });
+  if (!migDone.rows.length) {
+    try {
+      const cobradosR = await db.execute(`
+        SELECT p.id, p.precio, p.cliente_id, p.moneda,
+               (SELECT COALESCE(SUM(monto),0) FROM cobros WHERE presupuesto_id=p.id) as total_cobrado,
+               (SELECT created_at FROM presupuesto_estados WHERE presupuesto_id=p.id AND estado_nuevo='cobrado' ORDER BY id DESC LIMIT 1) as fecha_cobrado
+        FROM presupuestos p WHERE p.estado='cobrado' AND COALESCE(p.precio,0) > 0
+      `);
+      for (const p of cobradosR.rows) {
+        const restante = Number(p.precio) - Number(p.total_cobrado);
+        if (restante > 0.01) {
+          // Usar la fecha del cambio de estado o la fecha del presupuesto como fallback
+          let fecha = (p.fecha_cobrado || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+          await db.execute({
+            sql: "INSERT INTO cobros (presupuesto_id,cliente_id,monto,moneda,medio_pago,fecha,nota,created_by) VALUES (?,?,?,?,?,?,?,?)",
+            args: [p.id, p.cliente_id || null, restante, p.moneda || "UYU", "efectivo", fecha, "[auto] Estado → cobrado", 0]
+          });
+        }
+      }
+    } catch {}
+    await db.execute({ sql: "INSERT OR IGNORE INTO configuracion (clave,valor) VALUES (?,?)", args: [migKey, "1"] });
+  }
+
   return res.status(200).json({ ok: true, message: "Base de datos inicializada. Admin: admin@artelab.uy / ArteLab2025!" });
 }

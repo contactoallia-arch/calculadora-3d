@@ -1307,6 +1307,15 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </button>
       </div>
     </div>
+    <!-- gastos asociados -->
+    <div id="slGastosWrap" style="display:none;margin-bottom:14px">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px">Gastos asociados</div>
+      <div id="slGastosList" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:6px"></div>
+      <button class="btn btn--ghost btn--sm" style="width:100%" onclick="cerrarPresSlideover();setTimeout(()=>abrirGastoDesdePresupuesto(_slPresId),80)">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+        Registrar gasto en este presupuesto
+      </button>
+    </div>
     <!-- compartir / enviar -->
     <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin:6px 0 8px">Enviar presupuesto</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -1439,7 +1448,11 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="card-pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <h3 class="card-title">Pagos recibidos</h3>
           <div style="display:flex;gap:8px;align-items:center">
-            <input type="month" id="cobroMes" onchange="loadCobros()" style="height:32px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);font-size:12px;padding:0 8px;outline:none">
+            <div style="display:flex;align-items:center;gap:3px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);height:32px;padding:0 8px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <select id="cobroMesNum" onchange="loadCobros()" style="border:none;background:transparent;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:0 2px"><option value="">Mes</option><option value="01">Ene</option><option value="02">Feb</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">May</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option></select>
+              <select id="cobroAnio" onchange="loadCobros()" style="border:none;background:transparent;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:0 2px"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+            </div>
             <button class="btn btn--primary btn--sm" onclick="openCobroForm()">
               <svg class="icon" viewBox="0 0 18 18" style="width:15px;height:15px"><path d="M9 3v12M3 9h12"/></svg>
               Registrar cobro
@@ -1549,7 +1562,11 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="card-pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <h3 class="card-title">Movimientos</h3>
           <div style="display:flex;gap:8px;align-items:center">
-            <input type="month" id="gastoMes" onchange="loadGastos()" style="height:32px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);font-size:12px;padding:0 8px;outline:none">
+            <div style="display:flex;align-items:center;gap:3px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);height:32px;padding:0 8px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <select id="gastoMesNum" onchange="loadGastos()" style="border:none;background:transparent;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:0 2px"><option value="">Mes</option><option value="01">Ene</option><option value="02">Feb</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">May</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option></select>
+              <select id="gastoAnio" onchange="loadGastos()" style="border:none;background:transparent;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:0 2px"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+            </div>
             <button class="btn btn--primary btn--sm" onclick="openGastoForm()">
               <svg class="icon" viewBox="0 0 18 18" style="width:15px;height:15px"><path d="M9 3v12M3 9h12"/></svg>
               Nuevo gasto
@@ -1590,91 +1607,65 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   </div>
 </div>
 
-<!-- Modal: nuevo gasto -->
-<div class="modal" id="mGasto" style="max-width:480px">
-  <div class="mh"><div class="mt">Registrar gasto</div><button class="mx" onclick="closeM()">✕</button></div>
+<!-- Modal: nuevo gasto (multi-ítem) -->
+<div class="modal" id="mGasto" style="max-width:600px">
+  <div class="mh"><div class="mt">Registrar compra / gasto</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div class="frow">
-      <div class="fgrp" style="flex:2"><label>Descripción *</label><input id="gastoDesc" placeholder="Ej: Bobina PLA blanco 1kg"></div>
       <div class="fgrp"><label>Fecha *</label><input id="gastoFecha" type="date"></div>
+      <div class="fgrp"><label>Categoría</label>
+        <select id="gastoCatInput"><option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option></select>
+      </div>
+      <div class="fgrp"><label>Moneda</label><select id="gastoMoneda"><option>UYU</option><option>USD</option></select></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Para qué fue</label><input id="gastoParaQue" placeholder="Ej: stock, mantenimiento…"></div>
+      <div class="fgrp"><label>Medio de pago</label>
+        <select id="gastoMedioPago"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="tarjeta_debito">Tarjeta débito</option><option value="tarjeta_credito">Tarjeta crédito</option><option value="mercadopago">MercadoPago</option><option value="paypal">PayPal</option><option value="otro">Otro</option></select>
+      </div>
+      <div class="fgrp" style="flex:2">
+        <label>Proveedor</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="gastoProveedor" style="flex:1"><option value="">Sin proveedor</option></select>
+          <button type="button" id="btnToggleProv" onclick="toggleNuevoProv()" style="height:36px;padding:0 10px;border:1px dashed var(--bd);border-radius:var(--rs);background:none;color:var(--ac);font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0">+ Nuevo</button>
+        </div>
+        <div id="nuevoPanelProv" style="display:none;margin-top:8px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rs);padding:10px 12px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:8px">Nuevo proveedor</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Nombre *</label><input id="newProvNombre" placeholder="Ej: FilaFlex UY" style="height:34px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Rubro</label><input id="newProvRubro" placeholder="Ej: Filamentos" style="height:34px"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Teléfono</label><input id="newProvTel" placeholder="+598 9x xxx xxx" style="height:34px"></div>
+            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--t3);display:block;margin-bottom:4px">Email</label><input id="newProvEmail" placeholder="proveedor@mail.com" style="height:34px"></div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Asignar a presupuesto <span style="color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
         <select id="gastoPresupuesto"><option value="">— Sin asignar —</option></select>
       </div>
     </div>
-    <div class="frow">
-      <div class="fgrp"><label>Categoría</label>
-        <select id="gastoCatInput">
-          <option>filamento</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option>
-        </select>
-      </div>
-      <div class="fgrp"><label>Medio de pago</label>
-        <select id="gastoMedioPago">
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-          <option value="tarjeta_debito">Tarjeta débito</option>
-          <option value="tarjeta_credito">Tarjeta crédito</option>
-          <option value="mercadopago">MercadoPago</option>
-          <option value="paypal">PayPal</option>
-          <option value="otro">Otro</option>
-        </select>
-      </div>
+
+    <!-- Toggle insumos -->
+    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 8px">
+      <label class="tsw"><input type="checkbox" id="gastoComoInsumo" onchange="toggleGastoInsumoMode()"><div class="ttr"><div class="tth"></div></div></label>
+      <span style="font-size:12.5px;color:var(--t2)">Registrar ítems en <strong>Insumos</strong> <span style="color:var(--text-3);font-weight:400">(suma al stock existente)</span></span>
     </div>
-    <div class="frow">
-      <div class="fgrp">
-        <label>Proveedor</label>
-        <div style="display:flex;gap:6px;align-items:center">
-          <select id="gastoProveedor" style="flex:1"><option value="">Sin proveedor</option></select>
-          <button type="button" id="btnToggleProv" onclick="toggleNuevoProv()" title="Agregar nuevo proveedor" style="height:36px;padding:0 10px;border:1px dashed var(--bd);border-radius:var(--rs);background:none;color:var(--ac);font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:all var(--tr)">+ Nuevo</button>
-        </div>
-        <div id="nuevoPanelProv" style="display:none;margin-top:8px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rs);padding:10px 12px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:8px">Nuevo proveedor</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:4px">Nombre *</label><input id="newProvNombre" placeholder="Ej: FilaFlex UY" style="height:34px"></div>
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:4px">Rubro</label><input id="newProvRubro" placeholder="Ej: Filamentos" style="height:34px"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:4px">Teléfono</label><input id="newProvTel" placeholder="+598 9x xxx xxx" style="height:34px"></div>
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:4px">Email</label><input id="newProvEmail" placeholder="proveedor@mail.com" style="height:34px"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:4px">RUT</label><input id="newProvRut" placeholder="Ej: 214567890017" style="height:34px"></div>
-            <div><label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;margin-bottom:4px">Dirección</label><input id="newProvDireccion" placeholder="Ej: Av. 18 de Julio 1234" style="height:34px"></div>
-          </div>
-        </div>
+
+    <!-- Tabla de ítems -->
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">
+      <div id="gastoItemsHead" style="display:grid;grid-template-columns:1fr 64px 100px 86px 28px;gap:0;padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border)">
+        <span>Artículo / descripción</span><span style="text-align:center">Cant.</span><span style="text-align:right">P. Unit.</span><span style="text-align:right">Total</span><span></span>
       </div>
+      <div id="gastoItems" style="padding:6px 10px 2px"></div>
     </div>
-    <div class="frow">
-      <div class="fgrp"><label>Monto *</label><input id="gastoMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
-      <div class="fgrp"><label>Moneda</label><select id="gastoMoneda"><option>UYU</option><option>USD</option></select></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;margin-top:4px">
-      <label class="tsw" title="Registrar este gasto también como insumo en el catálogo">
-        <input type="checkbox" id="gastoComoInsumo" onchange="toggleGastoInsumoFields()">
-        <div class="ttr"><div class="tth"></div></div>
-      </label>
-      <span style="font-size:12.5px;color:var(--t2)">También registrar en catálogo de <strong>Insumos</strong></span>
-    </div>
-    <div id="gastoInsumoFields" style="display:none;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rs);padding:10px 12px;margin-top:4px">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:8px">Datos del insumo</div>
-      <div class="frow" style="margin-bottom:0">
-        <div class="fgrp"><label>Tipo filamento (si aplica)</label>
-          <select id="gastoInsumoTipo">
-            <option value="">— No es filamento —</option>
-            <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
-            <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option><option value="Resina">Resina</option>
-          </select>
-        </div>
-        <div class="fgrp"><label>Unidad</label>
-          <select id="gastoInsumoUnidad">
-            <option value="kg">kg</option><option value="unidad">unidad</option><option value="litro">litro</option><option value="metro">metro</option>
-          </select>
-        </div>
-      </div>
+    <button type="button" onclick="addGastoItem()" class="btn btn--ghost btn--sm" style="width:100%;margin-top:6px">
+      <svg class="icon" viewBox="0 0 18 18" style="width:14px;height:14px"><path d="M9 2v14M2 9h14"/></svg> Agregar artículo
+    </button>
+    <div style="margin-top:10px;padding:10px 14px;background:var(--brand-soft);border:1px solid var(--brand);border-radius:var(--r-sm);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700;color:var(--brand)">Total</span>
+      <span class="num" id="gastoTotalDisplay" style="font-size:18px;font-weight:800;color:var(--brand)">$ 0</span>
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveGasto()">Guardar</button></div>
@@ -2849,9 +2840,9 @@ async function loadDashboard() {
     document.getElementById('kpiPorCobrarSub').textContent = `${d.data.cobrosPendientes?.length||0} facturas pendientes`;
     document.getElementById('kpiCobr').textContent = '$ '+fmtMoney(k.cobradoUYU);
     document.getElementById('kpiCobrLbl').textContent = `Cobrado · ${mesNombre}`;
-    const rentab = k.cobradoUYU > 0 ? Math.round((k.gananciaNeta/k.cobradoUYU)*100) : 0;
+    const rentab = k.rentabilidadMes ?? 0;
     document.getElementById('kpiRentab').textContent = rentab+'%';
-    document.getElementById('kpiRentab').style.color = rentab < 0 ? 'var(--bad-fg)' : 'var(--vio-fg)';
+    document.getElementById('kpiRentab').style.color = rentab < 20 ? 'var(--bad-fg)' : rentab < 35 ? 'var(--warn-fg)' : 'var(--vio-fg)';
 
     // En producción
     const prod = d.data.enProduccion || [];
@@ -3149,8 +3140,9 @@ function abrirPresSlideover(id) {
   sl.style.display='flex';
   sl.style.transform='translateX(100%)';
   requestAnimationFrame(()=>requestAnimationFrame(()=>{ sl.style.transition='transform .28s cubic-bezier(.3,.8,.3,1)'; sl.style.transform='translateX(0)'; }));
-  // Cargar cobros del presupuesto
+  // Cargar cobros y gastos del presupuesto
   cargarCobrosEnSlideover(id, p.precio||0);
+  cargarGastosEnSlideover(id, p.precio||0);
 }
 
 async function cargarCobrosEnSlideover(presId, precioTotal) {
@@ -3179,6 +3171,43 @@ async function cargarCobrosEnSlideover(presId, precioTotal) {
       lista.innerHTML = filas + resumen;
     }
   } catch { wrap.style.display='none'; }
+}
+
+async function cargarGastosEnSlideover(presId, precioTotal) {
+  const wrap = document.getElementById('slGastosWrap');
+  const lista = document.getElementById('slGastosList');
+  try {
+    const d = await apiGet('/api/gastos?presupuesto_id='+presId);
+    const gastos = d.ok ? (d.data||[]).filter(g=>Number(g.presupuesto_id)===Number(presId)) : [];
+    const totalGastos = gastos.reduce((s,g)=>s+Number(g.monto||0),0);
+    wrap.style.display = '';
+    if (!gastos.length) {
+      lista.innerHTML = `<div style="padding:10px 14px;font-size:13px;color:var(--text-3)">Sin gastos asignados</div>`;
+    } else {
+      const filas = gastos.map(g=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border-2);font-size:13px">
+        <div>
+          <span style="font-weight:600;color:var(--text)">${g.descripcion||g.categoria||'Gasto'}</span>
+          <span style="color:var(--text-3);margin-left:6px;font-size:11px">${g.fecha||''}</span>
+        </div>
+        <span style="font-weight:700;color:var(--bad-fg)">-$ ${fmtMoney(g.monto)}</span>
+      </div>`).join('');
+      const ganancia = precioTotal - totalGastos;
+      const margen = precioTotal > 0 ? Math.round(ganancia/precioTotal*100) : 0;
+      const resumen = `<div style="display:flex;justify-content:space-between;padding:8px 14px;background:var(--surface-2);font-size:13px;font-weight:700;border-top:1px solid var(--border)">
+        <span style="color:var(--text-2)">Ganancia neta</span>
+        <span style="color:${ganancia>=0?'var(--ok-fg)':'var(--bad-fg)'}">$ ${fmtMoney(ganancia)} <span style="font-weight:400;font-size:11px">(${margen}%)</span></span>
+      </div>`;
+      lista.innerHTML = filas + resumen;
+    }
+  } catch { wrap.style.display='none'; }
+}
+
+function abrirGastoDesdePresupuesto(presId) {
+  openGastoForm();
+  setTimeout(()=>{
+    const sel = document.getElementById('gastoPresupuesto');
+    if (sel) sel.value = String(presId);
+  }, 400);
 }
 
 function cerrarPresSlideover() {
@@ -3715,8 +3744,22 @@ const _MEDIO_LBL = {
   paypal:'PayPal', crypto:'Crypto', otro:'Otro'
 };
 
+function _getMesFiltro(mesId, anioId) {
+  const m = document.getElementById(mesId)?.value || '';
+  const a = document.getElementById(anioId)?.value || '';
+  return (m && a) ? `${a}-${m}` : '';
+}
+function _initMesFiltro(mesId, anioId) {
+  const now = new Date();
+  const m = document.getElementById(mesId);
+  const a = document.getElementById(anioId);
+  if (m && !m.value) m.value = String(now.getMonth()+1).padStart(2,'0');
+  if (a && !a.value) a.value = String(now.getFullYear());
+}
+
 async function loadCobros() {
-  const mes = document.getElementById('cobroMes')?.value || '';
+  // No forzar mes inicial — el usuario filtra si quiere; así siempre se ven todos los cobros
+  const mes = _getMesFiltro('cobroMesNum','cobroAnio');
   let url = '/api/cobros';
   if (mes) url += '?mes=' + mes;
   const d = await apiGet(url);
@@ -3739,17 +3782,22 @@ async function loadCobros() {
       <td class="mono" style="color:var(--text-3);font-size:12px">${c.fecha}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <div class="av-ini" style="width:30px;height:30px;border-radius:9px;font-size:11px;background:linear-gradient(150deg,${color},color-mix(in srgb,${color} 70%,#000))">${ini}</div>
-          <div>
-            <b style="font-size:13px">${nombre}</b>
-            <div class="num" style="font-size:11px;color:var(--text-faint)">#${String(c.pres_numero||c.presupuesto_id).padStart(4,'0')}</div>
+          <div class="av-ini" style="width:32px;height:32px;border-radius:9px;font-size:11px;flex-shrink:0;cursor:pointer;background:linear-gradient(150deg,${color},color-mix(in srgb,${color} 70%,#000))" onclick="popupCliente(event,${c.cliente_id||'null'},'${(nombre).replace(/'/g,"\\'")}')">${ini}</div>
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px" onclick="popupCliente(event,${c.cliente_id||'null'},'${(nombre).replace(/'/g,"\\'")}')">
+              ${nombre}
+            </div>
+            ${c.presupuesto_id ? `<div style="margin-top:2px;display:inline-flex;align-items:center;gap:4px;cursor:pointer" onclick="popupPresupuesto(event,${c.presupuesto_id})"><span style="font-size:11px;font-weight:700;font-family:monospace;color:var(--surface);background:var(--brand);padding:1px 6px;border-radius:4px">#${String(c.pres_numero||c.presupuesto_id).padStart(4,'0')}</span>${c.pieza ? `<span style="font-size:11.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px">${c.pieza}</span>` : ''}</div>` : ''}
           </div>
         </div>
       </td>
       <td class="hide-m"><span class="medio-chip" style="color:${_MEDIO_COLOR[medio]};background:${_MEDIO_BG[medio]}">${_MEDIO_LBL[medio]||c.medio_pago}</span></td>
       <td class="num" style="font-weight:700;color:var(--ok-fg)">+$ ${fmtMoney(c.monto)}</td>
       <td class="hide-m" style="color:var(--text-3);font-size:12.5px">${c.nota||'—'}</td>
-      <td><button class="icon-btn" style="width:28px;height:28px" onclick="eliminarCobro(${c.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button></td>
+      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+        <button class="icon-btn" style="width:28px;height:28px" onclick="editarCobro(${c.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarCobro(${c.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button>
+      </td>
     </tr>`;
   }).join('') : '<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin cobros</td></tr>';
 
@@ -3822,7 +3870,10 @@ async function cobrarPendiente(presId) {
   } catch { openCobroForm(); }
 }
 
+let _editCobroId = null;
+
 async function openCobroForm(presObj, tipo='total') {
+  _editCobroId = null;
   document.getElementById('cobroFecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('cobroNota').value = tipo==='adelanto'?'Adelanto / Seña':'';
   document.getElementById('cobroTipo').value = tipo;
@@ -3832,13 +3883,41 @@ async function openCobroForm(presObj, tipo='total') {
   try {
     const d = await apiGet('/api/presupuestos');
     const sel = document.getElementById('cobroPres');
-    const estados = ['entregado','aprobado','produccion','listo'];
-    const all = d.ok ? d.data.filter(p => estados.includes(p.estado)) : [];
+    const all = d.ok ? d.data.filter(p => !['rechazado','cancelado','sin_enviar','borrador'].includes(p.estado)) : [];
     sel.innerHTML = all.length
-      ? all.map(p => `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} ${p.pieza} (${p.estado}) — $ ${fmtMoney(p.precio)}</option>`).join('')
+      ? all.map(p => `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} · ${p.pieza||'—'} (${p.cliente_nombre||p.cliente||'—'}) — $ ${fmtMoney(p.precio)}</option>`).join('')
       : '<option value="">Sin presupuestos disponibles</option>';
     if (presObj) { sel.value = presObj.id; await actualizarSaldoCobro(presObj.id, presObj.precio, tipo); }
   } catch {}
+}
+
+async function editarCobro(id) {
+  _editCobroId = id;
+  document.getElementById('mCobroTit').textContent = 'Editar cobro';
+  document.getElementById('cobroSaldoInfo').style.display='none';
+  openM('mCobro');
+  try {
+    // Cargar todos los presupuestos para el selector
+    const dp = await apiGet('/api/presupuestos');
+    const sel = document.getElementById('cobroPres');
+    const all = dp.ok ? dp.data.filter(p => !['rechazado','cancelado','sin_enviar','borrador'].includes(p.estado)) : [];
+    sel.innerHTML = all.length
+      ? all.map(p => `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} · ${p.pieza||'—'} (${p.cliente_nombre||p.cliente||'—'}) — $ ${fmtMoney(p.precio)}</option>`).join('')
+      : '<option value="">—</option>';
+    // Cargar datos del cobro
+    const dc = await apiGet('/api/cobros?presupuesto_id=0'); // traemos todos
+    // Buscar en la lista actual de cobros cacheados en el DOM, o re-fetch general
+    const dAll = await apiGet('/api/cobros');
+    const cobro = dAll.ok ? dAll.data.find(c => Number(c.id) === Number(id)) : null;
+    if (cobro) {
+      document.getElementById('cobroPres').value = cobro.presupuesto_id || '';
+      document.getElementById('cobroFecha').value = cobro.fecha ? (cobro.fecha.includes('-') ? cobro.fecha : cobro.fecha.split('/').reverse().join('-')) : new Date().toISOString().slice(0,10);
+      document.getElementById('cobroMonto').value = cobro.monto || '';
+      document.getElementById('cobroMoneda').value = cobro.moneda || 'UYU';
+      document.getElementById('cobroMedioPago').value = cobro.medio_pago || 'efectivo';
+      document.getElementById('cobroNota').value = cobro.nota || '';
+    }
+  } catch(e) { console.error(e); }
 }
 
 async function actualizarSaldoCobro(presId, precioTotal, tipo) {
@@ -3863,18 +3942,86 @@ function registrarAdelanto(presId) {
 }
 
 async function saveCobro() {
+  const presId = Number(document.getElementById('cobroPres').value);
   const body = {
-    presupuesto_id: Number(document.getElementById('cobroPres').value),
+    presupuesto_id: presId,
     monto: parseFloat(document.getElementById('cobroMonto').value),
     moneda: document.getElementById('cobroMoneda').value,
     medio_pago: document.getElementById('cobroMedioPago').value,
     fecha: document.getElementById('cobroFecha').value,
     nota: document.getElementById('cobroNota').value.trim()
   };
-  if (!body.presupuesto_id || !body.monto) { showToast('Presupuesto y monto requeridos', 'err'); return; }
-  const d = await apiPost('/api/cobros', body);
-  if (d.ok) { showToast('Cobro registrado', 'ok'); closeM(); loadCobros(); }
-  else showToast(d.error || 'Error', 'err');
+  if (!body.monto) { showToast('El monto es requerido', 'err'); return; }
+  let d;
+  if (_editCobroId) {
+    d = await apiPut('/api/cobros/' + _editCobroId, body);
+    if (d.ok) { showToast('Cobro actualizado', 'ok'); closeM(); loadCobros(); }
+    else showToast(d.error || 'Error al actualizar', 'err');
+  } else {
+    if (!body.presupuesto_id) { showToast('Presupuesto requerido', 'err'); return; }
+    d = await apiPost('/api/cobros', body);
+    if (d.ok) { showToast('Cobro registrado', 'ok'); closeM(); loadCobros(); }
+    else showToast(d.error || 'Error', 'err');
+  }
+}
+
+// ── POPUP FLOTANTE (cliente / presupuesto) ────────────────────────────
+function _showPopup(event, html) {
+  event.stopPropagation();
+  let card = document.getElementById('_popCard');
+  if (!card) {
+    card = document.createElement('div');
+    card.id = '_popCard';
+    card.style.cssText = 'position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border-2);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.22);padding:14px 16px;min-width:230px;max-width:300px;font-size:13px;line-height:1.55';
+    document.body.appendChild(card);
+    document.addEventListener('click', () => { const c = document.getElementById('_popCard'); if(c) c.style.display='none'; });
+  }
+  card.innerHTML = html;
+  card.style.display = 'block';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const x = Math.min(event.clientX + 12, vw - 320);
+  const y = Math.min(event.clientY + 12, vh - 240);
+  card.style.left = x+'px'; card.style.top = y+'px';
+}
+
+async function popupCliente(event, clienteId, clienteNombre) {
+  if (!clienteId) return;
+  _showPopup(event, `<div style="color:var(--text-3);font-size:12px">Cargando…</div>`);
+  try {
+    const d = await apiGet('/api/clientes/'+clienteId);
+    const c = d.ok ? d.data : null;
+    if (!c) return;
+    _showPopup(event, `
+      <div style="font-weight:700;font-size:14.5px;margin-bottom:2px">${c.nombre||clienteNombre}</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:10px">${c.tipo||'—'} ${c.empresa?'· '+c.empresa:''}</div>
+      ${c.email?`<div style="color:var(--text-2);margin-bottom:3px">✉ ${c.email}</div>`:''}
+      ${c.telefono?`<div style="color:var(--text-2);margin-bottom:3px">📞 ${c.telefono}</div>`:''}
+      ${c.total_presupuestos?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-2);display:flex;justify-content:space-between"><span style="color:var(--text-3)">Trabajos</span><b>${c.total_presupuestos}</b></div>`:''}
+      ${c.total_facturado?`<div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:var(--text-3)">Facturado</span><b style="color:var(--brand)">$ ${fmtMoney(c.total_facturado)}</b></div>`:''}
+    `);
+  } catch {}
+}
+
+async function popupPresupuesto(event, presId) {
+  if (!presId) return;
+  _showPopup(event, `<div style="color:var(--text-3);font-size:12px">Cargando…</div>`);
+  const LABELS = {sin_enviar:'Sin enviar',enviado:'Enviado',aprobado:'Aprobado',produccion:'En producción',listo:'Listo',entregado:'Entregado',cobrado:'Cobrado',rechazado:'Rechazado',cancelado:'Cancelado'};
+  try {
+    const cached = (_presCache||[]).find(p=>Number(p.id)===Number(presId));
+    const d = cached ? {ok:true,data:cached} : await apiGet('/api/presupuestos/'+presId);
+    const p = d.ok ? d.data : null;
+    if (!p) return;
+    _showPopup(event, `
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:4px">Presupuesto #${String(p.numero||p.id).padStart(4,'0')}</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.pieza||'—'}</div>
+      <div style="color:var(--text-3);font-size:12px;margin-bottom:10px">${p.cliente_nombre||p.cliente||'—'} ${p.mat?'· '+p.mat:''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="badge b-${p.estado||'borrador'}" style="font-size:10px"><span class="bdot"></span>${LABELS[p.estado]||p.estado}</span>
+        <span style="font-weight:800;color:var(--brand);font-size:15px">$ ${fmtMoney(p.precio)}</span>
+      </div>
+      ${p.fecha_entrega?`<div style="margin-top:8px;font-size:11.5px;color:var(--text-3)">Entrega: ${p.fecha_entrega}</div>`:''}
+    `);
+  } catch {}
 }
 
 async function eliminarCobro(id) {
@@ -3895,7 +4042,8 @@ const _CAT_COLOR = {
 function _catColor(cat){ return _CAT_COLOR[(cat||'').toLowerCase()] || '#8A93A3'; }
 
 async function loadGastos() {
-  const mes = document.getElementById('gastoMes')?.value || '';
+  _initMesFiltro('gastoMesNum','gastoAnio');
+  const mes = _getMesFiltro('gastoMesNum','gastoAnio');
   let url = '/api/gastos';
   if (mes) url += '?mes=' + mes;
   const d = await apiGet(url);
@@ -3948,70 +4096,160 @@ async function loadGastos() {
   `).join('') : '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:10px">Sin datos</div>';
 }
 
-async function openGastoForm() {
-  document.getElementById('gastoDesc').value = '';
-  document.getElementById('gastoParaQue').value = '';
-  document.getElementById('gastoMonto').value = '';
+// ── GASTO MULTI-ÍTEM ──────────────────────────────────────────────────
+function _gastoItemRowHTML(withInsumo) {
+  return `<div class="gasto-item-row" style="display:grid;grid-template-columns:1fr 64px 100px 86px 28px;gap:4px;margin-bottom:5px;align-items:start">
+    <div>
+      <input class="gi-desc" type="text" placeholder="Ej: PLA 1kg blanco" style="height:34px;width:100%" oninput="updateGastoTotal()">
+      <div class="gi-ins-fields" style="display:${withInsumo?'grid':'none'};grid-template-columns:1fr 1fr;gap:4px;margin-top:3px">
+        <select class="gi-tipo" style="height:28px;font-size:11.5px"><option value="">— tipo —</option><option>PLA</option><option>PETG</option><option>ABS</option><option>TPU</option><option>ASA</option><option>Nylon</option><option>Resina</option><option>otro</option></select>
+        <select class="gi-unidad" style="height:28px;font-size:11.5px"><option value="kg">kg</option><option value="unidad">unidad</option><option value="litro">litro</option><option value="metro">metro</option></select>
+      </div>
+    </div>
+    <input class="gi-qty" type="number" min="0.001" step="0.001" value="1" style="height:34px;text-align:center" oninput="calcGastoItemTotal(this)">
+    <input class="gi-price" type="number" min="0" step="0.01" placeholder="0.00" style="height:34px;text-align:right" oninput="calcGastoItemTotal(this)">
+    <div class="gi-total num" style="height:34px;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:13px;color:var(--text-2)">—</div>
+    <button type="button" onclick="removeGastoItem(this)" style="height:34px;width:28px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:17px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:6px" onmouseover="this.style.color='var(--bad-fg)'" onmouseout="this.style.color='var(--text-3)'">✕</button>
+  </div>`;
+}
+
+function addGastoItem() {
+  const withInsumo = document.getElementById('gastoComoInsumo')?.checked;
+  const container = document.getElementById('gastoItems');
+  const div = document.createElement('div');
+  div.innerHTML = _gastoItemRowHTML(withInsumo);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeGastoItem(btn) {
+  const row = btn.closest('.gasto-item-row');
+  const rows = document.querySelectorAll('.gasto-item-row');
+  if (rows.length > 1) { row.remove(); }
+  else { row.querySelector('.gi-desc').value=''; row.querySelector('.gi-qty').value=1; row.querySelector('.gi-price').value=''; row.querySelector('.gi-total').textContent='—'; }
+  updateGastoTotal();
+}
+
+function calcGastoItemTotal(input) {
+  const row = input.closest('.gasto-item-row');
+  const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
+  const price = parseFloat(row.querySelector('.gi-price')?.value||0);
+  const total = qty * price;
+  row.querySelector('.gi-total').textContent = (qty&&price) ? '$ '+fmtMoney(total) : '—';
+  updateGastoTotal();
+}
+
+function updateGastoTotal() {
+  let total = 0;
+  document.querySelectorAll('.gasto-item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
+    const price = parseFloat(row.querySelector('.gi-price')?.value||0);
+    if (qty&&price) total += qty*price;
+  });
+  const el = document.getElementById('gastoTotalDisplay');
+  if (el) el.textContent = '$ '+fmtMoney(total);
+}
+
+function toggleGastoInsumoMode() {
+  const on = document.getElementById('gastoComoInsumo')?.checked;
+  document.querySelectorAll('.gi-ins-fields').forEach(el => el.style.display = on ? 'grid' : 'none');
+}
+
+async function openGastoForm(presIdPresel) {
   document.getElementById('gastoFecha').value = new Date().toISOString().slice(0,10);
-  document.getElementById('gastoPresupuesto').value = '';
+  document.getElementById('gastoComoInsumo').checked = false;
   document.getElementById('nuevoPanelProv').style.display = 'none';
   document.getElementById('btnToggleProv').textContent = '+ Nuevo';
+  document.getElementById('gastoItems').innerHTML = '';
+  addGastoItem();
+  updateGastoTotal();
   openM('mGasto');
   try {
     const d = await apiGet('/api/proveedores');
     const sel = document.getElementById('gastoProveedor');
     sel.innerHTML = '<option value="">Sin proveedor</option>' +
-      (d.ok ? d.data.map(p => `<option value="${p.id}">${p.nombre}${p.rubro ? ' — ' + p.rubro : ''}</option>`).join('') : '');
+      (d.ok ? d.data.map(p=>`<option value="${p.id}">${p.nombre}${p.rubro?' — '+p.rubro:''}</option>`).join('') : '');
   } catch {}
-  // Presupuestos aprobados/en curso (no entregados ni cobrados)
   try {
     const dp = await apiGet('/api/presupuestos');
-    const abiertos = dp.ok ? dp.data.filter(p => ['aprobado','produccion','listo'].includes(p.estado)) : [];
-    const selP = document.getElementById('gastoPresupuesto');
-    selP.innerHTML = '<option value="">— Sin asignar —</option>' + abiertos.map(p =>
+    const sel = document.getElementById('gastoPresupuesto');
+    const all = dp.ok ? dp.data.filter(p=>!['rechazado','cancelado','sin_enviar'].includes(p.estado)) : [];
+    sel.innerHTML = '<option value="">— Sin asignar —</option>' + all.map(p=>
       `<option value="${p.id}">#${String(p.numero||p.id).padStart(4,'0')} · ${p.pieza||'—'}${p.cliente_nombre||p.cliente?' ('+(p.cliente_nombre||p.cliente)+')':''}</option>`
     ).join('');
+    if (presIdPresel) sel.value = String(presIdPresel);
   } catch {}
 }
 
 async function saveGasto() {
-  // Si el panel de nuevo proveedor está abierto y tiene nombre, crearlo primero
+  const fecha = document.getElementById('gastoFecha').value;
+  if (!fecha) { showToast('La fecha es requerida', 'err'); return; }
+  const categoria = document.getElementById('gastoCatInput').value;
+  const medioPago = document.getElementById('gastoMedioPago').value;
+  const moneda = document.getElementById('gastoMoneda').value;
+  const presId = document.getElementById('gastoPresupuesto').value;
+  const registrarInsumos = document.getElementById('gastoComoInsumo')?.checked;
+
+  // Crear proveedor nuevo si aplica
   let provId = document.getElementById('gastoProveedor').value;
   const panelAbierto = document.getElementById('nuevoPanelProv').style.display !== 'none';
   const nuevoNombre = document.getElementById('newProvNombre').value.trim();
   if (panelAbierto && nuevoNombre) {
     const dp = await apiPost('/api/proveedores', {
-      nombre: nuevoNombre,
-      rubro: document.getElementById('newProvRubro').value.trim(),
-      telefono: document.getElementById('newProvTel').value.trim(),
-      email: document.getElementById('newProvEmail').value.trim(),
-      rut: document.getElementById('newProvRut').value.trim(),
-      direccion: document.getElementById('newProvDireccion').value.trim()
+      nombre: nuevoNombre, rubro: document.getElementById('newProvRubro').value.trim(),
+      telefono: document.getElementById('newProvTel').value.trim(), email: document.getElementById('newProvEmail').value.trim()
     });
-    if (!dp.ok) { showToast(dp.error || 'Error al crear proveedor', 'err'); return; }
+    if (!dp.ok) { showToast(dp.error||'Error al crear proveedor','err'); return; }
     provId = dp.data.id;
-    // Actualizar dropdown con el nuevo proveedor seleccionado
-    const d2 = await apiGet('/api/proveedores');
-    const sel = document.getElementById('gastoProveedor');
-    sel.innerHTML = '<option value="">Sin proveedor</option>' +
-      (d2.ok ? d2.data.map(p => `<option value="${p.id}">${p.nombre}${p.rubro ? ' — ' + p.rubro : ''}</option>`).join('') : '');
-    sel.value = provId;
   }
-  const body = {
-    categoria: document.getElementById('gastoCatInput').value,
-    descripcion: document.getElementById('gastoDesc').value.trim(),
-    para_que: document.getElementById('gastoParaQue').value.trim(),
-    medio_pago: document.getElementById('gastoMedioPago').value,
-    monto: parseFloat(document.getElementById('gastoMonto').value),
-    moneda: document.getElementById('gastoMoneda').value,
-    fecha: document.getElementById('gastoFecha').value,
-    proveedor_id: provId ? Number(provId) : null,
-    presupuesto_id: document.getElementById('gastoPresupuesto').value ? Number(document.getElementById('gastoPresupuesto').value) : null
-  };
-  if (!body.descripcion || !body.monto) { showToast('Descripción y monto requeridos', 'err'); return; }
-  const d = await apiPost('/api/gastos', body);
-  if (d.ok) { showToast('Gasto guardado', 'ok'); closeM(); loadGastos(); }
-  else showToast(d.error || 'Error', 'err');
+
+  // Recolectar ítems válidos
+  const items = [];
+  document.querySelectorAll('.gasto-item-row').forEach(row => {
+    const desc = row.querySelector('.gi-desc')?.value?.trim();
+    const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
+    const price = parseFloat(row.querySelector('.gi-price')?.value||0);
+    const tipo = row.querySelector('.gi-tipo')?.value||'';
+    const unidad = row.querySelector('.gi-unidad')?.value||'kg';
+    if (desc && qty>0 && price>0) items.push({desc, qty, price, tipo, unidad, total: qty*price});
+  });
+  if (!items.length) { showToast('Agregá al menos un artículo con descripción, cantidad y precio', 'err'); return; }
+
+  let errores = 0;
+  for (const item of items) {
+    const body = {
+      descripcion: item.desc,
+      para_que: `${item.qty} ${item.unidad} × $ ${fmtMoney(item.price)} c/u`,
+      categoria, medio_pago: medioPago, moneda, fecha,
+      monto: item.total,
+      proveedor_id: provId ? Number(provId) : null,
+      presupuesto_id: presId ? Number(presId) : null
+    };
+    const d = await apiPost('/api/gastos', body);
+    if (!d.ok) { errores++; continue; }
+    if (registrarInsumos) await _upsertInsumo(item, provId, moneda);
+  }
+
+  if (errores===0) showToast(`${items.length} gasto${items.length>1?'s':''} guardado${items.length>1?'s':''}${registrarInsumos?' e insumos actualizados':''}`, 'ok');
+  else showToast(`${errores} error(es) al guardar`, 'err');
+  closeM(); loadGastos();
+}
+
+async function _upsertInsumo(item, provId, moneda) {
+  try {
+    const body = {
+      nombre: item.desc,
+      categoria: item.tipo ? 'filamento' : 'otros',
+      tipo: item.tipo || null,
+      proveedor_id: provId ? Number(provId) : null,
+      precio: item.price,
+      moneda, unidad: item.unidad, stock: item.qty
+    };
+    const r = await apiPost('/api/insumos', body);
+    if (!r.ok && r.duplicate && r.existing_id) {
+      await apiPut(`/api/insumos/${r.existing_id}?action=add-stock`, { qty: item.qty, precio: item.price });
+    }
+    if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();
+  } catch {}
 }
 
 async function eliminarGasto(id) {
@@ -4995,76 +5233,9 @@ function onMatTypeChange() {
   }
 }
 
-// ── GASTOS → INSUMO ───────────────────────────────────────────────────
-function toggleGastoInsumoFields() {
-  const checked = document.getElementById('gastoComoInsumo').checked;
-  document.getElementById('gastoInsumoFields').style.display = checked ? 'block' : 'none';
+function abrirGastoDesdePresupuesto(presId) {
+  openGastoForm(presId);
 }
-
-// Override saveGasto para manejar "guardar como insumo"
-const _origSaveGasto = saveGasto;
-saveGasto = async function() {
-  // Llamar saveGasto original
-  const provId = document.getElementById('gastoProveedor').value;
-  const panelAbierto = document.getElementById('nuevoPanelProv').style.display !== 'none';
-  const nuevoNombre = document.getElementById('newProvNombre').value.trim();
-
-  if (panelAbierto && nuevoNombre) {
-    const dp = await apiPost('/api/proveedores', {
-      nombre: nuevoNombre,
-      rubro: document.getElementById('newProvRubro').value.trim(),
-      telefono: document.getElementById('newProvTel').value.trim(),
-      email: document.getElementById('newProvEmail').value.trim(),
-      rut: document.getElementById('newProvRut').value.trim(),
-      direccion: document.getElementById('newProvDireccion').value.trim()
-    });
-    if (!dp.ok) { showToast(dp.error||'Error al crear proveedor','err'); return; }
-    const d2 = await apiGet('/api/proveedores');
-    const sel = document.getElementById('gastoProveedor');
-    sel.innerHTML = '<option value="">Sin proveedor</option>' +
-      (d2.ok ? d2.data.map(p=>`<option value="${p.id}">${p.nombre}${p.rubro?' — '+p.rubro:''}</option>`).join('') : '');
-    sel.value = dp.data.id;
-  }
-
-  const finalProvId = document.getElementById('gastoProveedor').value;
-  const body = {
-    categoria: document.getElementById('gastoCatInput').value,
-    descripcion: document.getElementById('gastoDesc').value.trim(),
-    para_que: document.getElementById('gastoParaQue').value.trim(),
-    medio_pago: document.getElementById('gastoMedioPago').value,
-    monto: parseFloat(document.getElementById('gastoMonto').value),
-    moneda: document.getElementById('gastoMoneda').value,
-    fecha: document.getElementById('gastoFecha').value,
-    proveedor_id: finalProvId ? Number(finalProvId) : null
-  };
-  if (!body.descripcion || isNaN(body.monto)) { showToast('Descripción y monto requeridos','err'); return; }
-  const d = await apiPost('/api/gastos', body);
-  if (!d.ok) { showToast(d.error||'Error','err'); return; }
-
-  // Guardar como insumo si está marcado
-  if (document.getElementById('gastoComoInsumo').checked) {
-    const tipoFil = document.getElementById('gastoInsumoTipo').value;
-    const cat = body.categoria === 'filamento' || tipoFil ? 'filamento' : body.categoria;
-    const insBody = {
-      nombre: body.descripcion,
-      categoria: cat,
-      tipo: tipoFil || null,
-      proveedor_id: finalProvId || null,
-      precio: body.monto,
-      moneda: body.moneda,
-      unidad: document.getElementById('gastoInsumoUnidad').value
-    };
-    const di = await apiPost('/api/insumos', insBody);
-    if (di.ok) { showToast('Gasto e insumo guardados ✓', 'ok'); cargarInsumosEnCalculadora(); }
-    else if (di.duplicate) { showToast(`Gasto guardado. Insumo ya existe: ${di.error}`, 'ok'); }
-    else { showToast('Gasto guardado. Error al crear insumo: '+di.error, 'err'); }
-    document.getElementById('gastoComoInsumo').checked = false;
-    document.getElementById('gastoInsumoFields').style.display = 'none';
-  } else {
-    showToast('Gasto guardado', 'ok');
-  }
-  closeM(); loadGastos();
-};
 
 // ── PRODUCTOS ─────────────────────────────────────────────────────────
 let _editProdId = null;
