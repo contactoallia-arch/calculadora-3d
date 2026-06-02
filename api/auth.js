@@ -14,7 +14,11 @@ export default async function handler(req, res) {
     if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Método no permitido" });
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ ok: false, error: "Email y contraseña requeridos" });
-    const r = await db.execute({ sql: "SELECT * FROM usuarios WHERE email=? AND activo=1", args: [email.toLowerCase().trim()] });
+    const loginVal = email.toLowerCase().trim();
+    const r = await db.execute({
+      sql: "SELECT * FROM usuarios WHERE (LOWER(email)=? OR LOWER(nombre)=?) AND activo=1",
+      args: [loginVal, loginVal]
+    });
     const user = r.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ ok: false, error: "Email o contraseña incorrectos" });
