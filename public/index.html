@@ -1616,7 +1616,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="fgrp"><label>Categoría</label>
         <select id="gastoCatInput"><option value="">— categoría —</option><option>filamento</option><option>resina</option><option>electricidad</option><option>maquinaria</option><option>herramientas</option><option>packaging</option><option>marketing</option><option>otros</option></select>
       </div>
-      <div class="fgrp"><label>Moneda</label><select id="gastoMoneda"><option>UYU</option><option>USD</option></select></div>
+      <div class="fgrp"><label>Moneda</label><select id="gastoMoneda" onchange="onGastoMonedaChange()"><option>UYU</option><option>USD</option></select></div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Medio de pago</label>
@@ -1663,18 +1663,25 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
 
     <!-- Tabla de ítems -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em">Artículos</span>
+      <button type="button" id="gastoIVABtn" onclick="toggleGastoIVA()" style="height:30px;padding:0 12px;border:1.5px solid var(--border);border-radius:99px;background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);color:var(--text-3);transition:all .15s">IVA incluido</button>
+    </div>
     <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden">
-      <div id="gastoItemsHead" style="display:grid;grid-template-columns:1fr 60px 100px 82px 28px;gap:0;padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border)">
-        <span>Artículo / descripción</span><span style="text-align:center">Cant.</span><span style="text-align:right">$ Unit.</span><span style="text-align:right">Total</span><span></span>
+      <div id="gastoItemsHead" style="display:grid;grid-template-columns:1fr 60px 110px 90px 28px;gap:0;padding:6px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border)">
+        <span>Artículo / descripción</span><span style="text-align:center">Cant.</span><span id="gastoHeadUnit" style="text-align:right">$ Unit.</span><span style="text-align:right">Total</span><span></span>
       </div>
       <div id="gastoItems" style="padding:6px 10px 2px"></div>
     </div>
     <button type="button" onclick="addGastoItem()" class="btn btn--ghost btn--sm" style="width:100%;margin-top:6px">
       <svg class="icon" viewBox="0 0 18 18" style="width:14px;height:14px"><path d="M9 2v14M2 9h14"/></svg> Agregar artículo
     </button>
-    <div style="margin-top:10px;padding:10px 14px;background:var(--brand-soft);border:1px solid var(--brand);border-radius:var(--r-sm);display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:13px;font-weight:700;color:var(--brand)">Total</span>
-      <span class="num" id="gastoTotalDisplay" style="font-size:18px;font-weight:800;color:var(--brand)">$ 0</span>
+    <div style="margin-top:10px;padding:10px 14px;background:var(--brand-soft);border:1px solid var(--brand);border-radius:var(--r-sm)">
+      <div id="gastoIVADesglose" style="display:none;margin-bottom:6px;font-size:12px;color:var(--brand)"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:700;color:var(--brand)" id="gastoTotalLabel">Total</span>
+        <span class="num" id="gastoTotalDisplay" style="font-size:18px;font-weight:800;color:var(--brand)">$ 0</span>
+      </div>
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveGasto()">Guardar</button></div>
@@ -4296,7 +4303,10 @@ function _gastoItemRowHTML(withInsumo) {
     <div style="display:grid;grid-template-columns:1fr 60px 100px 82px 28px;gap:4px;align-items:center">
       <input class="gi-desc" type="text" placeholder="Descripción del artículo o buscar insumo…" style="height:34px;width:100%" oninput="onGiDescInput(this)" autocomplete="off">
       <input class="gi-qty" type="number" min="0.001" step="1" value="1" style="height:34px;text-align:center" oninput="calcGastoItemTotal(this)" title="Cantidad de unidades / carretes">
-      <input class="gi-price" type="number" min="0" step="0.01" placeholder="$ unit." style="height:34px;text-align:right" oninput="calcGastoItemTotal(this)">
+      <div style="display:flex;align-items:center;gap:3px">
+        <span class="gi-currency" style="font-size:11px;font-weight:700;color:var(--text-3);flex-shrink:0">${document.getElementById('gastoMoneda')?.value==='USD'?'U$S':'$'}</span>
+        <input class="gi-price" type="number" min="0" step="0.01" placeholder="precio" style="height:34px;text-align:right;width:100%" oninput="calcGastoItemTotal(this)">
+      </div>
       <div class="gi-total num" style="height:34px;display:flex;align-items:center;justify-content:flex-end;font-weight:700;font-size:13px;color:var(--ok-fg)">—</div>
       <button type="button" onclick="removeGastoItem(this)" style="height:34px;width:28px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:17px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:6px" onmouseover="this.style.color='var(--bad-fg)'" onmouseout="this.style.color='var(--text-3)'">✕</button>
     </div>
@@ -4351,13 +4361,43 @@ function removeGastoItem(btn) {
   updateGastoTotal();
 }
 
+let _gastoIVAIncluido = true; // true = precio ya tiene IVA (no agregar), false = agregar IVA 22%
+
+function toggleGastoIVA() {
+  _gastoIVAIncluido = !_gastoIVAIncluido;
+  const btn = document.getElementById('gastoIVABtn');
+  if (_gastoIVAIncluido) {
+    btn.textContent = 'IVA incluido';
+    btn.style.background = 'none';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text-3)';
+  } else {
+    btn.textContent = '+ IVA 22%';
+    btn.style.background = 'var(--brand-soft)';
+    btn.style.borderColor = 'var(--brand)';
+    btn.style.color = 'var(--brand)';
+  }
+  document.querySelectorAll('.gasto-item-row').forEach(row => calcGastoItemTotal(row.querySelector('.gi-qty')));
+  updateGastoTotal();
+}
+
+function onGastoMonedaChange() {
+  const sym = document.getElementById('gastoMoneda')?.value === 'USD' ? 'U$S' : '$';
+  document.querySelectorAll('.gi-currency').forEach(el => el.textContent = sym);
+  const head = document.getElementById('gastoHeadUnit');
+  if (head) head.textContent = sym + ' Unit.';
+  updateGastoTotal();
+}
+
 function calcGastoItemTotal(input) {
   const row = input?.closest('.gasto-item-row');
   if (!row) return;
   const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
   const price = parseFloat(row.querySelector('.gi-price')?.value||0);
-  const total = qty * price;
-  row.querySelector('.gi-total').textContent = (qty&&price) ? '$ '+fmtMoney(total) : '—';
+  const sym = document.getElementById('gastoMoneda')?.value === 'USD' ? 'U$S ' : '$ ';
+  const subtotal = qty * price;
+  const total = _gastoIVAIncluido ? subtotal : subtotal * 1.22;
+  row.querySelector('.gi-total').textContent = (qty&&price) ? sym+fmtMoney(total) : '—';
   // Preview stock filamento
   const cat = row.querySelector('.gi-cat')?.value||'';
   const preview = row.querySelector('.gi-stock-preview');
@@ -4369,14 +4409,26 @@ function calcGastoItemTotal(input) {
 }
 
 function updateGastoTotal() {
-  let total = 0;
+  const sym = document.getElementById('gastoMoneda')?.value === 'USD' ? 'U$S ' : '$ ';
+  let subtotal = 0;
   document.querySelectorAll('.gasto-item-row').forEach(row => {
     const qty = parseFloat(row.querySelector('.gi-qty')?.value||0);
     const price = parseFloat(row.querySelector('.gi-price')?.value||0);
-    if (qty&&price) total += qty*price;
+    if (qty&&price) subtotal += qty*price;
   });
+  const iva = _gastoIVAIncluido ? 0 : subtotal * 0.22;
+  const total = subtotal + iva;
   const el = document.getElementById('gastoTotalDisplay');
-  if (el) el.textContent = '$ '+fmtMoney(total);
+  if (el) el.textContent = sym+fmtMoney(total);
+  const desglose = document.getElementById('gastoIVADesglose');
+  if (desglose) {
+    if (!_gastoIVAIncluido && subtotal > 0) {
+      desglose.style.display = 'block';
+      desglose.innerHTML = `<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>${sym}${fmtMoney(subtotal)}</span></div><div style="display:flex;justify-content:space-between"><span>IVA 22%</span><span>+ ${sym}${fmtMoney(iva)}</span></div>`;
+    } else {
+      desglose.style.display = 'none';
+    }
+  }
 }
 
 function toggleGastoInsumoMode() {
@@ -4434,6 +4486,11 @@ async function openGastoForm(presIdPresel) {
   document.getElementById('gastoComoInsumo').checked = false;
   document.getElementById('nuevoPanelProv').style.display = 'none';
   document.getElementById('btnToggleProv').textContent = '+ Nuevo';
+  // Reset IVA
+  _gastoIVAIncluido = true;
+  const ivaBtn = document.getElementById('gastoIVABtn');
+  if (ivaBtn) { ivaBtn.textContent='IVA incluido'; ivaBtn.style.background='none'; ivaBtn.style.borderColor='var(--border)'; ivaBtn.style.color='var(--text-3)'; }
+  document.getElementById('gastoIVADesglose').style.display = 'none';
   document.getElementById('gastoItems').innerHTML = '';
   addGastoItem();
   updateGastoTotal();
@@ -4509,10 +4566,10 @@ async function saveGasto() {
     const body = {
       descripcion: item.desc,
       para_que: item.cat === 'filamento'
-        ? `${item.qty} carrete${item.qty>1?'s':''} × ${item.peso}kg/u — $ ${fmtMoney(item.price)}/u`
-        : `${item.qty} ${item.unidad} × $ ${fmtMoney(item.price)} c/u`,
+        ? `${item.qty} carrete${item.qty>1?'s':''} × ${item.peso}kg/u — $ ${fmtMoney(item.price)}/u${!_gastoIVAIncluido?' (+ IVA 22%)':''}`
+        : `${item.qty} ${item.unidad} × $ ${fmtMoney(item.price)} c/u${!_gastoIVAIncluido?' (+ IVA 22%)':''}`,
       categoria, medio_pago: medioPago, moneda, fecha,
-      monto: item.total,
+      monto: _gastoIVAIncluido ? item.total : item.total * 1.22,
       proveedor_id: provId ? Number(provId) : null,
       presupuesto_id: presId ? Number(presId) : null
     };
