@@ -2689,6 +2689,8 @@ let _token = localStorage.getItem('al-token');
     if (!d.ok) { localStorage.removeItem('al-token'); window.location.href = '/login.html'; return; }
     _currentUser = d.user;
     initSidebar();
+    // Correr migraciones en background (idempotente)
+    fetch('/api/setup', { headers: { Authorization: 'Bearer ' + _token } }).catch(()=>{});
   } catch {
     // si falla la red, continuar igualmente (offline mode)
     const u = JSON.parse(localStorage.getItem('al-user') || 'null');
