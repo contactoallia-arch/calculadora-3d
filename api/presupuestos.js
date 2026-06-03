@@ -200,7 +200,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
-      const r = await db2.execute({ sql: "SELECT p.*, COALESCE(p.numero,p.id) as numero_display, c.nombre as cliente_nombre FROM presupuestos p LEFT JOIN clientes c ON c.id=p.cliente_id WHERE p.id=?", args: [id] });
+      const r = await db2.execute({ sql: "SELECT p.*, COALESCE(p.numero,p.id) as numero_display, c.nombre as cliente_nombre, v.nombre as vendedor_nombre FROM presupuestos p LEFT JOIN clientes c ON c.id=p.cliente_id LEFT JOIN vendedores v ON v.id=p.vendedor_id WHERE p.id=?", args: [id] });
       if (!r.rows[0]) return res.status(404).json({ ok: false, error: "No encontrado" });
       const pres = { ...r.rows[0], snap: r.rows[0].snap ? JSON.parse(r.rows[0].snap) : null };
       const cobros = await db2.execute({ sql: "SELECT * FROM cobros WHERE presupuesto_id=? ORDER BY fecha DESC", args: [id] });
@@ -210,8 +210,8 @@ export default async function handler(req, res) {
     if (req.method === "PUT") {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
-      const { numero, pieza, cliente, cliente_id, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas } = req.body || {};
-      await db2.execute({ sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=?,moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,updated_at=datetime('now') WHERE id=?", args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, id] });
+      const { numero, pieza, cliente, cliente_id, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, vendedor_id } = req.body || {};
+      await db2.execute({ sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=?,moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,updated_at=datetime('now') WHERE id=?", args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, id] });
       return res.status(200).json({ ok: true });
     }
     if (req.method === "DELETE") {
@@ -235,9 +235,12 @@ export default async function handler(req, res) {
     let sql = `SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.cliente_id,
       p.mat, p.qty, p.precio, p.margen, p.fecha, p.fecha_entrega,
       p.estado, p.moneda, p.notas, p.enviado_whatsapp, p.snap, p.costos_internos, p.created_at,
-      c.nombre as cliente_nombre, c.empresa as cliente_empresa, c.email as cliente_email, c.telefono as cliente_tel
+      p.vendedor_id,
+      c.nombre as cliente_nombre, c.empresa as cliente_empresa, c.email as cliente_email, c.telefono as cliente_tel,
+      v.nombre as vendedor_nombre
       FROM presupuestos p
       LEFT JOIN clientes c ON c.id=p.cliente_id
+      LEFT JOIN vendedores v ON v.id=p.vendedor_id
       WHERE 1=1`;
     const args = [];
     if (estado) { sql += " AND p.estado=?"; args.push(estado); }
@@ -266,24 +269,24 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     const body = req.body || {};
-    const { pieza, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, estado } = body;
+    const { pieza, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, estado, vendedor_id } = body;
     if (!precio || precio <= 0) return res.status(400).json({ ok: false, error: "Precio inválido" });
     const clienteId = await resolveCliente(db, body);
     const clienteNombre = (body.cliente_nombre || body.cliente || "—").trim();
     const maxRes = await db.execute("SELECT MAX(COALESCE(numero,id)) as mx FROM presupuestos");
     const nextNum = (Number(maxRes.rows[0]?.mx) || 0) + 1;
-    const result = await db.execute({ sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,fecha_entrega,notas) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args: [nextNum, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, estado||"borrador", moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null] });
+    const result = await db.execute({ sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,fecha_entrega,notas,vendedor_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args: [nextNum, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, estado||"borrador", moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null] });
     const newId = Number(result.lastInsertRowid);
     return res.status(200).json({ ok: true, data: { id: newId, numero: nextNum, cliente_id: clienteId } });
   }
 
   if (req.method === "PUT") {
     const body = req.body || {};
-    const { id: bodyId, numero, pieza, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas } = body;
+    const { id: bodyId, numero, pieza, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, vendedor_id } = body;
     if (!bodyId) return res.status(400).json({ ok: false, error: "ID requerido" });
     const clienteId = body.cliente_id || (await resolveCliente(db, body));
     const clienteNombre = (body.cliente_nombre || body.cliente || "—").trim();
-    await db.execute({ sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=?,moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,updated_at=datetime('now') WHERE id=?", args: [numero, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, bodyId] });
+    await db.execute({ sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=?,moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,updated_at=datetime('now') WHERE id=?", args: [numero, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, bodyId] });
     return res.status(200).json({ ok: true });
   }
 

@@ -29,6 +29,8 @@
     { "source": "/api/repartos",             "destination": "/api/catalogo?recurso=repartos" },
     { "source": "/api/marcas-filamento/:id", "destination": "/api/catalogo?recurso=marcas-filamento&id=:id" },
     { "source": "/api/marcas-filamento",    "destination": "/api/catalogo?recurso=marcas-filamento" },
+    { "source": "/api/vendedores/:id",      "destination": "/api/catalogo?recurso=vendedores&id=:id" },
+    { "source": "/api/vendedores",          "destination": "/api/catalogo?recurso=vendedores" },
     { "source": "/api/tipo-cambio",         "destination": "/api/configuracion?action=tipo-cambio" }
   ]
 }

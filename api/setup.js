@@ -43,10 +43,24 @@ export default async function handler(req, res) {
     "ADD COLUMN alto REAL",
     "ADD COLUMN ancho REAL",
     "ADD COLUMN profundo REAL",
-    "ADD COLUMN peso REAL"
+    "ADD COLUMN peso REAL",
+    "ADD COLUMN vendedor_id INTEGER"
   ]) {
     try { await db.execute(`ALTER TABLE presupuestos ${col}`); } catch {}
   }
+
+  // Vendedores (uso interno, se asignan a presupuestos)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS vendedores (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre     TEXT NOT NULL,
+      email      TEXT,
+      telefono   TEXT,
+      notas      TEXT,
+      activo     INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
 
   // Repartos de utilidades
   await db.execute(`

@@ -931,6 +931,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Proveedores
     </button>
+    <button class="nav-item" id="nav-vendedores" onclick="showPage('vendedores')">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Vendedores
+    </button>
     <button class="nav-item" id="nav-agenda" onclick="showPage('agenda')">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Agenda
@@ -2118,6 +2122,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div class="frow">
       <div class="fgrp"><label>Notas</label><textarea id="editPresNotas" style="height:64px" placeholder="Observaciones, condiciones, etc."></textarea></div>
     </div>
+    <div class="frow">
+      <div class="fgrp">
+        <label>Vendedor <span style="color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0">(uso interno)</span></label>
+        <select id="editPresVendedor">
+          <option value="">— Sin vendedor —</option>
+        </select>
+      </div>
+    </div>
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin:10px 0 8px">Dimensiones / Peso (opcional)</div>
     <div class="frow">
       <div class="fgrp"><label>Alto (mm)</label><input id="editPresAlto" type="number" min="0" step="0.1" placeholder="—"></div>
@@ -2276,6 +2288,51 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <button class="bs2" onclick="closeM()">Cancelar</button>
     <button class="bp2" onclick="confirmAddPieza()">Continuar →</button>
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: VENDEDORES
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-vendedores" class="page">
+  <div class="pg-hdr">
+    <div>
+      <h2 class="pg-title">Vendedores</h2>
+      <p class="pg-sub">Referidores internos asignados a presupuestos</p>
+    </div>
+    <button class="btn btn--primary" onclick="abrirFormVendedor()">
+      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+      Nuevo vendedor
+    </button>
+  </div>
+  <div style="padding:0 26px 32px">
+    <div id="vendedoresGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
+    <div id="vendedoresEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text-3)">
+      <svg style="width:48px;height:48px;opacity:.3;margin-bottom:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <div style="font-weight:600;font-size:15px;margin-bottom:4px">Sin vendedores registrados</div>
+      <div style="font-size:13px">Creá el primero con el botón de arriba</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: nuevo / editar vendedor -->
+<div class="modal" id="mVendedor" style="max-width:460px">
+  <div class="mh">
+    <div class="mt" id="mVendedorTit">Nuevo vendedor</div>
+    <button class="mx" onclick="closeM()">✕</button>
+  </div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp"><label>Nombre *</label><input id="vNombre" placeholder="Nombre completo"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Teléfono</label><input id="vTelefono" placeholder="+598 9x xxx xxx"></div>
+      <div class="fgrp"><label>Email</label><input id="vEmail" placeholder="vendedor@mail.com"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Notas internas</label><textarea id="vNotas" style="height:64px" placeholder="Info adicional…"></textarea></div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="guardarVendedor()">Guardar</button></div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -3030,7 +3087,7 @@ async function doLogout() {
 let _activePage = 'dashboard';
 const _chartInstances = {};
 
-const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', agenda:'Agenda', reportes:'Reportes', reparto:'Utilidades', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
+const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', vendedores:'Vendedores', agenda:'Agenda', reportes:'Reportes', reparto:'Utilidades', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -3055,6 +3112,7 @@ function showPage(page) {
   if (page === 'productos') loadProductos();
   if (page === 'agenda') loadAgenda();
   if (page === 'proveedores') loadProveedores();
+  if (page === 'vendedores') loadVendedores();
   if (page === 'reportes') loadReportes();
   if (page === 'reparto') loadRepartos();
   if (page === 'config') loadConfig();
@@ -3430,6 +3488,7 @@ function abrirPresSlideover(id) {
     ['Fecha de entrega', `<span style="color:${entregaColor};font-weight:700">${entregaStr}</span>`],
     ['Ganancia', gananciaStr],
     ['Margen real', `<span style="font-weight:700;color:${margenReal>=30?'var(--ok-fg)':margenReal>=10?'var(--warn-fg)':'var(--bad-fg)'}">${margenReal}%</span>`],
+    ...(p.vendedor_nombre ? [['Vendedor', `<span style="color:var(--brand);font-weight:600">${p.vendedor_nombre}</span>`]] : []),
   ];
   document.getElementById('slDetails').innerHTML = rows.map(([k,v],i)=>
     `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;${i?'border-top:1px solid var(--border-2)':''};font-size:13.5px">
@@ -3662,6 +3721,14 @@ async function abrirEditPres(id) {
       (dp.ok ? dp.data.map(p => `<option value="${p.id}" data-precio="${p.precio_base}" data-moneda="${p.moneda}" data-desc="${p.descripcion||''}" data-nombre="${p.nombre}">${p.nombre} — $ ${fmtMoney(p.precio_base)} ${p.moneda}</option>`).join('') : '');
   } catch {}
 
+  // Cargar vendedores en selector
+  try {
+    const dv = await apiGet('/api/vendedores');
+    const svend = document.getElementById('editPresVendedor');
+    svend.innerHTML = '<option value="">— Sin vendedor —</option>' +
+      (dv.ok ? dv.data.map(v => `<option value="${v.id}">${v.nombre}</option>`).join('') : '');
+  } catch {}
+
   // Reset campos cliente y dimensiones
   _origAbrirEditPres_clienteReset();
   ['editPresAlto','editPresAncho','editPresProfundo','editPresPeso'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
@@ -3680,6 +3747,7 @@ async function abrirEditPres(id) {
     document.getElementById('editPresFecha').value = hoy;
     document.getElementById('editPresFechaEntrega').value = '';
     document.getElementById('editPresProducto').value = '';
+    document.getElementById('editPresVendedor').value = '';
     document.getElementById('editPresEstadoSec').style.display = 'none';
   } else {
     // Editar existente — buscar en caché por id numérico
@@ -3698,6 +3766,7 @@ async function abrirEditPres(id) {
     recalcEditPresUtilidad();
     document.getElementById('editPresMoneda').value = p.moneda || 'UYU';
     document.getElementById('editPresNotas').value = p.notas || '';
+    document.getElementById('editPresVendedor').value = p.vendedor_id ? String(p.vendedor_id) : '';
     document.getElementById('editPresProducto').value = '';
     // Fechas
     document.getElementById('editPresFecha').value = p.fecha ? fechaUYtoISO(p.fecha) : hoy;
@@ -3938,7 +4007,8 @@ async function guardarEditPres() {
     alto: parseFloat(document.getElementById('editPresAlto').value)||null,
     ancho: parseFloat(document.getElementById('editPresAncho').value)||null,
     profundo: parseFloat(document.getElementById('editPresProfundo').value)||null,
-    peso: parseFloat(document.getElementById('editPresPeso').value)||null
+    peso: parseFloat(document.getElementById('editPresPeso').value)||null,
+    vendedor_id: parseInt(document.getElementById('editPresVendedor').value)||null
   };
 
   let d;
@@ -6718,6 +6788,82 @@ async function eliminarProveedor(id) {
     if(d.ok){showToast('Proveedor eliminado','ok');loadProveedores();}
     else showToast(d.error||'Error','err');
   },{title:'Eliminar proveedor'});
+}
+
+// ── VENDEDORES ────────────────────────────────────────────────────────
+let _editVendedorId = null;
+let _vendedoresCache = [];
+
+async function loadVendedores() {
+  const d = await apiGet('/api/vendedores');
+  if (!d.ok) return;
+  _vendedoresCache = d.data || [];
+  renderVendedores();
+}
+
+function renderVendedores() {
+  const grid = document.getElementById('vendedoresGrid');
+  const empty = document.getElementById('vendedoresEmpty');
+  if (!grid) return;
+  const lista = _vendedoresCache;
+  if (!lista.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = lista.map(v => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-family:var(--display);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${_avIni(v.nombre)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14.5px;line-height:1.2">${v.nombre}</div>
+          ${v.total_presupuestos>0?`<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">${v.total_presupuestos} presupuesto${v.total_presupuestos!==1?'s':''}</div>`:'<div style="font-size:11.5px;color:var(--text-faint);margin-top:2px">Sin presupuestos aún</div>'}
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="icon-btn" title="Editar" onclick="abrirFormVendedor(${v.id})"><svg class="icon" viewBox="0 0 18 18"><path d="M13 2.5L15.5 5l-9 9L3 15l.5-3.5z"/></svg></button>
+          <button class="icon-btn" title="Eliminar" onclick="eliminarVendedor(${v.id})" style="color:var(--bad-fg)"><svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 15 5"/><path d="M6 5V3h6v2"/><rect x="4" y="5" width="10" height="11" rx="1"/></svg></button>
+        </div>
+      </div>
+      ${(v.email||v.telefono)?`<div style="display:flex;gap:10px;flex-wrap:wrap">${v.email?`<span style="font-size:12px;color:var(--text-2)">${v.email}</span>`:''}${v.telefono?`<span style="font-size:12px;color:var(--text-2)">${v.telefono}</span>`:''}</div>`:''}
+      ${v.notas?`<div style="font-size:12px;color:var(--text-3);font-style:italic">${v.notas}</div>`:''}
+    </div>`).join('');
+}
+
+function abrirFormVendedor(id) {
+  _editVendedorId = id ? Number(id) : null;
+  document.getElementById('mVendedorTit').textContent = _editVendedorId ? 'Editar vendedor' : 'Nuevo vendedor';
+  if (_editVendedorId) {
+    const v = _vendedoresCache.find(x => Number(x.id) === _editVendedorId);
+    if (!v) return;
+    document.getElementById('vNombre').value = v.nombre || '';
+    document.getElementById('vTelefono').value = v.telefono || '';
+    document.getElementById('vEmail').value = v.email || '';
+    document.getElementById('vNotas').value = v.notas || '';
+  } else {
+    ['vNombre','vTelefono','vEmail','vNotas'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
+  }
+  openM('mVendedor');
+}
+
+async function guardarVendedor() {
+  const nombre = document.getElementById('vNombre').value.trim();
+  if (!nombre) { showToast('Nombre requerido', 'err'); return; }
+  const body = {
+    nombre,
+    telefono: document.getElementById('vTelefono').value.trim() || null,
+    email: document.getElementById('vEmail').value.trim() || null,
+    notas: document.getElementById('vNotas').value.trim() || null
+  };
+  const d = _editVendedorId
+    ? await apiPut('/api/vendedores/' + _editVendedorId, body)
+    : await apiPost('/api/vendedores', body);
+  if (d.ok) { showToast('Vendedor guardado', 'ok'); closeM(); loadVendedores(); }
+  else showToast(d.error || 'Error', 'err');
+}
+
+async function eliminarVendedor(id) {
+  showConfirm('¿Eliminar este vendedor?', async () => {
+    const d = await apiDelete('/api/vendedores/' + id);
+    if (d.ok) { showToast('Vendedor eliminado', 'ok'); loadVendedores(); }
+    else showToast(d.error || 'Error', 'err');
+  }, { title: 'Eliminar vendedor' });
 }
 
 // ── LOGS ──────────────────────────────────────────────────────────────

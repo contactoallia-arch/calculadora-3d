@@ -333,6 +333,42 @@ export default async function handler(req, res) {
       }
     }
 
+    // ───────────────────────── VENDEDORES ─────────────────────────
+    if (recurso === "vendedores") {
+      if (m === "GET") {
+        const r = await db.execute(`
+          SELECT v.*,
+            (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id) as total_presupuestos
+          FROM vendedores v WHERE v.activo=1 ORDER BY v.nombre`);
+        return res.status(200).json({ ok: true, data: r.rows });
+      }
+      if (m === "POST") {
+        const { nombre, email, telefono, notas } = req.body || {};
+        if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
+        const r = await db.execute({
+          sql: "INSERT INTO vendedores (nombre,email,telefono,notas) VALUES (?,?,?,?)",
+          args: [nombre.trim(), email||null, telefono||null, notas||null]
+        });
+        await logAction(db, user, "CREAR_VENDEDOR", "vendedor", Number(r.lastInsertRowid));
+        return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
+      }
+      if (m === "PUT" && id) {
+        const { nombre, email, telefono, notas } = req.body || {};
+        if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
+        await db.execute({
+          sql: "UPDATE vendedores SET nombre=?,email=?,telefono=?,notas=? WHERE id=?",
+          args: [nombre.trim(), email||null, telefono||null, notas||null, id]
+        });
+        await logAction(db, user, "EDITAR_VENDEDOR", "vendedor", id);
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "UPDATE vendedores SET activo=0 WHERE id=?", args: [id] });
+        await logAction(db, user, "ELIMINAR_VENDEDOR", "vendedor", id);
+        return res.status(200).json({ ok: true });
+      }
+    }
+
     return res.status(400).json({ ok: false, error: "Recurso o método no soportado" });
   } catch (e) {
     return res.status(500).json({ ok: false, error: e.message });
