@@ -7160,69 +7160,183 @@ function setDisp(btn,cur){
 // compat: calc() global ahora recalcula todo
 function calc(){recalcTotal();}
 
-// ── EXPORT PDF (multi-artículo) ───────────────────────────────────────
+// ── EXPORT PDF — diseño ArteLab ──────────────────────────────────────
 function exportPDF(){
   if(!S.articulos.length){alert('Agregá al menos una pieza.');return;}
-  const ex=exRate();
   const cn=document.getElementById('cName').value||'';
   const ce=document.getElementById('cEmail').value||'';
   const cp=document.getElementById('cPhone').value||'';
   const dv=document.getElementById('delivDate').value||'';
   const notes=document.getElementById('notes').value||'';
   const pedido=document.getElementById('pieceName').value||'';
-  const num=S.editingNum?String(S.editingNum).padStart(4,'0'):String((_histCache.length||0)+1).padStart(4,'0');
+  const year=new Date().getFullYear();
+  const nRaw=S.editingNum||(_histCache.length||0)+1;
+  const numLabel=`AL-${year}-${String(nRaw).padStart(3,'0')}`;
   const dt=new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
-  let totalP=0;
-  // Filas de piezas — desglosadas individualmente
-  const rows=S.articulos.map((a,idx)=>{
-    const r=computeArt(a.id); totalP+=r.totalP;
-    const dimParts=[r.alto&&`${r.alto}mm alt`,r.ancho&&`${r.ancho}mm anch`,r.profundo&&`${r.profundo}mm prof`,r.peso&&`${r.peso}g`].filter(Boolean).join(' · ');
-    const caractLine=r.caract?`<div style="font-size:11px;color:#888;margin-top:2px">${r.caract}</div>`:'';
-    const notaLine=r.notasPieza?`<div style="font-size:11px;color:#888;margin-top:1px;font-style:italic">${r.notasPieza}</div>`:'';
-    const qtyLabel=r.rawQty>1?`<div style="font-size:11px;color:#888;margin-top:2px">Cant.: ${r.rawQty}${r.qty>1?` × $ ${fmt(r.unitPrice)} c/u`:''}</div>`:'';
+  const dvFmt=dv?(dv.includes('-')?dv.split('-').reverse().join('/'):dv):'—';
+  const logoUrl=location.origin+'/logo-artelab.png';
+
+  let totalNeto=0;
+  const rows=S.articulos.map(a=>{
+    const r=computeArt(a.id); totalNeto+=r.totalP;
+    const sub=[];
+    if(r.mat&&r.grams) sub.push(`${r.mat} · ${r.grams}g`);
+    if(r.caract) sub.push(r.caract);
+    const dim=[r.alto&&`${r.alto}mm alt`,r.ancho&&`${r.ancho}mm anch`,r.profundo&&`${r.profundo}mm prof`].filter(Boolean).join(' · ');
+    if(dim) sub.push(dim);
+    const subHtml=sub.length?`<div style="color:#57544E;font-size:10px;margin-top:2px;font-weight:400">${sub.join(' · ')}</div>`:'';
+    const notaHtml=r.notasPieza?`<div style="color:#57544E;font-size:10px;margin-top:1px;font-style:italic">${r.notasPieza}</div>`:'';
+    const unitPr=r.rawQty>1?`$ ${fmt(r.unitPrice)}`:`$ ${fmt(r.totalP)}`;
     return `<tr>
-      <td><strong>${r.desc}</strong>${caractLine}${notaLine}${qtyLabel}</td>
-      <td style="color:#666">${r.mat} · ${r.grams}g${dimParts?`<br><span style="font-size:11px">${dimParts}</span>`:''}</td>
-      <td style="text-align:right;font-weight:700;white-space:nowrap">$ ${fmt(r.totalP)}</td>
+      <td><strong style="color:#211F1C;font-weight:700">${r.desc||'Pieza'}</strong>${subHtml}${notaHtml}</td>
+      <td class="center">${r.rawQty}</td>
+      <td class="center">u.</td>
+      <td class="right">${unitPr}</td>
+      <td class="right strong">$ ${fmt(r.totalP)}</td>
     </tr>`;
   }).join('');
-  // Precio final: override manual o calculado
-  const precioFinal=S.overridePrice!==null?S.overridePrice:totalP;
+
+  const precioFinal=S.overridePrice!==null?S.overridePrice:totalNeto;
   const iva=precioFinal*0.22, conIVA=precioFinal+iva;
-  const clientBlock=(cn||ce||cp)?`<div class="pd-box"><div class="pd-bt">Cliente</div>${cn?`<div class="pd-br"><strong>${cn}</strong></div>`:''}${ce?`<div class="pd-br">${ce}</div>`:''}${cp?`<div class="pd-br">${cp}</div>`:''}</div>`:'';
-  // Bloque de total — aparece si "Sumar precios" está activado O si hay precio editado manualmente
-  let totalBlock='';
-  if(S.sumPrecios || S.overridePrice!==null){
-    totalBlock=S.ivaOnBill?`
-      <div class="pd-total" style="flex-direction:column;align-items:flex-start;gap:10px">
-        <div style="width:100%;display:flex;justify-content:space-between;align-items:center"><div class="pd-tl">Total a cobrar (con IVA)</div><div class="pd-tp">$ ${fmt(conIVA)}</div></div>
-        <div style="width:100%;border-top:1px solid rgba(255,255,255,.25);padding-top:10px;display:flex;flex-direction:column;gap:5px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>Neto</span><span>$ ${fmt(precioFinal)}</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.8)"><span>IVA (22%)</span><span>$ ${fmt(iva)}</span></div>
-        </div>
-      </div>`:`<div class="pd-total"><div><div class="pd-tl">Total general (${S.articulos.length} pieza${S.articulos.length>1?'s':''})</div></div><div class="pd-tp">$ ${fmt(precioFinal)}</div></div>`;
+  const showTotal=S.sumPrecios||S.overridePrice!==null;
+  let totalsCopy='', totalBoxAmt=fmt(Math.round(precioFinal)), totalBoxLbl='Total estimado';
+  if(showTotal&&S.ivaOnBill){
+    totalsCopy=`<div>Subtotal: <strong>$ ${fmt(Math.round(precioFinal))}</strong></div><div>IVA 22%: <strong>$ ${fmt(Math.round(iva))}</strong></div><div class="muted-small">Precios en pesos uruguayos</div>`;
+    totalBoxAmt=fmt(Math.round(conIVA)); totalBoxLbl='Total con IVA';
+  } else if(showTotal){
+    totalsCopy=`<div>${S.articulos.length} pieza${S.articulos.length>1?'s':''}</div><div class="muted-small">Precios en pesos uruguayos</div>`;
   }
-  const logoBlock=`<div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>`;
-  document.getElementById('printDoc').innerHTML=`
-  <div class="pd">
-    <div class="pd-hdr">
-      <div style="display:flex;align-items:center;gap:12px">
-        ${logoBlock}
-        <div><div class="pd-brand">ArteLab UY</div><div class="pd-brand-sub">IMPRESIÓN 3D · URUGUAY</div></div>
-      </div>
-      <div class="pd-meta"><div class="pd-qlabel">Presupuesto</div><div class="pd-qno">#${num}</div><div class="pd-date">${dt}</div></div>
+  const totalsRow=showTotal?`<tr class="totals-row"><td colspan="5"><div class="totals-inner"><div class="totals-copy">${totalsCopy}</div><div class="total-box"><span>${totalBoxLbl}</span><strong>$ ${totalBoxAmt}</strong></div></div></td></tr>`:'';
+
+  // Secciones opcionales
+  const proyMat=S.lcArts&&S.lcArts.length?[...new Set(S.lcArts.map(r=>r.mat).filter(Boolean))].join(' / '):'';
+  const proyLines=[proyMat&&`Material: ${proyMat}`,dv&&`Entrega: ${dvFmt}`].filter(Boolean).map(l=>`<p>${l}</p>`).join('');
+  const resumenBlock=notes?`<section class="card dark summary" aria-label="Resumen del encargo"><p class="eyebrow">Resumen del encargo</p><p>${notes}</p></section>`:'';
+  const clienteLines=[ce&&`<p>${ce}</p>`,cp&&`<p>${cp}</p>`].filter(Boolean).join('');
+
+  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Presupuesto ${numLabel} — ArteLab</title>
+<style>
+:root{--orange:#E8722A;--ascua:#C2531A;--graphite:#57544E;--ink:#211F1C;--amber:#F2A65A;--steel:#8D8A82;--sand:#E3DDD2;--paper:#ECE9E3;--card:#F7F5F0;--white:#FFFFFF;--line:#D7D1C6;--softline:#E7E0D6;}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:#d7d2c8;color:var(--ink);font-family:"Hanken Grotesk","Inter","Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
+body{padding:24px;}
+.page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:var(--paper);position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(33,31,28,.22);}
+.eyebrow{margin:0;color:var(--orange);font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;line-height:1.2;}
+.eyebrow.muted{color:var(--steel);}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:17px;}
+.brand img{width:52mm;max-width:100%;display:block;height:auto;}
+.document-title{text-align:right;padding-top:2mm;min-width:68mm;}
+h1{margin:13px 0 0;font-family:"Sora","Inter","Segoe UI",Arial,sans-serif;font-size:34px;line-height:.95;letter-spacing:-.04em;font-weight:900;}
+.title-line{width:42mm;height:5px;margin:8px 0 0 auto;background:var(--orange);border-radius:99px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+.card.white{background:var(--white);}
+.card.dark{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.meta-card{position:relative;background:var(--white);margin-bottom:12px;padding:18px 20px 14px 22px;}
+.meta-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--orange);border-radius:14px 0 0 14px;}
+.meta-grid{display:grid;grid-template-columns:1.05fr 1.15fr .9fr .9fr;gap:16px;align-items:end;}
+.meta-item strong{display:block;margin-top:7px;font-size:14px;line-height:1.15;font-weight:800;white-space:nowrap;}
+.two-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.info-card{padding:18px 16px 14px;min-height:74px;}
+.info-card .main{margin:10px 0 6px;font-size:14px;line-height:1.15;font-weight:900;}
+.info-card p{margin:0 0 4px;color:var(--graphite);font-size:11px;line-height:1.25;}
+.summary{position:relative;padding:18px 22px 17px 30px;margin-bottom:16px;}
+.summary::before{content:"";position:absolute;left:15px;top:18px;bottom:18px;width:4px;border-radius:99px;background:var(--orange);}
+.summary .eyebrow{color:var(--amber);}
+.summary p{max-width:154mm;margin:9px 0 0;color:#F1EDE7;font-size:12px;line-height:1.45;}
+.section-label{margin:0 0 8px;color:var(--orange);font-size:9px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;}
+.budget-table{margin-bottom:14px;background:var(--white);}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;}
+col.concept{width:56%;}col.qty{width:10%;}col.unit{width:13%;}col.price{width:10%;}col.amount{width:11%;}
+thead th{padding:11px 14px;background:var(--sand);color:var(--graphite);font-size:8px;line-height:1.1;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:left;white-space:nowrap;}
+thead th:first-child{border-top-left-radius:13px;}thead th:last-child{border-top-right-radius:13px;}
+tbody td{padding:12px 14px;border-top:1px solid var(--softline);line-height:1.25;vertical-align:middle;color:var(--graphite);overflow-wrap:anywhere;}
+tbody tr:first-child td{border-top:0;}
+tbody td:first-child{color:var(--ink);font-weight:700;}
+.center{text-align:center;}.right{text-align:right;}.strong{font-weight:900;color:var(--ink);}
+.totals-row td{padding:13px 14px 15px;border-top:1px solid var(--softline);}
+.totals-inner{display:grid;grid-template-columns:1fr 176px;gap:16px;align-items:center;width:100%;}
+.totals-copy{text-align:right;color:var(--graphite);font-size:11px;line-height:1.55;min-width:0;}
+.totals-copy .muted-small{color:var(--steel);font-size:10px;}
+.total-box{width:176px;min-height:44px;background:var(--orange);color:var(--white);border-radius:11px;padding:10px 14px 9px;overflow:hidden;}
+.total-box span{display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;line-height:1.15;}
+.total-box strong{display:block;margin-top:2px;font-family:"Sora","Inter","Segoe UI",Arial,sans-serif;font-size:25px;line-height:1;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap;}
+.conditions{padding:17px 17px 13px;margin-bottom:12px;}
+.conditions-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px 32px;margin-top:12px;}
+.condition h3{margin:0 0 4px;font-size:11px;line-height:1.15;font-weight:900;}
+.condition p{margin:0;color:var(--graphite);font-size:10px;line-height:1.3;}
+.footer-card{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:12px 16px 10px;background:var(--ink);color:var(--white);border-radius:14px;overflow:hidden;}
+.footer-card p{margin:0;}
+.footer-card .action{font-size:11px;line-height:1.28;font-weight:800;}
+.footer-card .contact{color:#E7E0D6;font-size:10px;font-weight:700;white-space:nowrap;text-align:right;}
+.footer-card .brand-line{grid-column:1/-1;color:var(--amber);font-size:9px;line-height:1.1;}
+.hairline{position:absolute;left:14mm;right:14mm;bottom:8mm;height:1px;background:var(--line);}
+@media print{@page{size:A4;margin:0;}body{padding:0;background:var(--paper);}.page{width:210mm;min-height:297mm;margin:0;box-shadow:none;}}
+</style></head><body>
+<main class="page">
+  <header class="topbar">
+    <div class="brand"><img src="${logoUrl}" alt="ArteLab" onerror="this.style.display='none'"></div>
+    <div class="document-title">
+      <p class="eyebrow">Documento comercial</p>
+      <h1>PRESUPUESTO</h1>
+      <div class="title-line" aria-hidden="true"></div>
     </div>
-    <div class="pd-boxes" style="${clientBlock?'':'grid-template-columns:1fr'}">
-      <div class="pd-box"><div class="pd-bt">Pedido</div>${pedido?`<div class="pd-br"><strong>${pedido}</strong></div>`:''}<div class="pd-br">${S.articulos.length} pieza${S.articulos.length>1?'s':''}</div>${dv?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${dv}</div>`:''}</div>
-      ${clientBlock}
+  </header>
+
+  <section class="card meta-card">
+    <div class="meta-grid">
+      <div class="meta-item"><p class="eyebrow muted">Presupuesto No.</p><strong>${numLabel}</strong></div>
+      <div class="meta-item"><p class="eyebrow muted">Fecha</p><strong>${dt}</strong></div>
+      <div class="meta-item"><p class="eyebrow muted">Validez</p><strong>10 días</strong></div>
+      <div class="meta-item"><p class="eyebrow muted">Estado</p><strong>A confirmar</strong></div>
     </div>
-    <table style="margin-bottom:14px"><thead><tr><th>Pieza</th><th>Material</th><th style="text-align:right">Precio</th></tr></thead><tbody>${rows}</tbody></table>
-    ${totalBlock}
-    ${notes?`<div class="pd-notes"><strong>Notas:</strong> ${notes}</div>`:''}
-    <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
-    <div class="pd-footer">ArteLab UY · Impresión 3D · Uruguay</div>
-  </div>`;
-  setTimeout(()=>window.print(), 80);
+  </section>
+
+  <section class="two-cards">
+    ${cn||ce||cp?`<article class="card info-card"><p class="eyebrow">Cliente</p><div class="main">${cn||'—'}</div>${clienteLines}</article>`:'<article class="card info-card"><p class="eyebrow">Cliente</p><div class="main">—</div></article>'}
+    <article class="card info-card">
+      <p class="eyebrow">Proyecto</p>
+      <div class="main">${pedido||S.lcArts?.[0]?.desc||'Impresión 3D personalizada'}</div>
+      ${proyLines}
+    </article>
+  </section>
+
+  ${resumenBlock}
+
+  <p class="section-label">Detalle del presupuesto</p>
+  <section class="card budget-table">
+    <table>
+      <colgroup><col class="concept"><col class="qty"><col class="unit"><col class="price"><col class="amount"></colgroup>
+      <thead><tr><th>Concepto</th><th class="center">Cant.</th><th class="center">Unidad</th><th class="right">Precio</th><th class="right">Importe</th></tr></thead>
+      <tbody>${rows}${totalsRow}</tbody>
+    </table>
+  </section>
+
+  <section class="card conditions">
+    <p class="eyebrow">Condiciones</p>
+    <div class="conditions-grid">
+      <article class="condition"><h3>Seña</h3><p>50% para iniciar el trabajo.</p></article>
+      <article class="condition"><h3>Alcance</h3><p>Incluye una ronda de ajuste menor antes de imprimir.</p></article>
+      <article class="condition"><h3>Entrega</h3><p>${dv?`Fecha acordada: ${dvFmt}.`:'5 a 7 días hábiles luego de aprobar medidas y material.'}</p></article>
+      <article class="condition"><h3>Observación</h3><p>Color y textura pueden variar levemente según filamento y configuración.</p></article>
+    </div>
+  </section>
+
+  <footer class="footer-card">
+    <p class="action">Para avanzar: responder este presupuesto con OK y enviar archivo, medidas o referencia.</p>
+    <p class="contact">hola@artelab.studio · @artelab</p>
+    <p class="brand-line">ArteLab · Diseño · Impresión 3D · Soluciones</p>
+  </footer>
+  <div class="hairline" aria-hidden="true"></div>
+</main>
+</body></html>`;
+
+  const w=window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  const doP=()=>setTimeout(()=>w.print(),300);
+  if(w.document.readyState==='complete') doP();
+  else w.onload=doP;
 }
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────
