@@ -6122,10 +6122,46 @@ function renderMarcas(data){
   const el=document.getElementById('marcasList');
   if(!data.length){el.innerHTML='<div style="font-size:12.5px;color:var(--text-3);text-align:center;padding:12px">Sin marcas cargadas</div>';return;}
   el.innerHTML=data.map(m=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface-2)">
-      <div><div style="font-size:13px;font-weight:700">${m.nombre}</div><div style="font-size:11px;color:var(--text-3)">Tara: ${m.peso_tara_g}g por carrete vacío</div></div>
-      <button onclick="eliminarMarca(${m.id})" style="border:none;background:none;cursor:pointer;color:var(--bad-fg);font-size:14px;padding:4px 8px;border-radius:6px" title="Eliminar">🗑</button>
+    <div id="marca-row-${m.id}" style="border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden">
+      <!-- Vista normal -->
+      <div id="marca-view-${m.id}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface-2)">
+        <div><div style="font-size:13px;font-weight:700">${m.nombre}</div><div style="font-size:11px;color:var(--text-3)">Tara: ${m.peso_tara_g}g por carrete vacío</div></div>
+        <div style="display:flex;gap:4px">
+          <button onclick="editarMarcaInline(${m.id},'${m.nombre.replace(/'/g,"\\'")}',${m.peso_tara_g})" style="border:none;background:none;cursor:pointer;color:var(--info-fg);font-size:13px;padding:4px 8px;border-radius:6px" title="Editar">✏️</button>
+          <button onclick="eliminarMarca(${m.id})" style="border:none;background:none;cursor:pointer;color:var(--bad-fg);font-size:14px;padding:4px 8px;border-radius:6px" title="Eliminar">🗑</button>
+        </div>
+      </div>
+      <!-- Fila de edición (oculta) -->
+      <div id="marca-edit-${m.id}" style="display:none;padding:8px 10px;background:var(--surface);gap:8px;align-items:flex-end">
+        <div style="display:flex;gap:8px;align-items:flex-end;width:100%">
+          <div class="fgrp" style="flex:2;margin:0"><label style="font-size:11px">Nombre</label><input id="marca-edit-nombre-${m.id}" value="${m.nombre}" style="height:34px;font-size:13px"></div>
+          <div class="fgrp" style="flex:1;margin:0"><label style="font-size:11px">Tara (g)</label><input id="marca-edit-tara-${m.id}" type="number" min="0" step="1" value="${m.peso_tara_g}" style="height:34px;font-size:13px"></div>
+          <button onclick="guardarEdicionMarca(${m.id})" style="height:34px;padding:0 12px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">✓</button>
+          <button onclick="cancelarEdicionMarca(${m.id})" style="height:34px;padding:0 10px;background:none;border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>
+        </div>
+      </div>
     </div>`).join('');
+}
+
+function editarMarcaInline(id, nombre, tara){
+  document.getElementById('marca-view-'+id).style.display='none';
+  const editRow=document.getElementById('marca-edit-'+id);
+  editRow.style.display='flex';
+  document.getElementById('marca-edit-nombre-'+id).value=nombre;
+  document.getElementById('marca-edit-tara-'+id).value=tara;
+  document.getElementById('marca-edit-nombre-'+id).focus();
+}
+function cancelarEdicionMarca(id){
+  document.getElementById('marca-view-'+id).style.display='flex';
+  document.getElementById('marca-edit-'+id).style.display='none';
+}
+async function guardarEdicionMarca(id){
+  const nombre=document.getElementById('marca-edit-nombre-'+id).value.trim();
+  const tara=parseFloat(document.getElementById('marca-edit-tara-'+id).value)||0;
+  if(!nombre){showToast('Nombre requerido','err');return;}
+  const d=await apiPut('/api/marcas-filamento/'+id,{nombre,peso_tara_g:tara});
+  if(d.ok){_clearMarcasCache();const m=await _getMarcas();renderMarcas(m);await _poblarSelectMarca();showToast('Marca actualizada','ok');}
+  else showToast(d.error||'Error','err');
 }
 
 async function guardarMarca(){
