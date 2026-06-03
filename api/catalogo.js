@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       if (m === "GET") {
         const categoria = req.query.categoria;
         const args = [];
-        let sqlBase = `SELECT i.*, p.nombre as proveedor_nombre FROM insumos i LEFT JOIN proveedores p ON p.id=i.proveedor_id WHERE i.activo=1`;
+        let sqlBase = `SELECT i.*, p.nombre as proveedor_nombre, mf.nombre as marca_nombre, mf.peso_tara_g as peso_tara_g FROM insumos i LEFT JOIN proveedores p ON p.id=i.proveedor_id LEFT JOIN marcas_filamento mf ON mf.id=i.marca_id WHERE i.activo=1`;
         if (categoria) { sqlBase += " AND i.categoria=?"; args.push(categoria); }
         sqlBase += " ORDER BY i.categoria, i.nombre";
         // Intentar incluir último movimiento (la tabla puede no existir aún)
@@ -63,10 +63,10 @@ export default async function handler(req, res) {
             error: `Ya existe "${ex.nombre}" con ese proveedor`
           });
         }
-        const { stock_min } = req.body || {};
+        const { stock_min, marca_id } = req.body || {};
         const r = await db.execute({
-          sql: "INSERT INTO insumos (nombre,categoria,tipo,proveedor_id,precio,moneda,unidad,stock,stock_min,notas) VALUES (?,?,?,?,?,?,?,?,?,?)",
-          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, stock_min!=null?Number(stock_min):0.4, notas||null]
+          sql: "INSERT INTO insumos (nombre,categoria,tipo,proveedor_id,precio,moneda,unidad,stock,stock_min,notas,marca_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, stock_min!=null?Number(stock_min):0.4, notas||null, marca_id||null]
         });
         const nid = Number(r.lastInsertRowid);
         await logAction(db, user, "CREAR_INSUMO", "insumo", nid);
@@ -92,10 +92,10 @@ export default async function handler(req, res) {
           await logAction(db, user, "STOCK_INSUMO", "insumo", id);
           return res.status(200).json({ ok: true });
         }
-        const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, stock_min, notas } = req.body || {};
+        const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, stock_min, notas, marca_id } = req.body || {};
         await db.execute({
-          sql: "UPDATE insumos SET nombre=?,categoria=?,tipo=?,proveedor_id=?,precio=?,moneda=?,unidad=?,stock=?,stock_min=?,notas=? WHERE id=?",
-          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, stock_min!=null?Number(stock_min):null, notas||null, id]
+          sql: "UPDATE insumos SET nombre=?,categoria=?,tipo=?,proveedor_id=?,precio=?,moneda=?,unidad=?,stock=?,stock_min=?,notas=?,marca_id=? WHERE id=?",
+          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, stock_min!=null?Number(stock_min):null, notas||null, marca_id||null, id]
         });
         await logAction(db, user, "EDITAR_INSUMO", "insumo", id);
         return res.status(200).json({ ok: true });
@@ -106,6 +106,30 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true });
       }
     }
+
+    // ───────────────────────── MARCAS DE FILAMENTO ─────────────────────────
+    if (recurso === "marcas-filamento") {
+      if (m === "GET") {
+        const r = await db.execute("SELECT * FROM marcas_filamento WHERE activo=1 ORDER BY nombre");
+        return res.status(200).json({ ok: true, data: r.rows });
+      }
+      if (m === "POST") {
+        const { nombre, peso_tara_g } = req.body || {};
+        if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
+        const r = await db.execute({ sql: "INSERT INTO marcas_filamento (nombre,peso_tara_g) VALUES (?,?)", args: [nombre.trim(), Number(peso_tara_g)||0] });
+        return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
+      }
+      if (m === "PUT" && id) {
+        const { nombre, peso_tara_g } = req.body || {};
+        await db.execute({ sql: "UPDATE marcas_filamento SET nombre=?,peso_tara_g=? WHERE id=?", args: [nombre?.trim()||'', Number(peso_tara_g)||0, id] });
+        return res.status(200).json({ ok: true });
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({ sql: "UPDATE marcas_filamento SET activo=0 WHERE id=?", args: [id] });
+        return res.status(200).json({ ok: true });
+      }
+    }
+
 
     // ───────────────────────── PRODUCTOS ─────────────────────────
     if (recurso === "productos") {

@@ -229,7 +229,25 @@ export default async function handler(req, res) {
       created_at   TEXT DEFAULT (datetime('now'))
     )
   `);
-  for (const col of ["ADD COLUMN stock_min REAL DEFAULT 1"]) { try { await db.execute(`ALTER TABLE insumos ${col}`); } catch {} }
+  for (const col of [
+    "ADD COLUMN stock_min REAL DEFAULT 1",
+    "ADD COLUMN marca_id INTEGER"
+  ]) { try { await db.execute(`ALTER TABLE insumos ${col}`); } catch {} }
+
+  // Marcas de filamento
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS marcas_filamento (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre       TEXT NOT NULL,
+      peso_tara_g  REAL NOT NULL DEFAULT 0,
+      activo       INTEGER NOT NULL DEFAULT 1,
+      created_at   TEXT DEFAULT (datetime('now'))
+    )
+  `);
+  // Marcas por defecto
+  for (const [n, t] of [["Bambu Lab",210],["Creality",220],["Prusament",170],["Elegoo",240],["eSUN",200],["Genérica",200]]) {
+    try { await db.execute({ sql:"INSERT OR IGNORE INTO marcas_filamento (nombre,peso_tara_g) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM marcas_filamento WHERE nombre=?)", args:[n,t,n] }); } catch {}
+  }
 
   // Productos (catálogo reutilizable)
   await db.execute(`

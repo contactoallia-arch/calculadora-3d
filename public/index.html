@@ -1754,10 +1754,16 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 <div id="page-insumos" class="page">
   <div class="pg-hdr">
     <h2 class="pg-title">Insumos</h2>
-    <button class="btn btn--primary" onclick="abrirInsumoForm(null)">
-      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
-      Nuevo insumo
-    </button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn--ghost" onclick="abrirMarcasFilamento()" title="Configurar marcas de filamento">
+        <svg class="icon" viewBox="0 0 18 18"><circle cx="9" cy="9" r="3"/><path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.41 1.41M13.37 13.37l1.41 1.41M3.22 14.78l1.41-1.41M13.37 4.63l1.41-1.41"/></svg>
+        Marcas
+      </button>
+      <button class="btn btn--primary" onclick="abrirInsumoForm(null)">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+        Nuevo insumo
+      </button>
+    </div>
   </div>
   <div class="pg-body">
     <!-- 4 KPIs -->
@@ -1880,6 +1886,13 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <!-- Extras solo para filamento -->
     <div id="insFilExtras" style="display:none">
       <div class="frow">
+        <div class="fgrp">
+          <label>Marca</label>
+          <div style="display:flex;gap:6px">
+            <select id="insMarca" style="flex:1" onchange="onInsMarcaChange()"><option value="">— Sin marca —</option></select>
+            <button type="button" onclick="abrirMarcasFilamento()" style="height:36px;padding:0 10px;border:1px dashed var(--bd);border-radius:var(--rs);background:none;color:var(--ac);font-size:12px;font-weight:600;cursor:pointer" title="Administrar marcas">⚙</button>
+          </div>
+        </div>
         <div class="fgrp" style="flex:1">
           <label>Color</label>
           <div id="insColorScroll" style="overflow-x:auto;display:flex;gap:5px;padding:3px 2px;scrollbar-width:none"></div>
@@ -1892,6 +1905,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="fgrp"><label>Total en stock</label>
           <div id="insStockPreview" style="height:36px;display:flex;align-items:center;font-weight:700;font-size:15px;color:var(--brand)">1 kg</div>
         </div>
+      </div>
+      <!-- Checkbox tara -->
+      <div id="insTaraRow" style="display:none;margin-bottom:10px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="insTaraCheck" onchange="recalcInsStock()" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer">
+          <span>El peso ingresado incluye el carrete</span>
+        </label>
+        <div id="insTaraCalc" style="font-size:11.5px;color:var(--text-3);margin-top:4px;display:none"></div>
       </div>
     </div>
     <div class="frow">
@@ -1932,6 +1953,24 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="guardarInsumo()">Guardar</button></div>
+</div>
+
+<!-- Modal: marcas de filamento -->
+<div class="modal" id="mMarcas" style="max-width:480px">
+  <div class="mh"><div class="mt">Marcas de filamento</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div style="font-size:12.5px;color:var(--text-3);margin-bottom:14px">Configurá el peso de tara (carrete vacío) por marca. Se usa para calcular el filamento neto al pesar un carrete.</div>
+    <div id="marcasList" style="margin-bottom:14px"></div>
+    <div style="border-top:1px solid var(--border-2);padding-top:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Agregar marca</div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <div class="fgrp" style="flex:2;margin:0"><label style="font-size:12px">Nombre</label><input id="marcaNombre" placeholder="Ej: Bambu Lab" style="height:36px"></div>
+        <div class="fgrp" style="flex:1;margin:0"><label style="font-size:12px">Tara (g)</label><input id="marcaTara" type="number" min="0" step="1" value="200" placeholder="200" style="height:36px" title="Peso del carrete vacío en gramos"></div>
+        <button class="btn btn--primary btn--sm" onclick="guardarMarca()" style="height:36px;flex-shrink:0">Agregar</button>
+      </div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cerrar</button></div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -2501,6 +2540,13 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
       </div>
     </div>
+    <!-- Tara para filamentos -->
+    <div id="consumoTaraWrap" style="display:none;margin-top:8px;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm)">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px">
+        <input type="checkbox" id="consumoTaraCheck" onchange="updateConsumoPreview()" style="width:14px;height:14px;accent-color:var(--brand);cursor:pointer">
+        <span id="consumoTaraLabel">El peso incluye el carrete</span>
+      </label>
+    </div>
     <div id="consumoPreview" style="margin-top:10px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12.5px;display:none">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px">
         <span style="color:var(--text-3)">Stock actual</span>
@@ -2520,18 +2566,30 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 </div>
 
 <!-- Modal: ajustar stock -->
-<div class="modal" id="mAjusteStock" style="max-width:380px">
+<div class="modal" id="mAjusteStock" style="max-width:400px">
   <div class="mh"><div class="mt" id="mAjusteTit">Actualizar stock</div><button class="mx" onclick="closeM()">✕</button></div>
   <div class="mb">
     <div style="font-size:13px;color:var(--text-2);margin-bottom:14px" id="mAjusteInfo"></div>
     <div class="frow">
       <div class="fgrp" style="flex:2">
-        <label>Nuevo stock</label>
+        <label>Nuevo stock (peso medido)</label>
         <div style="display:flex;align-items:center;gap:8px">
-          <input id="ajusteCant" type="number" min="0" step="0.001" placeholder="0.000" style="flex:1">
+          <input id="ajusteCant" type="number" min="0" step="0.001" placeholder="0.000" style="flex:1" oninput="updateAjusteTara()">
           <span id="ajusteUnidad" style="font-size:13px;font-weight:700;color:var(--text-3);white-space:nowrap">kg</span>
         </div>
       </div>
+    </div>
+    <!-- Tara (solo para filamentos con marca) -->
+    <div id="ajusteTaraWrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm)">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:6px">
+        <input type="checkbox" id="ajusteTaraCheck" onchange="updateAjusteTara()" style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer">
+        <span id="ajusteTaraLabel">El peso incluye el carrete</span>
+      </label>
+      <div style="display:flex;align-items:center;gap:8px" id="ajusteTaraCarretes" style="display:none">
+        <span style="font-size:12px;color:var(--text-3)">Cantidad de carretes en báscula:</span>
+        <input id="ajusteTaraNCarretes" type="number" min="1" step="1" value="1" style="width:60px;height:30px;font-size:13px;text-align:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)" oninput="updateAjusteTara()">
+      </div>
+      <div id="ajusteTaraCalc" style="font-size:11.5px;color:var(--info-fg);margin-top:4px;font-weight:600"></div>
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="confirmarAjuste()">Guardar</button></div>
@@ -5943,6 +6001,16 @@ function consumirInsumo(id) {
   document.getElementById('consumoCant').value = '';
   document.getElementById('consumoUnidad').textContent = item.unidad || 'u';
   document.getElementById('consumoPreview').style.display = 'none';
+  // Tara
+  const taraG = Number(item.peso_tara_g||0);
+  const taraWrap = document.getElementById('consumoTaraWrap');
+  if (taraG > 0 && (item.categoria||'') === 'filamento') {
+    taraWrap.style.display = 'block';
+    document.getElementById('consumoTaraCheck').checked = false;
+    document.getElementById('consumoTaraLabel').textContent = `El peso incluye el carrete (tara: ${taraG}g · ${item.marca_nombre||''})`;
+  } else {
+    taraWrap.style.display = 'none';
+  }
   openM('mConsumoInsumo');
   setTimeout(() => document.getElementById('consumoCant').focus(), 120);
 }
@@ -5969,8 +6037,14 @@ function updateConsumoPreview() {
 }
 
 async function confirmarConsumo() {
-  const cant = parseFloat(document.getElementById('consumoCant').value || 0);
+  let cant = parseFloat(document.getElementById('consumoCant').value || 0);
   if (!cant || cant <= 0) { showToast('Ingresá una cantidad mayor a 0', 'err'); return; }
+  const taraActiva = document.getElementById('consumoTaraCheck')?.checked;
+  if (taraActiva) {
+    const item = _insumosCache.find(x => Number(x.id) === Number(_consumoInsumoId));
+    const taraG = Number(item?.peso_tara_g||0);
+    if (taraG > 0) cant = Math.max(0, cant - taraG/1000);
+  }
   const d = await apiPut(`/api/insumos/${_consumoInsumoId}?action=add-stock`, { qty: -cant });
   if (d.ok) {
     showToast('Stock actualizado', 'ok');
@@ -5986,18 +6060,38 @@ function ajustarStockInsumo(id) {
   const item = _insumosCache.find(x => Number(x.id) === Number(id));
   if (!item) return;
   _ajusteInsumoId = id;
+  _ajusteTaraG = Number(item.peso_tara_g||0);
   document.getElementById('mAjusteTit').textContent = 'Actualizar stock · ' + item.nombre;
   document.getElementById('mAjusteInfo').textContent =
     `Stock actual: ${Number(item.stock||0).toFixed(3).replace(/\.?0+$/,'')} ${item.unidad||''}`;
   document.getElementById('ajusteCant').value = Number(item.stock || 0);
   document.getElementById('ajusteUnidad').textContent = item.unidad || 'u';
+  // Mostrar sección de tara solo para filamentos con marca
+  const taraWrap = document.getElementById('ajusteTaraWrap');
+  if (_ajusteTaraG > 0 && (item.categoria||'') === 'filamento') {
+    taraWrap.style.display = 'block';
+    document.getElementById('ajusteTaraCheck').checked = false;
+    document.getElementById('ajusteTaraLabel').textContent = `El peso incluye el carrete (tara: ${_ajusteTaraG}g · ${item.marca_nombre||''})`;
+    document.getElementById('ajusteTaraCarretes').style.display = 'none';
+    document.getElementById('ajusteTaraNCarretes').value = '1';
+    document.getElementById('ajusteTaraCalc').textContent = '';
+  } else {
+    taraWrap.style.display = 'none';
+  }
   openM('mAjusteStock');
   setTimeout(() => { const el = document.getElementById('ajusteCant'); el.focus(); el.select(); }, 120);
 }
 
 async function confirmarAjuste() {
-  const cant = parseFloat(document.getElementById('ajusteCant').value);
+  let cant = parseFloat(document.getElementById('ajusteCant').value);
   if (isNaN(cant) || cant < 0) { showToast('Valor inválido', 'err'); return; }
+  // Aplicar tara si está activa
+  const taraActiva = document.getElementById('ajusteTaraCheck')?.checked;
+  if (taraActiva && _ajusteTaraG > 0) {
+    const nCarretes = parseInt(document.getElementById('ajusteTaraNCarretes').value)||1;
+    const taraKg = (_ajusteTaraG * nCarretes) / 1000;
+    cant = Math.max(0, cant - taraKg);
+  }
   const item = _insumosCache.find(x => Number(x.id) === Number(_ajusteInsumoId));
   if (!item) return;
   // Calcular diferencia para usar add-stock
@@ -6011,8 +6105,93 @@ async function confirmarAjuste() {
   } else showToast(d.error || 'Error', 'err');
 }
 
+// ── MARCAS DE FILAMENTO ───────────────────────────────────────────────
+let _marcasCache = null;
+async function _getMarcas(){ if(_marcasCache) return _marcasCache; try{const d=await apiGet('/api/marcas-filamento');_marcasCache=d.ok?d.data:[];}catch{_marcasCache=[];} return _marcasCache; }
+function _clearMarcasCache(){ _marcasCache=null; }
+
+async function abrirMarcasFilamento(){
+  const marcas=await _getMarcas();
+  renderMarcas(marcas);
+  openM('mMarcas');
+  document.getElementById('marcaNombre').value='';
+  document.getElementById('marcaTara').value='200';
+}
+
+function renderMarcas(data){
+  const el=document.getElementById('marcasList');
+  if(!data.length){el.innerHTML='<div style="font-size:12.5px;color:var(--text-3);text-align:center;padding:12px">Sin marcas cargadas</div>';return;}
+  el.innerHTML=data.map(m=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface-2)">
+      <div><div style="font-size:13px;font-weight:700">${m.nombre}</div><div style="font-size:11px;color:var(--text-3)">Tara: ${m.peso_tara_g}g por carrete vacío</div></div>
+      <button onclick="eliminarMarca(${m.id})" style="border:none;background:none;cursor:pointer;color:var(--bad-fg);font-size:14px;padding:4px 8px;border-radius:6px" title="Eliminar">🗑</button>
+    </div>`).join('');
+}
+
+async function guardarMarca(){
+  const nombre=document.getElementById('marcaNombre').value.trim();
+  const tara=parseFloat(document.getElementById('marcaTara').value)||0;
+  if(!nombre){showToast('Ingresá un nombre','err');return;}
+  const d=await apiPost('/api/marcas-filamento',{nombre,peso_tara_g:tara});
+  if(d.ok){_clearMarcasCache();const m=await _getMarcas();renderMarcas(m);await _poblarSelectMarca();showToast('Marca agregada','ok');}
+  else showToast(d.error||'Error','err');
+}
+
+async function eliminarMarca(id){
+  const d=await apiDelete('/api/marcas-filamento/'+id);
+  if(d.ok){_clearMarcasCache();const m=await _getMarcas();renderMarcas(m);await _poblarSelectMarca();}
+  else showToast(d.error||'Error','err');
+}
+
+async function _poblarSelectMarca(selectedId){
+  const marcas=await _getMarcas();
+  const sel=document.getElementById('insMarca');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Sin marca —</option>'+
+    marcas.map(m=>`<option value="${m.id}" data-tara="${m.peso_tara_g}">${m.nombre} (tara ${m.peso_tara_g}g)</option>`).join('');
+  if(selectedId) sel.value=String(selectedId);
+  onInsMarcaChange();
+}
+
+function onInsMarcaChange(){
+  const sel=document.getElementById('insMarca');
+  const tara=parseFloat(sel.selectedOptions[0]?.dataset.tara||0);
+  const taraRow=document.getElementById('insTaraRow');
+  if(taraRow) taraRow.style.display=tara>0?'block':'none';
+  document.getElementById('insTaraCheck').checked=false;
+  document.getElementById('insTaraCalc').style.display='none';
+  recalcInsStock();
+}
+
+// Cálculo neto con tara para el form de creación
+function _getTaraInsumoForm(){
+  const sel=document.getElementById('insMarca');
+  const checked=document.getElementById('insTaraCheck')?.checked;
+  if(!checked||!sel) return 0;
+  return parseFloat(sel.selectedOptions[0]?.dataset.tara||0);
+}
+
+// Ajustar stock con tara
+function updateAjusteTara(){
+  const wrap=document.getElementById('ajusteTaraWrap');
+  if(wrap.style.display==='none') return;
+  const checked=document.getElementById('ajusteTaraCheck').checked;
+  const carretes=parseInt(document.getElementById('ajusteTaraNCarretes').value)||1;
+  document.getElementById('ajusteTaraCarretes').style.display=checked?'flex':'none';
+  if(!checked){document.getElementById('ajusteTaraCalc').textContent='';return;}
+  const taraG=_ajusteTaraG||0;
+  const taraKg=(taraG*carretes)/1000;
+  const bruto=parseFloat(document.getElementById('ajusteCant').value)||0;
+  const neto=Math.max(0,bruto-taraKg);
+  document.getElementById('ajusteTaraCalc').textContent=
+    `Tara: ${taraG}g × ${carretes} = ${(taraKg*1000).toFixed(0)}g → Neto: ${neto.toFixed(3)} kg`;
+}
+
+let _ajusteTaraG=0;
+
 async function abrirInsumoForm(id) {
   _editInsumoId = id;
+  await _poblarSelectMarca(null);
   // Cargar proveedores
   try {
     const dp = await apiGet('/api/proveedores');
@@ -6060,6 +6239,7 @@ async function abrirInsumoForm(id) {
     document.getElementById('insStockMin').value = item.stock_min!=null ? item.stock_min : 0.4;
     document.getElementById('insNotas').value = item.notas||'';
     document.getElementById('insProveedor').value = item.proveedor_id||'';
+    await _poblarSelectMarca(item.marca_id||null);
     toggleInsCategoria();
     // Forzar moneda DESPUÉS de toggleInsCategoria para que no se pise
     document.getElementById('insMoneda').value = item.moneda||'UYU';
@@ -6133,9 +6313,22 @@ function toggleInsCategoria() {
 function recalcInsStock() {
   const carretes = parseFloat(document.getElementById('insCarretes').value||1);
   const kg = parseFloat(document.getElementById('insKgCarrete').value||1);
-  const total = carretes * kg;
-  document.getElementById('insStockPreview').textContent = fmtMoney(total) + ' kg';
-  document.getElementById('insStock').value = total.toFixed(3);
+  const bruto = carretes * kg;
+  const taraG = _getTaraInsumoForm();
+  const taraTotal = (taraG * carretes) / 1000;
+  const neto = Math.max(0, bruto - taraTotal);
+  const checked = document.getElementById('insTaraCheck')?.checked;
+  const calcEl = document.getElementById('insTaraCalc');
+  if (checked && taraG > 0 && calcEl) {
+    calcEl.style.display = 'block';
+    calcEl.textContent = `Bruto: ${bruto.toFixed(3)} kg − tara ${taraG}g×${carretes} = Neto: ${neto.toFixed(3)} kg`;
+    calcEl.style.color = 'var(--info-fg)';
+  } else if (calcEl) {
+    calcEl.style.display = 'none';
+  }
+  const final = checked && taraG > 0 ? neto : bruto;
+  document.getElementById('insStockPreview').textContent = final.toFixed(3) + ' kg';
+  document.getElementById('insStock').value = final.toFixed(3);
 }
 
 function selectInsColor(btn) {
@@ -6205,7 +6398,8 @@ async function guardarInsumo() {
     unidad: document.getElementById('insUnidad').value,
     stock: parseFloat(document.getElementById('insStock').value)||0,
     stock_min: parseFloat(document.getElementById('insStockMin').value)||0,
-    notas: document.getElementById('insNotas').value.trim()||null
+    notas: document.getElementById('insNotas').value.trim()||null,
+    marca_id: document.getElementById('insMarca').value||null
   };
   const d = _editInsumoId
     ? await apiPut('/api/insumos/'+_editInsumoId, body)
