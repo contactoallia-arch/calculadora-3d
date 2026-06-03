@@ -7258,24 +7258,31 @@ async function imprimirPdfPreview(){ pedirConfirmImpresion(); }
 function _abrirVentanaImpresion(){
   const html=_pdfFullHtml(_pdfPageData);
   const w=window.open('','_blank','width=900,height=750');
-  if(!w){alert('Permitir ventanas emergentes en este sitio para imprimir.');return;}
+  if(!w){showToast('Permitir ventanas emergentes para imprimir','err');return;}
   w.document.open();
   w.document.write(html);
   w.document.close();
   let printed=false;
-  const doPrint=()=>{if(printed)return;printed=true;setTimeout(()=>w.print(),250);};
+  const doPrint=()=>{
+    if(printed)return;printed=true;
+    setTimeout(()=>{
+      w.print();
+      // Al cerrar el diálogo de impresión: cerrar popup y volver al overlay/app
+      w.addEventListener('afterprint',()=>{
+        setTimeout(()=>{ try{w.close();}catch(e){} cerrarPdfPreview(); },400);
+      });
+    },250);
+  };
   const imgs=w.document.images;
-  if(!imgs.length){
-    doPrint();
-  } else {
+  if(!imgs.length){ doPrint(); }
+  else {
     let loaded=0;
     const check=()=>{loaded++;if(loaded>=imgs.length)doPrint();};
     Array.from(imgs).forEach(img=>{
       if(img.complete) check();
       else{img.onload=check;img.onerror=check;}
     });
-    // Fallback: si las imágenes tardan más de 3s igual imprime
-    setTimeout(doPrint, 3000);
+    setTimeout(doPrint,3000);
   }
 }
 
