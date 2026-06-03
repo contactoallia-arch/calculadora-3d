@@ -2,6 +2,54 @@ import { getDB } from "./_lib/db.js";
 import { getToken, verifyToken, requireAuth, logAction } from "./_lib/auth.js";
 
 const TODOS_ESTADOS = ["sin_enviar","enviado","aprobado","produccion","listo","entregado","cobrado","rechazado","cancelado"];
+const ESTADOS_PRODUCCION = ["produccion","listo","entregado","cobrado"];
+
+// Restaura el stock descontado de un presupuesto y resetea los flags para poder volver a descontar
+async function restaurarStockInsumos(db, presId, pieza, numero, userId) {
+  try {
+    const r = await db.execute({ sql: "SELECT snap, costos_internos FROM presupuestos WHERE id=?", args: [presId] });
+    const pres = r.rows[0]; if (!pres) return;
+    const ref = `Revertido · Pres. #${String(numero||presId).padStart(4,'0')}: ${pieza}`;
+
+    // Restaurar snap._insumos (calculadora)
+    if (pres.snap) {
+      const snap = JSON.parse(pres.snap);
+      if (snap._insumos && snap._insumosDeducted) {
+        for (const ins of snap._insumos) {
+          if (ins.id && ins.qty > 0) {
+            await db.execute({ sql: "UPDATE insumos SET stock=stock+? WHERE id=? AND activo=1", args: [Number(ins.qty), ins.id] });
+            try {
+              const st = await db.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [ins.id] });
+              await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [ins.id, Number(ins.qty), Number(st.rows[0]?.stock||0), "restauracion", ref, presId, userId] });
+            } catch {}
+          }
+        }
+        snap._insumosDeducted = false;
+        await db.execute({ sql: "UPDATE presupuestos SET snap=? WHERE id=?", args: [JSON.stringify(snap), presId] });
+      }
+    }
+
+    // Restaurar costos_internos (form de presupuestos)
+    if (pres.costos_internos) {
+      const costos = JSON.parse(pres.costos_internos);
+      let hubo = false;
+      for (const c of costos.filter(c => c.iid && c.iqty > 0 && c.ideducted)) {
+        await db.execute({ sql: "UPDATE insumos SET stock=stock+? WHERE id=? AND activo=1", args: [Number(c.iqty), c.iid] });
+        try {
+          const st = await db.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [c.iid] });
+          await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [c.iid, Number(c.iqty), Number(st.rows[0]?.stock||0), "restauracion", ref, presId, userId] });
+        } catch {}
+        c.ideducted = false;
+        hubo = true;
+      }
+      if (hubo) await db.execute({ sql: "UPDATE presupuestos SET costos_internos=? WHERE id=?", args: [JSON.stringify(costos), presId] });
+    }
+
+    // Eliminar gastos automáticos generados al producir
+    await db.execute({ sql: "DELETE FROM gastos WHERE presupuesto_id=? AND tipo='produccion_automatico'", args: [presId] });
+  } catch {}
+}
+
 const FLUJO = {
   sin_enviar: TODOS_ESTADOS, borrador: TODOS_ESTADOS, enviado: TODOS_ESTADOS,
   aprobado: TODOS_ESTADOS, produccion: TODOS_ESTADOS, listo: TODOS_ESTADOS,
@@ -137,6 +185,11 @@ export default async function handler(req, res) {
         }
       } catch {}
     }
+    // Si se vuelve atrás desde un estado de producción → restaurar stock y resetear flags
+    if (ESTADOS_PRODUCCION.includes(estado_actual) && !ESTADOS_PRODUCCION.includes(estado_nuevo)) {
+      await restaurarStockInsumos(db, id, pres.pieza, pres.numero, user.id);
+    }
+
     await logAction(db, user, "CAMBIAR_ESTADO", "presupuesto", id, { estado_actual, estado_nuevo, nota });
     return res.status(200).json({ ok: true, data: { estado: estado_nuevo } });
   }
@@ -164,8 +217,13 @@ export default async function handler(req, res) {
     if (req.method === "DELETE") {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
+      // Restaurar stock si tenía insumos descontados
+      const metaR = await db2.execute({ sql: "SELECT pieza, numero FROM presupuestos WHERE id=?", args: [id] });
+      const meta = metaR.rows[0];
+      if (meta) await restaurarStockInsumos(db2, id, meta.pieza, meta.numero, user.id);
       await db2.execute({ sql: "DELETE FROM presupuestos WHERE id=?", args: [id] });
       await db2.execute({ sql: "DELETE FROM presupuesto_estados WHERE presupuesto_id=?", args: [id] });
+      await db2.execute({ sql: "DELETE FROM cobros WHERE presupuesto_id=?", args: [id] });
       return res.status(200).json({ ok: true });
     }
     return res.status(405).json({ ok: false, error: "Método no permitido" });
