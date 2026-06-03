@@ -4805,7 +4805,7 @@ async function actualizarTipoCambio(btn) {
       margen_default: document.getElementById('cfgMargen').value
     };
     const dr = await apiPut('/api/configuracion', body);
-    if (dr.ok) showToast(`Tipo de cambio: 1 USD = $ ${rate.toFixed(2)} (${fecha})`, 'ok');
+    if (dr.ok) showToast(`Tipo de cambio: 1 USD = $ ${rate.toFixed(2)} · ${fecha} · Fuente: ${d.fuente||''}`, 'ok');
     else showToast('No se pudo guardar en config', 'err');
     renderInsumos();
   } catch(e) {

@@ -10,17 +10,48 @@ export default async function handler(req, res) {
   const user = await requireAuth(req, res, db);
   if (!user) return;
 
-  // Proxy cotización USD/UYU (evita CORS en browser)
+  // Proxy cotización USD/UYU — intenta BCU, fallback open.er-api
   if (req.query.action === "tipo-cambio") {
+    // 1) BCU (Banco Central del Uruguay)
     try {
-      const r = await fetch("https://api.frankfurter.app/latest?from=USD&to=UYU");
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const d = await r.json();
-      const rate = d.rates?.UYU;
-      if (!rate) throw new Error("Sin datos de cotización");
-      return res.status(200).json({ ok: true, rate, date: d.date });
-    } catch (e) {
-      return res.status(200).json({ ok: false, error: e.message });
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2,"0");
+      const mm = String(today.getMonth()+1).padStart(2,"0");
+      const yyyy = today.getFullYear();
+      const fecha = `${dd}%2F${mm}%2F${yyyy}`;
+      const r = await fetch(
+        `https://cotizaciones.bcu.gub.uy/wscotizaciones/rest/?Fecha=${fecha}&Moneda=2225&Grupo=0`,
+        { headers: { Accept: "application/json" } }
+      );
+      if (r.ok) {
+        const d = await r.json();
+        // BCU devuelve array o { value: [...] }
+        const rows = Array.isArray(d) ? d : (d.value || d.Cotizaciones || []);
+        const row = rows[0];
+        if (row) {
+          // Tomar precio de venta (Venta) como referencia
+          const rate = parseFloat(row.Venta || row.venta || row.tipoCambio || 0);
+          if (rate > 0) {
+            const fechaBCU = row.Fecha || row.fecha || `${dd}/${mm}/${yyyy}`;
+            return res.status(200).json({ ok: true, rate, date: fechaBCU, fuente: "BCU" });
+          }
+        }
+      }
+    } catch {}
+
+    // 2) Fallback: open.er-api.com (también usado en la calculadora)
+    try {
+      const r2 = await fetch("https://open.er-api.com/v6/latest/USD");
+      if (!r2.ok) throw new Error(`HTTP ${r2.status}`);
+      const d2 = await r2.json();
+      const rate = d2.rates?.UYU;
+      if (!rate) throw new Error("Sin datos");
+      const date = d2.time_last_update_utc
+        ? new Date(d2.time_last_update_utc).toISOString().slice(0,10)
+        : new Date().toISOString().slice(0,10);
+      return res.status(200).json({ ok: true, rate, date, fuente: "open.er-api" });
+    } catch (e2) {
+      return res.status(200).json({ ok: false, error: "No se pudo obtener cotización: " + e2.message });
     }
   }
 
