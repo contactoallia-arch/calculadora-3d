@@ -86,7 +86,12 @@ export default async function handler(req, res) {
                LEFT JOIN presupuestos p ON p.id=g.presupuesto_id
                WHERE 1=1`;
     const args = [];
-    if (mes) { sql += " AND g.fecha LIKE ?"; args.push(`%${mes}%`); }
+    if (mes) {
+      const [anio, mm] = mes.split("-");
+      // Soporta ambos formatos: ISO (2026-06-03) y DD/MM/YYYY (03/06/2026)
+      sql += " AND (g.fecha LIKE ? OR g.fecha LIKE ? OR g.fecha LIKE ?)";
+      args.push(`${anio}-${mm}%`, `%/${mm}/${anio}`, `%/${mm}/${anio}%`);
+    }
     if (categoria) { sql += " AND g.categoria=?"; args.push(categoria); }
     if (tipo) { sql += " AND g.tipo=?"; args.push(tipo); }
     if (presupuesto_id) { sql += " AND g.presupuesto_id=?"; args.push(presupuesto_id); }

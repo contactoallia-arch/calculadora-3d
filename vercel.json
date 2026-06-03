@@ -26,6 +26,7 @@
     { "source": "/api/notificaciones/:id",   "destination": "/api/catalogo?recurso=notificaciones&id=:id" },
     { "source": "/api/notificaciones",       "destination": "/api/catalogo?recurso=notificaciones" },
     { "source": "/api/repartos/:id",         "destination": "/api/catalogo?recurso=repartos&id=:id" },
-    { "source": "/api/repartos",             "destination": "/api/catalogo?recurso=repartos" }
+    { "source": "/api/repartos",             "destination": "/api/catalogo?recurso=repartos" },
+    { "source": "/api/tipo-cambio",          "destination": "/api/tipo-cambio" }
   ]
 }

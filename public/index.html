@@ -4770,17 +4770,14 @@ let _tipoCambioUSD = 40; // fallback, se actualiza desde config o auto-fetch
 
 async function fetchTipoCambioSilent() {
   try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=UYU');
+    const r = await fetch('/api/tipo-cambio', { headers: { Authorization: 'Bearer ' + _token } });
     const d = await r.json();
-    const rate = d.rates?.UYU;
-    if (!rate) return;
-    _tipoCambioUSD = rate;
-    // Actualizar en DB en background
+    if (!d.ok || !d.rate) return;
+    _tipoCambioUSD = d.rate;
     const fecha = d.date || '';
-    apiPut('/api/configuracion', { tipo_cambio_usd_uyu: rate.toFixed(2), tc_fecha: fecha }).catch(()=>{});
-    // Actualizar UI si la config está abierta
+    apiPut('/api/configuracion', { tipo_cambio_usd_uyu: d.rate.toFixed(2), tc_fecha: fecha }).catch(()=>{});
     const cfgTC = document.getElementById('cfgTC');
-    if (cfgTC) cfgTC.value = rate.toFixed(2);
+    if (cfgTC) cfgTC.value = d.rate.toFixed(2);
     const cfgTCFecha = document.getElementById('cfgTCFecha');
     if (cfgTCFecha) cfgTCFecha.textContent = `· ${fecha}`;
   } catch {}
@@ -4790,9 +4787,10 @@ async function actualizarTipoCambio(btn) {
   const orig = btn.textContent;
   btn.textContent = 'Consultando…'; btn.disabled = true;
   try {
-    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=UYU');
+    const r = await fetch('/api/tipo-cambio', { headers: { Authorization: 'Bearer ' + _token } });
     const d = await r.json();
-    const rate = d.rates?.UYU;
+    if (!d.ok) throw new Error(d.error || 'Sin datos');
+    const rate = d.rate;
     if (!rate) throw new Error('Sin datos');
     _tipoCambioUSD = rate;
     const fecha = d.date || '';
