@@ -2313,7 +2313,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <label>Tipo de cambio USD/UYU <span id="cfgTCFecha" style="font-size:10px;color:var(--text-3);font-weight:400"></span></label>
           <div style="display:flex;gap:6px;align-items:center">
             <input id="cfgTC" type="number" step="0.01" placeholder="42.5" style="flex:1">
-            <button type="button" onclick="actualizarTipoCambio()" style="height:36px;padding:0 11px;border:1.5px solid var(--brand);border-radius:var(--rs);background:var(--brand-soft);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;flex-shrink:0">↻ Cotización del día</button>
+            <button type="button" onclick="actualizarTipoCambio(this)" style="height:36px;padding:0 11px;border:1.5px solid var(--brand);border-radius:var(--rs);background:var(--brand-soft);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;flex-shrink:0">↻ Cotización del día</button>
           </div>
           <div style="font-size:10.5px;color:var(--text-3);margin-top:3px">Se actualiza automáticamente al iniciar sesión. Podés editarlo manualmente o forzar la actualización.</div>
         </div>
@@ -4542,6 +4542,7 @@ async function openGastoForm(presIdPresel) {
 }
 
 async function saveGasto() {
+  try {
   const fecha = document.getElementById('gastoFecha').value;
   if (!fecha) { showToast('La fecha es requerida', 'err'); return; }
   const categoria = document.getElementById('gastoCatInput').value;
@@ -4617,8 +4618,14 @@ async function saveGasto() {
     showToast(`${items.length} gasto${items.length>1?'s':''} guardado${items.length>1?'s':''}${registrarInsumos?' e insumos actualizados':''}`, 'ok');
     closeM();
   }
-  // Siempre refrescar la lista para mostrar lo que se guardó
+  // Siempre refrescar — resetear filtro al mes actual para que aparezca el gasto nuevo
+  const now = new Date();
+  const mesEl = document.getElementById('gastoMesNum');
+  const anioEl = document.getElementById('gastoAnio');
+  if (mesEl) mesEl.value = String(now.getMonth()+1).padStart(2,'0');
+  if (anioEl) anioEl.value = String(now.getFullYear());
   loadGastos();
+  } catch(fatal) { showToast('Error crítico: ' + fatal.message, 'err'); console.error('saveGasto fatal:', fatal); }
 }
 
 async function _upsertInsumo(item, provId, moneda) {
@@ -4779,8 +4786,7 @@ async function fetchTipoCambioSilent() {
   } catch {}
 }
 
-async function actualizarTipoCambio() {
-  const btn = event.currentTarget;
+async function actualizarTipoCambio(btn) {
   const orig = btn.textContent;
   btn.textContent = 'Consultando…'; btn.disabled = true;
   try {
