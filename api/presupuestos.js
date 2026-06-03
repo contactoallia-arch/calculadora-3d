@@ -104,7 +104,7 @@ export default async function handler(req, res) {
               const prev = Number(st.rows[0]?.stock || 0);
               const nuevo = Math.max(0, prev - Number(ins.qty));
               await db.execute({ sql: "UPDATE insumos SET stock=? WHERE id=? AND activo=1", args: [nuevo, ins.id] });
-              await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [ins.id, -Number(ins.qty), nuevo, "consumo_presupuesto", ref, id, user.id] });
+              try { await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [ins.id, -Number(ins.qty), nuevo, "consumo_presupuesto", ref, id, user.id] }); } catch {}
             }
           }
           snap._insumosDeducted = true;
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
             const prev = Number(st.rows[0]?.stock || 0);
             const nuevo = Math.max(0, prev - Number(c.iqty));
             await db.execute({ sql: "UPDATE insumos SET stock=? WHERE id=? AND activo=1", args: [nuevo, c.iid] });
-            await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [c.iid, -Number(c.iqty), nuevo, "consumo_presupuesto", ref, id, user.id] });
+            try { await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [c.iid, -Number(c.iqty), nuevo, "consumo_presupuesto", ref, id, user.id] }); } catch {}
             if (estado_nuevo === "produccion" && c.m > 0) {
               await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: ["filamento", `${c.d} — Presupuesto #${id}: ${pres.pieza}`, c.m, pres.moneda||"UYU", fecha, "produccion_automatico", id, user.id] });
             }

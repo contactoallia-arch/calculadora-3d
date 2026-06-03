@@ -21,17 +21,27 @@ export default async function handler(req, res) {
     if (recurso === "insumos") {
       if (m === "GET") {
         const categoria = req.query.categoria;
-        let sql = `SELECT i.*, p.nombre as proveedor_nombre,
-          (SELECT sm.referencia FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_ref,
-          (SELECT sm.cantidad FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_qty,
-          (SELECT sm.fecha FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_fecha
-          FROM insumos i
-          LEFT JOIN proveedores p ON p.id=i.proveedor_id WHERE i.activo=1`;
         const args = [];
-        if (categoria) { sql += " AND i.categoria=?"; args.push(categoria); }
-        sql += " ORDER BY i.categoria, i.nombre";
-        const r = await db.execute({ sql, args });
-        return res.status(200).json({ ok: true, data: r.rows });
+        let sqlBase = `SELECT i.*, p.nombre as proveedor_nombre FROM insumos i LEFT JOIN proveedores p ON p.id=i.proveedor_id WHERE i.activo=1`;
+        if (categoria) { sqlBase += " AND i.categoria=?"; args.push(categoria); }
+        sqlBase += " ORDER BY i.categoria, i.nombre";
+        // Intentar incluir último movimiento (la tabla puede no existir aún)
+        let rows;
+        try {
+          const sqlFull = sqlBase.replace(
+            "FROM insumos i",
+            `,
+            (SELECT sm.referencia FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_ref,
+            (SELECT sm.cantidad FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_qty,
+            (SELECT sm.fecha FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_fecha
+            FROM insumos i`
+          );
+          rows = (await db.execute({ sql: sqlFull, args })).rows;
+        } catch {
+          // Fallback sin movimientos si la tabla no existe todavía
+          rows = (await db.execute({ sql: sqlBase, args })).rows;
+        }
+        return res.status(200).json({ ok: true, data: rows });
       }
       if (m === "POST") {
         const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, notas } = req.body || {};
@@ -73,10 +83,12 @@ export default async function handler(req, res) {
             sql: "UPDATE insumos SET stock=?, precio=COALESCE(?,precio) WHERE id=?",
             args: [stockNuevo, precio||null, id]
           });
-          await db.execute({
-            sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,fecha,created_by) VALUES (?,?,?,?,?,date('now'),?)",
-            args: [id, delta, stockNuevo, tipo||'manual', referencia||null, user?.id||null]
-          });
+          try {
+            await db.execute({
+              sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,fecha,created_by) VALUES (?,?,?,?,?,date('now'),?)",
+              args: [id, delta, stockNuevo, tipo||'manual', referencia||null, user?.id||null]
+            });
+          } catch {}
           await logAction(db, user, "STOCK_INSUMO", "insumo", id);
           return res.status(200).json({ ok: true });
         }
