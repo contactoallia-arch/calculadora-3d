@@ -3530,7 +3530,7 @@ async function abrirPdfPresupuesto(id){
   const shareData={tel,email:ce,asunto:`Presupuesto ${numLabel} — ArteLab`,texto:`Presupuesto ${numLabel} — ArteLab\nCliente: ${cn||'—'}\nProyecto: ${pedido||'Impresión 3D'}\nTotal: $ ${fmt(Math.round(precioFinal))} UYU\n\nPresupuesto válido por 10 días.\nhola@artelab.studio`};
   const pageData={numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:false,showTotal:true,proyMat};
   const html=_buildPdfPageHtml(pageData);
-  abrirPdfPreview(html,shareData,pageData);
+  abrirPdfPreview(html,shareData,pageData,true); // true = ya existe en DB
 }
 
 function emailPres(id){
@@ -7199,7 +7199,8 @@ function calc(){recalcTotal();}
 
 // ── PDF PREVIEW OVERLAY ───────────────────────────────────────────────
 let _pdfShareData = null;
-let _pdfPageData = null;  // datos completos para re-generar el HTML
+let _pdfPageData = null;   // datos completos para re-generar el HTML
+let _pdfIsExisting = false; // true = presupuesto ya existe en DB
 
 function cerrarPdfPreview(){
   document.getElementById('pdfPreviewOv').style.display='none';
@@ -7222,25 +7223,41 @@ body{padding:24px}
 
 function imprimirPdfPreview(){
   if(!_pdfPageData){alert('No hay datos del presupuesto.');return;}
+  const msg = _pdfIsExisting
+    ? '¿Generar e imprimir el PDF de este presupuesto?'
+    : 'Al generar el PDF, este presupuesto se guardará en la sección Presupuestos.\n¿Continuás?';
+  showConfirm(msg, async()=>{
+    // Si viene de la calculadora (nuevo), guardar primero en Presupuestos
+    if(!_pdfIsExisting){
+      await savePresupuesto();
+      // Actualizar lista de presupuestos en segundo plano
+      loadPresupuestos?.();
+    }
+    _abrirVentanaImpresion();
+  },{title:'Generar PDF', btnLabel: _pdfIsExisting?'Imprimir':'Guardar e imprimir', danger:false});
+}
+
+function _abrirVentanaImpresion(){
   const html=_pdfFullHtml(_pdfPageData);
   const w=window.open('','_blank','width=900,height=750');
   if(!w){alert('Permitir ventanas emergentes en este sitio para imprimir.');return;}
   w.document.open();
   w.document.write(html);
   w.document.close();
-  // Esperar a que carguen las imágenes antes de imprimir
+  let printed=false;
+  const doPrint=()=>{if(printed)return;printed=true;setTimeout(()=>w.print(),250);};
   const imgs=w.document.images;
   if(!imgs.length){
-    setTimeout(()=>w.print(),300);
+    doPrint();
   } else {
     let loaded=0;
-    const check=()=>{loaded++;if(loaded>=imgs.length)setTimeout(()=>w.print(),200);};
+    const check=()=>{loaded++;if(loaded>=imgs.length)doPrint();};
     Array.from(imgs).forEach(img=>{
       if(img.complete) check();
       else{img.onload=check;img.onerror=check;}
     });
-    // Fallback por si onload no dispara
-    setTimeout(()=>w.print(),2000);
+    // Fallback: si las imágenes tardan más de 3s igual imprime
+    setTimeout(doPrint, 3000);
   }
 }
 
@@ -7257,9 +7274,10 @@ function compartirPdfEmail(){
   window.open(`mailto:${email||''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(texto)}`);
 }
 
-function abrirPdfPreview(pageHtml, shareData, pageData){
+function abrirPdfPreview(pageHtml, shareData, pageData, isExisting){
   _pdfShareData=shareData||null;
   _pdfPageData=pageData||null;
+  _pdfIsExisting=!!isExisting;
   const wrap=document.getElementById('pdfPageWrap');
   wrap.innerHTML=pageHtml;
   const page=wrap.querySelector('.pvp-page');
@@ -7377,7 +7395,7 @@ function exportPDF(){
   const shareData={tel,email:ce,asunto:`Presupuesto ${numLabel} — ArteLab`,texto:`Presupuesto ${numLabel} — ArteLab\nCliente: ${cn||'—'}\nProyecto: ${pedido||'Impresión 3D'}\nTotal: $ ${fmt(Math.round(precioFinal))} UYU\n\nPresupuesto válido por 10 días.\nhola@artelab.studio`};
   const pageData={numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:S.ivaOnBill,showTotal:true,proyMat};
   const html=_buildPdfPageHtml(pageData);
-  abrirPdfPreview(html,shareData,pageData);
+  abrirPdfPreview(html,shareData,pageData,false); // false = nuevo, se guardará al imprimir
 }
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────
