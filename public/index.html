@@ -1701,10 +1701,22 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="pg-body">
     <!-- 4 KPIs -->
     <div class="kpi-row-4">
-      <div class="kpi">
+      <div class="kpi" style="min-width:0">
         <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div></div>
-        <div class="k-val" id="insKpiValor">—</div>
-        <div class="k-sub" id="insKpiValorSub" style="font-size:10.5px;color:var(--text-3);margin-top:2px"></div>
+        <div style="margin:4px 0 2px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+            <span style="font-size:10px;font-weight:700;color:var(--text-3)">$ UYU</span>
+            <span id="insKpiValorUYU" class="num" style="font-size:13px;font-weight:800;color:var(--text-1)">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:10px;font-weight:700;color:var(--info-fg)">U$S</span>
+            <span id="insKpiValorUSD" class="num" style="font-size:13px;font-weight:800;color:var(--info-fg)">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border-2);padding-top:3px">
+            <span style="font-size:10px;font-weight:700;color:var(--brand)">Total $</span>
+            <span id="insKpiValorTotal" class="num" style="font-size:14px;font-weight:800;color:var(--brand)">—</span>
+          </div>
+        </div>
         <div class="k-label">Valor en stock</div>
       </div>
       <div class="kpi">
@@ -1802,7 +1814,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       </div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Precio *</label><input id="insPrecio" type="number" min="0" step="0.01" placeholder="0.00" oninput="verificarDuplicadoInsumo()"></div>
+      <div class="fgrp">
+        <label>Precio *</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input id="insPrecio" type="number" min="0" step="0.01" placeholder="0.00" style="flex:1" oninput="verificarDuplicadoInsumo();updateInsIVAPreview()">
+          <button type="button" id="insIVABtn" onclick="toggleInsIVA()" style="height:36px;padding:0 10px;border:1.5px solid var(--border);border-radius:99px;background:none;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--sans);color:var(--text-3);white-space:nowrap;flex-shrink:0;transition:all .15s">IVA inc.</button>
+        </div>
+        <div id="insIVAPreview" style="font-size:11px;margin-top:2px;height:14px"></div>
+      </div>
       <div class="fgrp"><label>Moneda</label><select id="insMoneda"><option>UYU</option><option>USD</option></select></div>
       <div class="fgrp" id="insUnidadWrap"><label>Unidad</label>
         <select id="insUnidad">
@@ -2290,7 +2309,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="fgrp"><label>WhatsApp (con código país)</label><input id="cfgWA" placeholder="59899000000"></div>
       </div>
       <div class="frow">
-        <div class="fgrp"><label>Tipo de cambio USD/UYU</label><input id="cfgTC" type="number" step="0.01" placeholder="42.5"></div>
+        <div class="fgrp">
+          <label>Tipo de cambio USD/UYU <span id="cfgTCFecha" style="font-size:10px;color:var(--text-3);font-weight:400"></span></label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="cfgTC" type="number" step="0.01" placeholder="42.5" style="flex:1">
+            <button type="button" onclick="actualizarTipoCambio()" style="height:36px;padding:0 11px;border:1.5px solid var(--brand);border-radius:var(--rs);background:var(--brand-soft);color:var(--brand);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;flex-shrink:0">↻ Cotización del día</button>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:3px">Se actualiza automáticamente al iniciar sesión. Podés editarlo manualmente o forzar la actualización.</div>
+        </div>
         <div class="fgrp"><label>Margen por defecto (%)</label><input id="cfgMargen" type="number" placeholder="50"></div>
       </div>
       <button class="btn btn--primary" onclick="saveConfig()">Guardar configuración</button>
@@ -2717,6 +2743,8 @@ let _token = localStorage.getItem('al-token');
     initSidebar();
     // Correr migraciones en background (idempotente)
     fetch('/api/setup', { headers: { Authorization: 'Bearer ' + _token } }).catch(()=>{});
+    // Obtener cotización del día en background
+    fetchTipoCambioSilent();
   } catch {
     // si falla la red, continuar igualmente (offline mode)
     const u = JSON.parse(localStorage.getItem('al-user') || 'null');
@@ -4729,8 +4757,60 @@ async function loadReportes() {
   }).join('') : '<div class="empty" style="padding:20px 0"><p>Sin datos de facturación</p></div>';
 }
 
+// ── TIPO DE CAMBIO ────────────────────────────────────────────────────
+let _tipoCambioUSD = 40; // fallback, se actualiza desde config o auto-fetch
+
+async function fetchTipoCambioSilent() {
+  try {
+    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=UYU');
+    const d = await r.json();
+    const rate = d.rates?.UYU;
+    if (!rate) return;
+    _tipoCambioUSD = rate;
+    // Actualizar en DB en background
+    const fecha = d.date || '';
+    apiPut('/api/configuracion', { tipo_cambio_usd_uyu: rate.toFixed(2), tc_fecha: fecha }).catch(()=>{});
+    // Actualizar UI si la config está abierta
+    const cfgTC = document.getElementById('cfgTC');
+    if (cfgTC) cfgTC.value = rate.toFixed(2);
+    const cfgTCFecha = document.getElementById('cfgTCFecha');
+    if (cfgTCFecha) cfgTCFecha.textContent = `· ${fecha}`;
+  } catch {}
+}
+
+async function actualizarTipoCambio() {
+  const btn = event.currentTarget;
+  const orig = btn.textContent;
+  btn.textContent = 'Consultando…'; btn.disabled = true;
+  try {
+    const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=UYU');
+    const d = await r.json();
+    const rate = d.rates?.UYU;
+    if (!rate) throw new Error('Sin datos');
+    _tipoCambioUSD = rate;
+    const fecha = d.date || '';
+    document.getElementById('cfgTC').value = rate.toFixed(2);
+    const cfgTCFecha = document.getElementById('cfgTCFecha');
+    if (cfgTCFecha) cfgTCFecha.textContent = `· ${fecha}`;
+    // Guardar en DB
+    const body = {
+      nombre_empresa: document.getElementById('cfgEmpresa').value,
+      whatsapp_numero: document.getElementById('cfgWA').value,
+      tipo_cambio_usd_uyu: rate.toFixed(2),
+      margen_default: document.getElementById('cfgMargen').value
+    };
+    const dr = await apiPut('/api/configuracion', body);
+    if (dr.ok) showToast(`Tipo de cambio: 1 USD = $ ${rate.toFixed(2)} (${fecha})`, 'ok');
+    else showToast('No se pudo guardar en config', 'err');
+    renderInsumos();
+  } catch(e) {
+    showToast('Error al obtener cotización: ' + e.message, 'err');
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
+}
+
 // ── CONFIGURACIÓN ─────────────────────────────────────────────────────
-let _tipoCambioUSD = 40; // fallback, se actualiza desde config
 
 async function loadConfig() {
   const [cfgD, usersD, fijosD] = await Promise.all([
@@ -4745,6 +4825,8 @@ async function loadConfig() {
     document.getElementById('cfgWA').value = c.whatsapp_numero || '';
     document.getElementById('cfgTC').value = c.tipo_cambio_usd_uyu || '';
     if (c.tipo_cambio_usd_uyu) _tipoCambioUSD = parseFloat(c.tipo_cambio_usd_uyu) || 40;
+    const cfgTCFecha = document.getElementById('cfgTCFecha');
+    if (cfgTCFecha) cfgTCFecha.textContent = c.tc_fecha ? `· ${c.tc_fecha}` : '';
     document.getElementById('cfgMargen').value = c.margen_default || '';
   }
 
@@ -5400,17 +5482,12 @@ function renderInsumos() {
   const valorTotal = valorUYU + valorUSD * tc;
   const bajo = all.filter(i=>{const e=_insEstado(i);return e.t==='Bajo mínimo';}).length;
   const agot = all.filter(i=>Number(i.stock||0)<=0).length;
-  document.getElementById('insKpiValor').textContent = '$ '+fmtMoney(Math.round(valorTotal));
-  const sub = document.getElementById('insKpiValorSub');
-  if (sub) {
-    if (valorUSD > 0 && valorUYU > 0) {
-      sub.textContent = `$ ${fmtMoney(Math.round(valorUYU))} + U$S ${fmtMoney(Math.round(valorUSD))} × ${tc}`;
-    } else if (valorUSD > 0) {
-      sub.textContent = `U$S ${fmtMoney(Math.round(valorUSD))} × ${tc} = $ ${fmtMoney(Math.round(valorTotal))}`;
-    } else {
-      sub.textContent = '';
-    }
-  }
+  const elUYU = document.getElementById('insKpiValorUYU');
+  const elUSD = document.getElementById('insKpiValorUSD');
+  const elTotal = document.getElementById('insKpiValorTotal');
+  if (elUYU) elUYU.textContent = fmtMoney(Math.round(valorUYU));
+  if (elUSD) elUSD.textContent = fmtMoney(Math.round(valorUSD));
+  if (elTotal) elTotal.textContent = fmtMoney(Math.round(valorTotal));
   document.getElementById('insKpiBajo').textContent = bajo;
   document.getElementById('insKpiAgot').textContent = agot;
   document.getElementById('insKpiSku').textContent = all.length;
@@ -5465,6 +5542,12 @@ async function abrirInsumoForm(id) {
   } catch {}
 
   document.getElementById('insDuplicadoAviso').style.display = 'none';
+  // Reset IVA toggle
+  _insIVAActivo = false;
+  const insIVABtn = document.getElementById('insIVABtn');
+  if (insIVABtn) { insIVABtn.textContent='IVA inc.'; insIVABtn.style.background='none'; insIVABtn.style.borderColor='var(--border)'; insIVABtn.style.color='var(--text-3)'; }
+  const insIVAPrev = document.getElementById('insIVAPreview');
+  if (insIVAPrev) insIVAPrev.innerHTML = '';
 
   if (!id) {
     document.getElementById('mInsumoTit').textContent = 'Nuevo insumo';
@@ -5500,6 +5583,37 @@ async function abrirInsumoForm(id) {
     document.getElementById('insMoneda').value = item.moneda||'UYU';
   }
   openM('mInsumo');
+}
+
+// ── IVA INSUMO ────────────────────────────────────────────────────────
+let _insIVAActivo = false;
+
+function toggleInsIVA() {
+  _insIVAActivo = !_insIVAActivo;
+  const btn = document.getElementById('insIVABtn');
+  if (_insIVAActivo) {
+    btn.textContent = '+ IVA 22%';
+    btn.style.background = 'var(--brand-soft)';
+    btn.style.borderColor = 'var(--brand)';
+    btn.style.color = 'var(--brand)';
+  } else {
+    btn.textContent = 'IVA inc.';
+    btn.style.background = 'none';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text-3)';
+  }
+  updateInsIVAPreview();
+}
+
+function updateInsIVAPreview() {
+  const precio = parseFloat(document.getElementById('insPrecio').value||0);
+  const preview = document.getElementById('insIVAPreview');
+  if (!preview) return;
+  if (_insIVAActivo && precio > 0) {
+    preview.innerHTML = `<span style="color:var(--brand)">Precio final con IVA: $ ${fmtMoney((precio*1.22).toFixed(2))}</span>`;
+  } else {
+    preview.innerHTML = '';
+  }
 }
 
 function toggleInsCategoria() {
@@ -5571,7 +5685,8 @@ async function guardarInsumo() {
     nombre = [nombre, colorLabel].filter(Boolean).join(' ');
     document.getElementById('insNombre').value = nombre;
   }
-  const precio = parseFloat(document.getElementById('insPrecio').value);
+  const precioRaw = parseFloat(document.getElementById('insPrecio').value);
+  const precio = _insIVAActivo ? precioRaw * 1.22 : precioRaw;
   if (!nombre) { showToast('Nombre requerido', 'err'); return; }
   if (document.getElementById('insDuplicadoAviso').style.display !== 'none' && !_editInsumoId) {
     showToast('Ya existe ese insumo. Editá el existente.', 'err'); return;
