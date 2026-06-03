@@ -6833,6 +6833,7 @@ function articuloHTML(aid){
           <div id="artOverrideRow-${aid}" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px">
             <input type="number" id="artOverrideInput-${aid}" placeholder="Precio…" min="0" step="1"
               style="width:140px;height:40px;font-size:17px;font-family:var(--mono);font-weight:700;border:2px solid var(--ac);border-radius:var(--rs);background:var(--surface);color:var(--ac);padding:0 10px;outline:none"
+              oninput="(()=>{const v=parseFloat(this.value);const r=computeArt(${aid});if(r&&v>0){const em=Math.max(0,((v-r.totalCost)/v)*100);const ms=document.getElementById('margSlider-${aid}');const md=document.getElementById('margDisp-${aid}');if(ms)ms.value=Math.min(300,em);if(md)md.textContent=em.toFixed(1)+'%';document.getElementById('margPills-${aid}')?.querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));}})()"
               onkeydown="if(event.key==='Enter')confirmOverrideArt(${aid});if(event.key==='Escape')cancelOverrideArt(${aid})">
             <button onclick="confirmOverrideArt(${aid})"
               style="height:40px;padding:0 13px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">✓</button>
@@ -7297,6 +7298,16 @@ function confirmOverrideArt(aid){
   a.overridePrice=val;
   document.getElementById('artOverrideRow-'+aid).style.display='none';
   document.getElementById('artOverrideBadge-'+aid).style.display='';
+  // Mover slider al margen efectivo real = (precio - costo) / precio
+  const r=computeArt(aid);
+  if(r&&val>0){
+    const effM=Math.max(0,((val-r.totalCost)/val)*100);
+    const ms=document.getElementById('margSlider-'+aid);
+    const md=document.getElementById('margDisp-'+aid);
+    if(ms)ms.value=Math.min(300,effM);
+    if(md)md.textContent=effM.toFixed(1)+'%';
+    document.getElementById('margPills-'+aid)?.querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));
+  }
   renderArt(aid);recalcTotal();
 }
 function cancelOverrideArt(aid){
@@ -7307,6 +7318,12 @@ function clearOverrideArt(aid){
   a.overridePrice=null;
   document.getElementById('artOverrideRow-'+aid).style.display='none';
   document.getElementById('artOverrideBadge-'+aid).style.display='none';
+  // Restaurar slider al margen original del artículo
+  const ms=document.getElementById('margSlider-'+aid);
+  const md=document.getElementById('margDisp-'+aid);
+  if(ms)ms.value=a.margin;
+  if(md)md.textContent=a.margin+'%';
+  document.getElementById('margPills-'+aid)?.querySelectorAll('.pill').forEach(b=>b.classList.toggle('on',b.textContent===a.margin+'%'));
   renderArt(aid);recalcTotal();
 }
 
