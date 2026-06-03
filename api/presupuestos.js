@@ -73,26 +73,38 @@ export default async function handler(req, res) {
       } catch {}
     }
 
-    if (estado_nuevo === "produccion" && pres.snap) {
+    // Registrar gastos y descontar insumos al pasar a producción o listo (lo que ocurra primero)
+    const esProduccionOListo = ["produccion", "listo"].includes(estado_nuevo);
+
+    if (esProduccionOListo && pres.snap) {
       try {
         const snap = JSON.parse(pres.snap);
-        const costos = [
-          { cat: "filamento",    monto: snap._matC,   desc: "Material" },
-          { cat: "electricidad", monto: snap._elecC,  desc: "Electricidad" },
-          { cat: "maquinaria",   monto: snap._deprC,  desc: "Depreciación impresora" },
-          { cat: "otros",        monto: snap._laborC, desc: "Mano de obra" }
-        ];
-        const fecha = new Date().toLocaleDateString("es-UY");
-        for (const c of costos) {
-          if (c.monto > 0) {
-            await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: [c.cat, `${c.desc} — Presupuesto #${id}: ${pres.pieza}`, c.monto, "UYU", fecha, "produccion_automatico", id, user.id] });
+        // Registrar gastos del snap (calculadora) — solo en produccion para no duplicar
+        if (estado_nuevo === "produccion") {
+          const costos = [
+            { cat: "filamento",    monto: snap._matC,   desc: "Material" },
+            { cat: "electricidad", monto: snap._elecC,  desc: "Electricidad" },
+            { cat: "maquinaria",   monto: snap._deprC,  desc: "Depreciación impresora" },
+            { cat: "otros",        monto: snap._laborC, desc: "Mano de obra" }
+          ];
+          const fecha = new Date().toLocaleDateString("es-UY");
+          for (const c of costos) {
+            if (c.monto > 0) {
+              await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: [c.cat, `${c.desc} — Presupuesto #${id}: ${pres.pieza}`, c.monto, "UYU", fecha, "produccion_automatico", id, user.id] });
+            }
           }
         }
-        // Descontar insumos del stock vinculados desde la calculadora (solo una vez)
+        // Descontar insumos del stock (solo una vez — en el primer estado elegible)
         if (snap._insumos && !snap._insumosDeducted) {
+          const num = String(pres.numero||id).padStart(4,'0');
+          const ref = `Pres. #${num}: ${pres.pieza}`;
           for (const ins of snap._insumos) {
             if (ins.id && ins.qty > 0) {
-              await db.execute({ sql: "UPDATE insumos SET stock=MAX(0,stock-?) WHERE id=? AND activo=1", args: [Number(ins.qty), ins.id] });
+              const st = await db.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [ins.id] });
+              const prev = Number(st.rows[0]?.stock || 0);
+              const nuevo = Math.max(0, prev - Number(ins.qty));
+              await db.execute({ sql: "UPDATE insumos SET stock=? WHERE id=? AND activo=1", args: [nuevo, ins.id] });
+              await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [ins.id, -Number(ins.qty), nuevo, "consumo_presupuesto", ref, id, user.id] });
             }
           }
           snap._insumosDeducted = true;
@@ -102,16 +114,21 @@ export default async function handler(req, res) {
     }
 
     // Descontar insumos vinculados desde el formulario de presupuestos (costos_internos)
-    if (estado_nuevo === "produccion" && pres.costos_internos) {
+    if (esProduccionOListo && pres.costos_internos) {
       try {
         const costos = JSON.parse(pres.costos_internos);
         const porDescontar = costos.filter(c => c.iid && c.iqty > 0 && !c.ideducted);
         if (porDescontar.length > 0) {
           const fecha = new Date().toLocaleDateString("es-UY");
+          const num = String(pres.numero||id).padStart(4,'0');
+          const ref = `Pres. #${num}: ${pres.pieza}`;
           for (const c of porDescontar) {
-            await db.execute({ sql: "UPDATE insumos SET stock=MAX(0,stock-?) WHERE id=? AND activo=1", args: [Number(c.iqty), c.iid] });
-            // Registrar como gasto de producción
-            if (c.m > 0) {
+            const st = await db.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [c.iid] });
+            const prev = Number(st.rows[0]?.stock || 0);
+            const nuevo = Math.max(0, prev - Number(c.iqty));
+            await db.execute({ sql: "UPDATE insumos SET stock=? WHERE id=? AND activo=1", args: [nuevo, c.iid] });
+            await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [c.iid, -Number(c.iqty), nuevo, "consumo_presupuesto", ref, id, user.id] });
+            if (estado_nuevo === "produccion" && c.m > 0) {
               await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: ["filamento", `${c.d} — Presupuesto #${id}: ${pres.pieza}`, c.m, pres.moneda||"UYU", fecha, "produccion_automatico", id, user.id] });
             }
             c.ideducted = true;

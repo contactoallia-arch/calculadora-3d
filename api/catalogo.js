@@ -21,7 +21,11 @@ export default async function handler(req, res) {
     if (recurso === "insumos") {
       if (m === "GET") {
         const categoria = req.query.categoria;
-        let sql = `SELECT i.*, p.nombre as proveedor_nombre FROM insumos i
+        let sql = `SELECT i.*, p.nombre as proveedor_nombre,
+          (SELECT sm.referencia FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_ref,
+          (SELECT sm.cantidad FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_qty,
+          (SELECT sm.fecha FROM stock_movimientos sm WHERE sm.insumo_id=i.id ORDER BY sm.id DESC LIMIT 1) as ultimo_mov_fecha
+          FROM insumos i
           LEFT JOIN proveedores p ON p.id=i.proveedor_id WHERE i.activo=1`;
         const args = [];
         if (categoria) { sql += " AND i.categoria=?"; args.push(categoria); }
@@ -60,10 +64,18 @@ export default async function handler(req, res) {
       }
       if (m === "PUT" && id) {
         if (req.query.action === "add-stock") {
-          const { qty, precio } = req.body || {};
+          const { qty, precio, referencia, tipo } = req.body || {};
+          const delta = Number(qty)||0;
+          const stockRes = await db.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [id] });
+          const stockActual = Number(stockRes.rows[0]?.stock || 0);
+          const stockNuevo = Math.max(0, stockActual + delta);
           await db.execute({
-            sql: "UPDATE insumos SET stock=stock+?, precio=COALESCE(?,precio) WHERE id=?",
-            args: [Number(qty)||0, precio||null, id]
+            sql: "UPDATE insumos SET stock=?, precio=COALESCE(?,precio) WHERE id=?",
+            args: [stockNuevo, precio||null, id]
+          });
+          await db.execute({
+            sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,fecha,created_by) VALUES (?,?,?,?,?,date('now'),?)",
+            args: [id, delta, stockNuevo, tipo||'manual', referencia||null, user?.id||null]
           });
           await logAction(db, user, "STOCK_INSUMO", "insumo", id);
           return res.status(200).json({ ok: true });

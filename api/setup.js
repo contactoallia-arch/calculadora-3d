@@ -281,6 +281,22 @@ export default async function handler(req, res) {
     )
   `);
 
+  // Movimientos de stock
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS stock_movimientos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      insumo_id INTEGER NOT NULL,
+      cantidad REAL NOT NULL,
+      stock_resultante REAL,
+      tipo TEXT DEFAULT 'manual',
+      referencia TEXT,
+      presupuesto_id INTEGER,
+      fecha TEXT DEFAULT (date('now')),
+      created_by INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
   // Configuracion
   await db.execute(`
     CREATE TABLE IF NOT EXISTS configuracion (

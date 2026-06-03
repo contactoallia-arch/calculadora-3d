@@ -5815,7 +5815,11 @@ function renderInsumos() {
       <td>
         <div style="display:flex;align-items:center;gap:11px">
           <span style="${dotStyle}"></span>
-          <div><b style="font-size:13.5px">${i.nombre}</b><div style="font-size:11px;color:var(--text-3)">${i.notas||i.tipo||'—'}</div></div>
+          <div>
+            <b style="font-size:13.5px">${i.nombre}</b>
+            <div style="font-size:11px;color:var(--text-3)">${i.notas||i.tipo||'—'}</div>
+            ${i.ultimo_mov_ref ? `<div style="font-size:10px;color:var(--text-faint);margin-top:1px">↳ ${i.ultimo_mov_qty < 0 ? '−' : '+'}${Math.abs(i.ultimo_mov_qty)} ${i.unidad||''} · ${i.ultimo_mov_ref} · ${i.ultimo_mov_fecha||''}</div>` : ''}
+          </div>
         </div>
       </td>
       <td class="hide-m" style="color:var(--text-2);font-size:13px;text-transform:capitalize">${i.tipo||i.categoria||'—'}</td>
