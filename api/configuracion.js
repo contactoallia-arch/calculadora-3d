@@ -10,6 +10,20 @@ export default async function handler(req, res) {
   const user = await requireAuth(req, res, db);
   if (!user) return;
 
+  // Proxy cotización USD/UYU (evita CORS en browser)
+  if (req.query.action === "tipo-cambio") {
+    try {
+      const r = await fetch("https://api.frankfurter.app/latest?from=USD&to=UYU");
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const d = await r.json();
+      const rate = d.rates?.UYU;
+      if (!rate) throw new Error("Sin datos de cotización");
+      return res.status(200).json({ ok: true, rate, date: d.date });
+    } catch (e) {
+      return res.status(200).json({ ok: false, error: e.message });
+    }
+  }
+
   if (req.method === "GET") {
     const r = await db.execute("SELECT clave, valor FROM configuracion");
     const cfg = {};
