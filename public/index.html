@@ -311,6 +311,11 @@ input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12)}
 
 /* ─── PRINT ─── */
 #printDoc{display:none}
+/* Modo impresión desde el overlay de vista previa */
+body.pdfprint-mode>*:not(#pdfPreviewOv){display:none!important}
+body.pdfprint-mode #pdfPreviewOv{display:block!important;position:static!important;overflow:visible!important;background:transparent!important;padding:0!important}
+body.pdfprint-mode .pdf-tb{display:none!important}
+body.pdfprint-mode #pdfPageWrap{padding:0!important;background:transparent!important}
 @media print{
   .m-topbar,.m-bottomnav,aside,#sidebarOv,#toast,#scrim,#drawer,
   .app-wrap,#appWrap,.modal,#ov,#presBar,#notifPanel,
@@ -952,6 +957,23 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 <!-- TOAST -->
 <div id="toast"></div>
 
+<!-- PDF PREVIEW OVERLAY -->
+<div id="pdfPreviewOv" style="display:none;position:fixed;inset:0;z-index:9999;background:#d7d2c8;overflow-y:auto">
+  <div class="pdf-tb" style="position:sticky;top:0;z-index:10;background:#211F1C;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;gap:12px;flex-wrap:wrap;box-shadow:0 2px 16px rgba(0,0,0,.35)">
+    <div style="min-width:0">
+      <div style="font-size:13.5px;font-weight:800;color:#fff;letter-spacing:-.01em">Vista previa del presupuesto</div>
+      <div style="font-size:11px;color:#E7E0D6;margin-top:1px">Hacé clic en cualquier texto para editarlo antes de generar</div>
+    </div>
+    <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+      <button onclick="imprimirPdfPreview()" style="height:36px;padding:0 14px;background:#E8722A;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir / PDF</button>
+      <button onclick="compartirPdfWA()" style="height:36px;padding:0 14px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>WhatsApp</button>
+      <button onclick="compartirPdfEmail()" style="height:36px;padding:0 14px;background:#4A90D9;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 5L2 7"/></svg>Email</button>
+      <button onclick="cerrarPdfPreview()" style="height:36px;padding:0 12px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div id="pdfPageWrap" style="padding:24px;min-height:calc(100vh - 60px)"></div>
+</div>
+
 <!-- PRINT DOC -->
 <div id="printDoc">
   <div class="pd">
@@ -1319,7 +1341,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <!-- compartir / enviar -->
     <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin:6px 0 8px">Enviar presupuesto</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button class="btn btn--ghost btn--sm" style="flex:1" onclick="descargarPDFPres(_slPresId)" title="Descargar / imprimir PDF">
+      <button class="btn btn--ghost btn--sm" style="flex:1" onclick="abrirPdfPresupuesto(_slPresId)" title="Ver y editar PDF">
         <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v9M5 7l4 4 4-4"/><path d="M3 14h12"/></svg> PDF
       </button>
       <button class="btn btn--ghost btn--sm" style="flex:1" onclick="emailPres(_slPresId)" title="Enviar por email">
@@ -3445,55 +3467,57 @@ function _resumenPres(p){
   return lineas.join('\n');
 }
 
-function descargarPDFPres(id){
-  const p = _presById(id);
-  if(!p){ showToast('No se encontró el presupuesto','err'); return; }
-  const num = String(p.numero||p.id).padStart(4,'0');
-  const cliente = p.cliente_nombre || p.cliente || '';
-  const email = p.cliente_email || p.snap?.cEmail || '';
-  const tel = p.cliente_tel || p.snap?.cPhone || '';
-  const grams = p.snap?.grams ? `${p.snap.grams}g` : '';
-  const qtyLine = (p.qty>1) ? `<div class="pd-br">Cantidad: <strong>${p.qty} unidades</strong></div>` : '';
-  const clientBlock = (cliente||email||tel) ? `
-    <div class="pd-box">
-      <div class="pd-bt">Cliente</div>
-      ${cliente?`<div class="pd-br"><strong>${cliente}</strong></div>`:''}
-      ${email?`<div class="pd-br">${email}</div>`:''}
-      ${tel?`<div class="pd-br">${tel}</div>`:''}
-    </div>` : '';
+function descargarPDFPres(id){ abrirPdfPresupuesto(id); }
 
-  document.getElementById('printDoc').innerHTML = `
-  <div class="pd">
-    <div class="pd-hdr">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;border-radius:11px;background:#10151D;display:flex;align-items:center;justify-content:center;color:#F26A21;font-weight:900;font-family:Arial;font-size:13px">AL</div>
-        <div><div class="pd-brand">ArteLab UY</div><div class="pd-brand-sub">IMPRESIÓN 3D · URUGUAY</div></div>
-      </div>
-      <div class="pd-meta">
-        <div class="pd-qlabel">Presupuesto</div>
-        <div class="pd-qno">#${num}</div>
-        <div class="pd-date">${p.fecha||''}</div>
-      </div>
-    </div>
-    <div class="pd-boxes" style="${clientBlock?'':'grid-template-columns:1fr'}">
-      <div class="pd-box">
-        <div class="pd-bt">Detalle del pedido</div>
-        ${p.pieza?`<div class="pd-br"><strong>${p.pieza}</strong></div>`:''}
-        ${qtyLine}
-        ${(p.mat||grams)?`<div class="pd-br">Material: ${p.mat||'—'}${grams?` · ${grams}`:''}</div>`:''}
-        ${p.fecha_entrega?`<div class="pd-br" style="color:#d4601a;font-weight:600">Entrega: ${p.fecha_entrega}</div>`:''}
-      </div>
-      ${clientBlock}
-    </div>
-    <div class="pd-total">
-      <div><div class="pd-tl">Precio de venta</div></div>
-      <div class="pd-tp">$ ${fmtMoney(p.precio)} ${p.moneda||'UYU'}</div>
-    </div>
-    ${p.notas?`<div class="pd-notes"><strong>Notas:</strong> ${p.notas}</div>`:''}
-    <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
-    <div class="pd-footer">ArteLab UY · Impresión 3D · Uruguay</div>
-  </div>`;
-  window.print();
+async function abrirPdfPresupuesto(id){
+  const p=_presById(id);
+  if(!p){ showToast('No se encontró el presupuesto','err'); return; }
+  const year=new Date().getFullYear();
+  const numLabel=`AL-${year}-${String(p.numero||p.id).padStart(3,'0')}`;
+  const dt=p.fecha||new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const cn=p.cliente_nombre||p.cliente||'';
+  const ce=p.cliente_email||p.snap?.cEmail||'';
+  const cp=p.cliente_tel||p.snap?.cPhone||'';
+  const dvRaw=p.fecha_entrega||'';
+  const dvFmt=dvRaw?(dvRaw.includes('-')?dvRaw.split('-').reverse().join('/'):dvRaw):'—';
+  const notes=p.notas||p.snap?.notes||'';
+  const pedido=p.pieza||'';
+  const precioFinal=Number(p.precio||0);
+  const logoUrl=location.origin+'/logo-artelab.png';
+
+  // Construir filas desde snap.articulos o costos_internos
+  let rows='';
+  if(p.snap?.articulos?.length){
+    rows=p.snap.articulos.map(a=>{
+      const precio=a._price!=null?a._price:precioFinal/p.snap.articulos.length;
+      const unitPrice=a._unitPrice||precio;
+      const qty=a.qtyEnabled?parseInt(a.qty||1):1;
+      const sub=[];
+      if(a.matType&&a.grams) sub.push(`${a.matType} · ${a.grams}g`);
+      if(a.caract) sub.push(a.caract);
+      const subHtml=sub.length?`<div style="color:#57544E;font-size:10px;margin-top:2px;font-weight:400">${sub.join(' · ')}</div>`:'';
+      const notaHtml=a.notasPieza?`<div style="color:#57544E;font-size:10px;font-style:italic">${a.notasPieza}</div>`:'';
+      const unitPr=qty>1?`$ ${fmt(Math.round(unitPrice))}`:`$ ${fmt(Math.round(precio))}`;
+      return `<tr><td style="padding:12px 14px;border-top:1px solid #E7E0D6;vertical-align:middle;color:#211F1C;font-weight:700"><strong>${a.desc||'Pieza'}</strong>${subHtml}${notaHtml}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">${qty}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">u.</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;color:#57544E">${unitPr}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;font-weight:900;color:#211F1C">$ ${fmt(Math.round(precio))}</td></tr>`;
+    }).join('');
+  } else if(p.costos_internos){
+    try{
+      const costos=JSON.parse(p.costos_internos);
+      rows=costos.map(c=>{
+        const qty=c.iqty||1;
+        const unitPr=c.iqty&&c.iprecio?`$ ${fmt(Math.round(c.iprecio))}`:'-';
+        return `<tr><td style="padding:12px 14px;border-top:1px solid #E7E0D6;vertical-align:middle;color:#211F1C;font-weight:700"><strong>${c.d||'—'}</strong></td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">${c.iqty||1}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">${c.iunit||'u.'}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;color:#57544E">${unitPr}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;font-weight:900;color:#211F1C">$ ${fmt(Math.round(c.m||0))}</td></tr>`;
+      }).join('');
+    }catch{}
+  }
+  if(!rows) rows=`<tr><td style="padding:12px 14px;border-top:1px solid #E7E0D6;color:#211F1C;font-weight:700"><strong>${pedido||'Trabajo'}</strong></td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">1</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">u.</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;color:#57544E">—</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;font-weight:900;color:#211F1C">$ ${fmt(Math.round(precioFinal))}</td></tr>`;
+
+  const proyMat=p.mat||p.snap?.articulos?.[0]?.matType||'';
+  let tel=(cp||'').replace(/[^\d]/g,'');
+  if(tel&&!tel.startsWith('598')&&tel.length<=9) tel='598'+tel.replace(/^0/,'');
+  const shareData={tel,email:ce,asunto:`Presupuesto ${numLabel} — ArteLab`,texto:`Presupuesto ${numLabel} — ArteLab\nCliente: ${cn||'—'}\nProyecto: ${pedido||'Impresión 3D'}\nTotal: $ ${fmt(Math.round(precioFinal))} UYU\n\nPresupuesto válido por 10 días.\nhola@artelab.studio`};
+  const html=_buildPdfPageHtml({numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:false,showTotal:true,proyMat,logoUrl});
+  abrirPdfPreview(html,shareData);
 }
 
 function emailPres(id){
@@ -7160,7 +7184,133 @@ function setDisp(btn,cur){
 // compat: calc() global ahora recalcula todo
 function calc(){recalcTotal();}
 
-// ── EXPORT PDF — diseño ArteLab ──────────────────────────────────────
+// ── PDF PREVIEW OVERLAY ───────────────────────────────────────────────
+let _pdfShareData = null;
+
+function cerrarPdfPreview(){
+  document.getElementById('pdfPreviewOv').style.display='none';
+  document.body.style.overflow='';
+}
+
+function imprimirPdfPreview(){
+  document.body.classList.add('pdfprint-mode');
+  window.addEventListener('afterprint',function h(){
+    document.body.classList.remove('pdfprint-mode');
+    window.removeEventListener('afterprint',h);
+  });
+  window.print();
+}
+
+function compartirPdfWA(){
+  if(!_pdfShareData) return;
+  const {tel,texto}=_pdfShareData;
+  const base=tel?`https://wa.me/${tel}`:`https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(texto)}`, '_blank');
+}
+
+function compartirPdfEmail(){
+  if(!_pdfShareData) return;
+  const {email,asunto,texto}=_pdfShareData;
+  window.open(`mailto:${email||''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(texto)}`);
+}
+
+function abrirPdfPreview(pageHtml, shareData){
+  _pdfShareData=shareData||null;
+  const wrap=document.getElementById('pdfPageWrap');
+  wrap.innerHTML=pageHtml;
+  const page=wrap.querySelector('.pvp-page');
+  if(page){page.contentEditable='true';page.style.outline='none';}
+  document.getElementById('pdfPreviewOv').style.display='block';
+  document.body.style.overflow='hidden';
+  document.getElementById('pdfPreviewOv').scrollTop=0;
+}
+
+function _buildPdfPageHtml(d){
+  // d: {numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn,proyMat,logoUrl}
+  const iva=d.precioFinal*0.22, conIVA=d.precioFinal+iva;
+  let totalsCopy='',totalBoxAmt=fmt(Math.round(d.precioFinal)),totalBoxLbl='Total estimado';
+  if(d.showTotal&&d.ivaOn){
+    totalsCopy=`<div>Subtotal: <strong>$ ${fmt(Math.round(d.precioFinal))}</strong></div><div>IVA 22%: <strong>$ ${fmt(Math.round(iva))}</strong></div><div style="color:#8D8A82;font-size:10px">Precios en pesos uruguayos</div>`;
+    totalBoxAmt=fmt(Math.round(conIVA));totalBoxLbl='Total con IVA';
+  } else if(d.showTotal){
+    totalsCopy=`<div style="color:#8D8A82;font-size:10px">Precios en pesos uruguayos</div>`;
+  }
+  const totalsRow=d.showTotal?`<tr style="border-top:1px solid #E7E0D6"><td colspan="5" style="padding:13px 14px 15px"><div style="display:grid;grid-template-columns:1fr 176px;gap:16px;align-items:center;width:100%"><div style="text-align:right;color:#57544E;font-size:11px;line-height:1.55">${totalsCopy}</div><div style="width:176px;min-height:44px;background:#E8722A;color:#fff;border-radius:11px;padding:10px 14px 9px;overflow:hidden"><span style="display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;line-height:1.15">${totalBoxLbl}</span><strong style="display:block;margin-top:2px;font-size:25px;line-height:1;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap">$ ${totalBoxAmt}</strong></div></div></td></tr>`:
+    `<tr style="border-top:1px solid #E7E0D6"><td colspan="5" style="padding:13px 14px 15px"><div style="display:flex;justify-content:flex-end"><div style="background:#E8722A;color:#fff;border-radius:11px;padding:10px 14px 9px;min-width:176px"><span style="display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase">Total estimado</span><strong style="display:block;font-size:25px;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap">$ ${fmt(Math.round(d.precioFinal))}</strong></div></div></td></tr>`;
+  const proyLines=[(d.proyMat&&`Material: ${d.proyMat}`),(d.dvFmt&&d.dvFmt!=='—'&&`Entrega: ${d.dvFmt}`)].filter(Boolean).map(l=>`<p style="margin:0 0 4px;color:#57544E;font-size:11px;line-height:1.25">${l}</p>`).join('');
+  const clienteLines=[(d.ce&&`<p style="margin:0 0 4px;color:#57544E;font-size:11px;line-height:1.25">${d.ce}</p>`),(d.cp&&`<p style="margin:0 0 4px;color:#57544E;font-size:11px;line-height:1.25">${d.cp}</p>`)].filter(Boolean).join('');
+  const resumenBlock=d.notes?`<section style="position:relative;background:#211F1C;color:#fff;border-radius:14px;padding:18px 22px 17px 30px;margin-bottom:16px;overflow:hidden"><div style="position:absolute;left:15px;top:18px;bottom:18px;width:4px;border-radius:99px;background:#E8722A"></div><p style="margin:0;color:#F2A65A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Resumen del encargo</p><p style="max-width:154mm;margin:9px 0 0;color:#F1EDE7;font-size:12px;line-height:1.45">${d.notes}</p></section>`:'';
+
+  return `<style>
+#pdfPageWrap{background:#d7d2c8;padding:24px}
+.pvp-page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:#ECE9E3;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(33,31,28,.22);font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.pvp-page [contenteditable="true"]:hover,.pvp-page:hover [contenteditable]{outline:1.5px dashed rgba(232,114,42,.4);border-radius:3px}
+@media(max-width:860px){.pvp-page{width:100%;min-height:auto;padding:22px;box-shadow:none}}
+@media print{#pdfPageWrap{padding:0;background:transparent}.pvp-page{width:210mm;min-height:297mm;margin:0;box-shadow:none;padding:14mm}}
+</style>
+<main class="pvp-page">
+  <header style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:17px">
+    <div><img src="${d.logoUrl}" alt="ArteLab" style="width:52mm;max-width:100%;display:block;height:auto" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'ArteLab',style:'font-size:22px;font-weight:900;color:#E8722A'}))"></div>
+    <div style="text-align:right;padding-top:2mm;min-width:68mm">
+      <p style="margin:0;color:#E8722A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;line-height:1.2">Documento comercial</p>
+      <h1 style="margin:13px 0 0;font-size:34px;line-height:.95;letter-spacing:-.04em;font-weight:900">PRESUPUESTO</h1>
+      <div style="width:42mm;height:5px;margin:8px 0 0 auto;background:#E8722A;border-radius:99px"></div>
+    </div>
+  </header>
+  <section style="position:relative;background:#fff;border:1px solid #D7D1C6;border-radius:14px;overflow:hidden;margin-bottom:12px;padding:18px 20px 14px 22px">
+    <div style="position:absolute;left:0;top:0;bottom:0;width:5px;background:#E8722A;border-radius:14px 0 0 14px"></div>
+    <div style="display:grid;grid-template-columns:1.05fr 1.15fr .9fr .9fr;gap:16px;align-items:end">
+      <div><p style="margin:0;color:#8D8A82;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Presupuesto No.</p><strong style="display:block;margin-top:7px;font-size:14px;font-weight:800">${d.numLabel}</strong></div>
+      <div><p style="margin:0;color:#8D8A82;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Fecha</p><strong style="display:block;margin-top:7px;font-size:14px;font-weight:800">${d.dt}</strong></div>
+      <div><p style="margin:0;color:#8D8A82;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Validez</p><strong style="display:block;margin-top:7px;font-size:14px;font-weight:800">10 días</strong></div>
+      <div><p style="margin:0;color:#8D8A82;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Estado</p><strong style="display:block;margin-top:7px;font-size:14px;font-weight:800">A confirmar</strong></div>
+    </div>
+  </section>
+  <section style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+    <article style="background:#F7F5F0;border:1px solid #D7D1C6;border-radius:14px;padding:18px 16px 14px;min-height:74px">
+      <p style="margin:0;color:#E8722A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Cliente</p>
+      <div style="margin:10px 0 6px;font-size:14px;font-weight:900">${d.cn||'—'}</div>
+      ${clienteLines}
+    </article>
+    <article style="background:#F7F5F0;border:1px solid #D7D1C6;border-radius:14px;padding:18px 16px 14px;min-height:74px">
+      <p style="margin:0;color:#E8722A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Proyecto</p>
+      <div style="margin:10px 0 6px;font-size:14px;font-weight:900">${d.pedido||'Impresión 3D personalizada'}</div>
+      ${proyLines}
+    </article>
+  </section>
+  ${resumenBlock}
+  <p style="margin:0 0 8px;color:#E8722A;font-size:9px;font-weight:900;letter-spacing:.22em;text-transform:uppercase">Detalle del presupuesto</p>
+  <section style="background:#fff;border:1px solid #D7D1C6;border-radius:14px;overflow:hidden;margin-bottom:14px">
+    <table style="width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px">
+      <colgroup><col style="width:56%"><col style="width:10%"><col style="width:13%"><col style="width:10%"><col style="width:11%"></colgroup>
+      <thead><tr>
+        <th style="padding:11px 14px;background:#E3DDD2;color:#57544E;font-size:8px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:left;border-top-left-radius:13px">Concepto</th>
+        <th style="padding:11px 14px;background:#E3DDD2;color:#57544E;font-size:8px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:center">Cant.</th>
+        <th style="padding:11px 14px;background:#E3DDD2;color:#57544E;font-size:8px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:center">Unidad</th>
+        <th style="padding:11px 14px;background:#E3DDD2;color:#57544E;font-size:8px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:right">Precio</th>
+        <th style="padding:11px 14px;background:#E3DDD2;color:#57544E;font-size:8px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:right;border-top-right-radius:13px">Importe</th>
+      </tr></thead>
+      <tbody>${d.rows}${totalsRow}</tbody>
+    </table>
+  </section>
+  <section style="background:#F7F5F0;border:1px solid #D7D1C6;border-radius:14px;padding:17px 17px 13px;margin-bottom:12px">
+    <p style="margin:0;color:#E8722A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Condiciones</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px 32px;margin-top:12px">
+      <article><h3 style="margin:0 0 4px;font-size:11px;font-weight:900">Seña</h3><p style="margin:0;color:#57544E;font-size:10px;line-height:1.3">50% para iniciar el trabajo.</p></article>
+      <article><h3 style="margin:0 0 4px;font-size:11px;font-weight:900">Alcance</h3><p style="margin:0;color:#57544E;font-size:10px;line-height:1.3">Incluye una ronda de ajuste menor antes de imprimir.</p></article>
+      <article><h3 style="margin:0 0 4px;font-size:11px;font-weight:900">Entrega</h3><p style="margin:0;color:#57544E;font-size:10px;line-height:1.3">${(d.dvFmt&&d.dvFmt!=='—')?`Fecha acordada: ${d.dvFmt}.`:'5 a 7 días hábiles luego de aprobar medidas y material.'}</p></article>
+      <article><h3 style="margin:0 0 4px;font-size:11px;font-weight:900">Observación</h3><p style="margin:0;color:#57544E;font-size:10px;line-height:1.3">Color y textura pueden variar levemente según filamento y configuración.</p></article>
+    </div>
+  </section>
+  <footer style="display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:12px 16px 10px;background:#211F1C;color:#fff;border-radius:14px;overflow:hidden">
+    <p style="margin:0;font-size:11px;font-weight:800;line-height:1.28">Para avanzar: responder este presupuesto con OK y enviar archivo, medidas o referencia.</p>
+    <p style="margin:0;color:#E7E0D6;font-size:10px;font-weight:700;white-space:nowrap;text-align:right">hola@artelab.studio · @artelab</p>
+    <p style="margin:0;color:#F2A65A;font-size:9px;grid-column:1/-1">ArteLab · Diseño · Impresión 3D · Soluciones</p>
+  </footer>
+  <div style="position:absolute;left:14mm;right:14mm;bottom:8mm;height:1px;background:#D7D1C6"></div>
+</main>`;
+}
+
 function exportPDF(){
   if(!S.articulos.length){alert('Agregá al menos una pieza.');return;}
   const cn=document.getElementById('cName').value||'';
@@ -7175,7 +7325,6 @@ function exportPDF(){
   const dt=new Date().toLocaleDateString('es-UY',{day:'2-digit',month:'2-digit',year:'numeric'});
   const dvFmt=dv?(dv.includes('-')?dv.split('-').reverse().join('/'):dv):'—';
   const logoUrl=location.origin+'/logo-artelab.png';
-
   let totalNeto=0;
   const rows=S.articulos.map(a=>{
     const r=computeArt(a.id); totalNeto+=r.totalP;
@@ -7187,156 +7336,15 @@ function exportPDF(){
     const subHtml=sub.length?`<div style="color:#57544E;font-size:10px;margin-top:2px;font-weight:400">${sub.join(' · ')}</div>`:'';
     const notaHtml=r.notasPieza?`<div style="color:#57544E;font-size:10px;margin-top:1px;font-style:italic">${r.notasPieza}</div>`:'';
     const unitPr=r.rawQty>1?`$ ${fmt(r.unitPrice)}`:`$ ${fmt(r.totalP)}`;
-    return `<tr>
-      <td><strong style="color:#211F1C;font-weight:700">${r.desc||'Pieza'}</strong>${subHtml}${notaHtml}</td>
-      <td class="center">${r.rawQty}</td>
-      <td class="center">u.</td>
-      <td class="right">${unitPr}</td>
-      <td class="right strong">$ ${fmt(r.totalP)}</td>
-    </tr>`;
+    return `<tr><td style="padding:12px 14px;border-top:1px solid #E7E0D6;vertical-align:middle;color:#211F1C;font-weight:700"><strong style="font-weight:700">${r.desc||'Pieza'}</strong>${subHtml}${notaHtml}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">${r.rawQty}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:center;color:#57544E">u.</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;color:#57544E">${unitPr}</td><td style="padding:12px 14px;border-top:1px solid #E7E0D6;text-align:right;font-weight:900;color:#211F1C">$ ${fmt(r.totalP)}</td></tr>`;
   }).join('');
-
   const precioFinal=S.overridePrice!==null?S.overridePrice:totalNeto;
-  const iva=precioFinal*0.22, conIVA=precioFinal+iva;
-  const showTotal=S.sumPrecios||S.overridePrice!==null;
-  let totalsCopy='', totalBoxAmt=fmt(Math.round(precioFinal)), totalBoxLbl='Total estimado';
-  if(showTotal&&S.ivaOnBill){
-    totalsCopy=`<div>Subtotal: <strong>$ ${fmt(Math.round(precioFinal))}</strong></div><div>IVA 22%: <strong>$ ${fmt(Math.round(iva))}</strong></div><div class="muted-small">Precios en pesos uruguayos</div>`;
-    totalBoxAmt=fmt(Math.round(conIVA)); totalBoxLbl='Total con IVA';
-  } else if(showTotal){
-    totalsCopy=`<div>${S.articulos.length} pieza${S.articulos.length>1?'s':''}</div><div class="muted-small">Precios en pesos uruguayos</div>`;
-  }
-  const totalsRow=showTotal?`<tr class="totals-row"><td colspan="5"><div class="totals-inner"><div class="totals-copy">${totalsCopy}</div><div class="total-box"><span>${totalBoxLbl}</span><strong>$ ${totalBoxAmt}</strong></div></div></td></tr>`:'';
-
-  // Secciones opcionales
   const proyMat=S.lcArts&&S.lcArts.length?[...new Set(S.lcArts.map(r=>r.mat).filter(Boolean))].join(' / '):'';
-  const proyLines=[proyMat&&`Material: ${proyMat}`,dv&&`Entrega: ${dvFmt}`].filter(Boolean).map(l=>`<p>${l}</p>`).join('');
-  const resumenBlock=notes?`<section class="card dark summary" aria-label="Resumen del encargo"><p class="eyebrow">Resumen del encargo</p><p>${notes}</p></section>`:'';
-  const clienteLines=[ce&&`<p>${ce}</p>`,cp&&`<p>${cp}</p>`].filter(Boolean).join('');
-
-  const html=`<!doctype html><html lang="es"><head><meta charset="utf-8">
-<title>Presupuesto ${numLabel} — ArteLab</title>
-<style>
-:root{--orange:#E8722A;--ascua:#C2531A;--graphite:#57544E;--ink:#211F1C;--amber:#F2A65A;--steel:#8D8A82;--sand:#E3DDD2;--paper:#ECE9E3;--card:#F7F5F0;--white:#FFFFFF;--line:#D7D1C6;--softline:#E7E0D6;}
-*{box-sizing:border-box;}
-html,body{margin:0;min-height:100%;background:#d7d2c8;color:var(--ink);font-family:"Hanken Grotesk","Inter","Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;print-color-adjust:exact;-webkit-print-color-adjust:exact;}
-body{padding:24px;}
-.page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:var(--paper);position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(33,31,28,.22);}
-.eyebrow{margin:0;color:var(--orange);font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;line-height:1.2;}
-.eyebrow.muted{color:var(--steel);}
-.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:17px;}
-.brand img{width:52mm;max-width:100%;display:block;height:auto;}
-.document-title{text-align:right;padding-top:2mm;min-width:68mm;}
-h1{margin:13px 0 0;font-family:"Sora","Inter","Segoe UI",Arial,sans-serif;font-size:34px;line-height:.95;letter-spacing:-.04em;font-weight:900;}
-.title-line{width:42mm;height:5px;margin:8px 0 0 auto;background:var(--orange);border-radius:99px;}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
-.card.white{background:var(--white);}
-.card.dark{background:var(--ink);color:var(--white);border-color:var(--ink);}
-.meta-card{position:relative;background:var(--white);margin-bottom:12px;padding:18px 20px 14px 22px;}
-.meta-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--orange);border-radius:14px 0 0 14px;}
-.meta-grid{display:grid;grid-template-columns:1.05fr 1.15fr .9fr .9fr;gap:16px;align-items:end;}
-.meta-item strong{display:block;margin-top:7px;font-size:14px;line-height:1.15;font-weight:800;white-space:nowrap;}
-.two-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-.info-card{padding:18px 16px 14px;min-height:74px;}
-.info-card .main{margin:10px 0 6px;font-size:14px;line-height:1.15;font-weight:900;}
-.info-card p{margin:0 0 4px;color:var(--graphite);font-size:11px;line-height:1.25;}
-.summary{position:relative;padding:18px 22px 17px 30px;margin-bottom:16px;}
-.summary::before{content:"";position:absolute;left:15px;top:18px;bottom:18px;width:4px;border-radius:99px;background:var(--orange);}
-.summary .eyebrow{color:var(--amber);}
-.summary p{max-width:154mm;margin:9px 0 0;color:#F1EDE7;font-size:12px;line-height:1.45;}
-.section-label{margin:0 0 8px;color:var(--orange);font-size:9px;font-weight:900;letter-spacing:.22em;text-transform:uppercase;}
-.budget-table{margin-bottom:14px;background:var(--white);}
-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px;}
-col.concept{width:56%;}col.qty{width:10%;}col.unit{width:13%;}col.price{width:10%;}col.amount{width:11%;}
-thead th{padding:11px 14px;background:var(--sand);color:var(--graphite);font-size:8px;line-height:1.1;font-weight:900;letter-spacing:.12em;text-transform:uppercase;text-align:left;white-space:nowrap;}
-thead th:first-child{border-top-left-radius:13px;}thead th:last-child{border-top-right-radius:13px;}
-tbody td{padding:12px 14px;border-top:1px solid var(--softline);line-height:1.25;vertical-align:middle;color:var(--graphite);overflow-wrap:anywhere;}
-tbody tr:first-child td{border-top:0;}
-tbody td:first-child{color:var(--ink);font-weight:700;}
-.center{text-align:center;}.right{text-align:right;}.strong{font-weight:900;color:var(--ink);}
-.totals-row td{padding:13px 14px 15px;border-top:1px solid var(--softline);}
-.totals-inner{display:grid;grid-template-columns:1fr 176px;gap:16px;align-items:center;width:100%;}
-.totals-copy{text-align:right;color:var(--graphite);font-size:11px;line-height:1.55;min-width:0;}
-.totals-copy .muted-small{color:var(--steel);font-size:10px;}
-.total-box{width:176px;min-height:44px;background:var(--orange);color:var(--white);border-radius:11px;padding:10px 14px 9px;overflow:hidden;}
-.total-box span{display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;line-height:1.15;}
-.total-box strong{display:block;margin-top:2px;font-family:"Sora","Inter","Segoe UI",Arial,sans-serif;font-size:25px;line-height:1;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap;}
-.conditions{padding:17px 17px 13px;margin-bottom:12px;}
-.conditions-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px 32px;margin-top:12px;}
-.condition h3{margin:0 0 4px;font-size:11px;line-height:1.15;font-weight:900;}
-.condition p{margin:0;color:var(--graphite);font-size:10px;line-height:1.3;}
-.footer-card{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:12px 16px 10px;background:var(--ink);color:var(--white);border-radius:14px;overflow:hidden;}
-.footer-card p{margin:0;}
-.footer-card .action{font-size:11px;line-height:1.28;font-weight:800;}
-.footer-card .contact{color:#E7E0D6;font-size:10px;font-weight:700;white-space:nowrap;text-align:right;}
-.footer-card .brand-line{grid-column:1/-1;color:var(--amber);font-size:9px;line-height:1.1;}
-.hairline{position:absolute;left:14mm;right:14mm;bottom:8mm;height:1px;background:var(--line);}
-@media print{@page{size:A4;margin:0;}body{padding:0;background:var(--paper);}.page{width:210mm;min-height:297mm;margin:0;box-shadow:none;}}
-</style></head><body>
-<main class="page">
-  <header class="topbar">
-    <div class="brand"><img src="${logoUrl}" alt="ArteLab" onerror="this.style.display='none'"></div>
-    <div class="document-title">
-      <p class="eyebrow">Documento comercial</p>
-      <h1>PRESUPUESTO</h1>
-      <div class="title-line" aria-hidden="true"></div>
-    </div>
-  </header>
-
-  <section class="card meta-card">
-    <div class="meta-grid">
-      <div class="meta-item"><p class="eyebrow muted">Presupuesto No.</p><strong>${numLabel}</strong></div>
-      <div class="meta-item"><p class="eyebrow muted">Fecha</p><strong>${dt}</strong></div>
-      <div class="meta-item"><p class="eyebrow muted">Validez</p><strong>10 días</strong></div>
-      <div class="meta-item"><p class="eyebrow muted">Estado</p><strong>A confirmar</strong></div>
-    </div>
-  </section>
-
-  <section class="two-cards">
-    ${cn||ce||cp?`<article class="card info-card"><p class="eyebrow">Cliente</p><div class="main">${cn||'—'}</div>${clienteLines}</article>`:'<article class="card info-card"><p class="eyebrow">Cliente</p><div class="main">—</div></article>'}
-    <article class="card info-card">
-      <p class="eyebrow">Proyecto</p>
-      <div class="main">${pedido||S.lcArts?.[0]?.desc||'Impresión 3D personalizada'}</div>
-      ${proyLines}
-    </article>
-  </section>
-
-  ${resumenBlock}
-
-  <p class="section-label">Detalle del presupuesto</p>
-  <section class="card budget-table">
-    <table>
-      <colgroup><col class="concept"><col class="qty"><col class="unit"><col class="price"><col class="amount"></colgroup>
-      <thead><tr><th>Concepto</th><th class="center">Cant.</th><th class="center">Unidad</th><th class="right">Precio</th><th class="right">Importe</th></tr></thead>
-      <tbody>${rows}${totalsRow}</tbody>
-    </table>
-  </section>
-
-  <section class="card conditions">
-    <p class="eyebrow">Condiciones</p>
-    <div class="conditions-grid">
-      <article class="condition"><h3>Seña</h3><p>50% para iniciar el trabajo.</p></article>
-      <article class="condition"><h3>Alcance</h3><p>Incluye una ronda de ajuste menor antes de imprimir.</p></article>
-      <article class="condition"><h3>Entrega</h3><p>${dv?`Fecha acordada: ${dvFmt}.`:'5 a 7 días hábiles luego de aprobar medidas y material.'}</p></article>
-      <article class="condition"><h3>Observación</h3><p>Color y textura pueden variar levemente según filamento y configuración.</p></article>
-    </div>
-  </section>
-
-  <footer class="footer-card">
-    <p class="action">Para avanzar: responder este presupuesto con OK y enviar archivo, medidas o referencia.</p>
-    <p class="contact">hola@artelab.studio · @artelab</p>
-    <p class="brand-line">ArteLab · Diseño · Impresión 3D · Soluciones</p>
-  </footer>
-  <div class="hairline" aria-hidden="true"></div>
-</main>
-</body></html>`;
-
-  const w=window.open('','_blank','width=900,height=700');
-  w.document.write(html);
-  w.document.close();
-  const doP=()=>setTimeout(()=>w.print(),300);
-  if(w.document.readyState==='complete') doP();
-  else w.onload=doP;
+  let tel=(cp||'').replace(/[^\d]/g,'');
+  if(tel&&!tel.startsWith('598')&&tel.length<=9) tel='598'+tel.replace(/^0/,'');
+  const shareData={tel,email:ce,asunto:`Presupuesto ${numLabel} — ArteLab`,texto:`Presupuesto ${numLabel} — ArteLab\nCliente: ${cn||'—'}\nProyecto: ${pedido||'Impresión 3D'}\nTotal: $ ${fmt(Math.round(precioFinal))} UYU\n\nPresupuesto válido por 10 días.\nhola@artelab.studio`};
+  const html=_buildPdfPageHtml({numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:S.ivaOnBill,showTotal:true,proyMat,logoUrl});
+  abrirPdfPreview(html,shareData);
 }
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────
