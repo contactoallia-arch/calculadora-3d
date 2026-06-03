@@ -1764,6 +1764,26 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <svg class="icon" viewBox="0 0 18 18" style="width:15px;height:15px"><path d="M9 3v12M3 9h12"/></svg> Nuevo insumo
         </button>
       </div>
+      <!-- Sub-filtros filamento (solo visible cuando filamento está activo) -->
+      <div id="insFilSubFilters" style="display:none;padding:8px 14px 6px;border-bottom:1px solid var(--border-2);background:var(--surface-2)">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);flex-shrink:0">Tipo</span>
+          <button class="chip on" id="iftipo-" onclick="setInsumoTipo('')" style="font-size:11px;padding:2px 8px">Todos</button>
+          <button class="chip" id="iftipo-PLA" onclick="setInsumoTipo('PLA')" style="font-size:11px;padding:2px 8px">PLA</button>
+          <button class="chip" id="iftipo-PETG" onclick="setInsumoTipo('PETG')" style="font-size:11px;padding:2px 8px">PETG</button>
+          <button class="chip" id="iftipo-ABS" onclick="setInsumoTipo('ABS')" style="font-size:11px;padding:2px 8px">ABS</button>
+          <button class="chip" id="iftipo-TPU" onclick="setInsumoTipo('TPU')" style="font-size:11px;padding:2px 8px">TPU</button>
+          <button class="chip" id="iftipo-ASA" onclick="setInsumoTipo('ASA')" style="font-size:11px;padding:2px 8px">ASA</button>
+          <button class="chip" id="iftipo-Nylon" onclick="setInsumoTipo('Nylon')" style="font-size:11px;padding:2px 8px">Nylon</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text-3);flex-shrink:0">Color</span>
+          <div id="insColorFilterRow" style="overflow-x:auto;display:flex;gap:5px;padding:2px 0;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+            <!-- se llena por JS con _filColors -->
+          </div>
+          <button id="insColorFilterClear" onclick="setInsumoColor('')" style="display:none;font-size:11px;color:var(--text-3);border:none;background:none;cursor:pointer;flex-shrink:0;padding:0 4px">✕</button>
+        </div>
+      </div>
       <div style="overflow-x:auto">
         <table class="dtbl" style="min-width:680px">
           <thead><tr><th>Insumo</th><th class="hide-m">Tipo</th><th>Stock</th><th class="hide-m">Proveedor</th><th>Precio unit.</th><th style="color:var(--brand)">Valor total</th><th>Estado</th><th style="width:100px"></th></tr></thead>
@@ -5673,10 +5693,74 @@ let _editInsumoId = null;
 let _insumosCache = [];
 
 let _insumoChip = '';
-function setInsumoChip(val){
+let _insumoTipoFilter = '';
+let _insumoColorFilter = '';
+
+function setInsumoChip(val) {
   _insumoChip = val;
-  document.querySelectorAll('[id^="ichip-"]').forEach(b=>b.classList.remove('on'));
+  _insumoTipoFilter = '';
+  _insumoColorFilter = '';
+  document.querySelectorAll('[id^="ichip-"]').forEach(b => b.classList.remove('on'));
   document.getElementById('ichip-'+val)?.classList.add('on');
+  // Mostrar/ocultar sub-filtros de filamento
+  const sub = document.getElementById('insFilSubFilters');
+  if (sub) sub.style.display = val === 'filamento' ? 'block' : 'none';
+  if (val === 'filamento') {
+    // Resetear sub-filtros
+    document.querySelectorAll('[id^="iftipo-"]').forEach(b => b.classList.remove('on'));
+    document.getElementById('iftipo-')?.classList.add('on');
+    _initInsColorFilter();
+  }
+  renderInsumos();
+}
+
+function _initInsColorFilter() {
+  const row = document.getElementById('insColorFilterRow');
+  if (!row || row.children.length > 0) return; // ya inicializado
+  // Sin color (todos)
+  const btnTodos = document.createElement('button');
+  btnTodos.id = 'ifcolor-';
+  btnTodos.className = 'chip on';
+  btnTodos.style.cssText = 'font-size:11px;padding:2px 8px';
+  btnTodos.textContent = 'Todos';
+  btnTodos.onclick = () => setInsumoColor('');
+  row.appendChild(btnTodos);
+  // Colores de filamento
+  if (typeof _filColors !== 'undefined') {
+    _filColors.forEach(c => {
+      const btn = document.createElement('button');
+      btn.id = 'ifcolor-' + c.v;
+      btn.title = c.l;
+      btn.onclick = () => setInsumoColor(c.v, c.l);
+      btn.style.cssText = `width:22px;height:22px;border-radius:50%;background:${c.hex};border:2px solid transparent;flex-shrink:0;cursor:pointer;transition:transform .1s`;
+      row.appendChild(btn);
+    });
+  }
+}
+
+function setInsumoTipo(tipo) {
+  _insumoTipoFilter = tipo;
+  document.querySelectorAll('[id^="iftipo-"]').forEach(b => b.classList.remove('on'));
+  document.getElementById('iftipo-'+tipo)?.classList.add('on');
+  renderInsumos();
+}
+
+function setInsumoColor(colorVal, colorLabel) {
+  _insumoColorFilter = colorVal;
+  // Highlight del botón seleccionado
+  document.querySelectorAll('#insColorFilterRow button, #ifcolor-').forEach(b => {
+    b.style.border = '2px solid transparent';
+    b.classList.remove('on');
+    b.style.transform = '';
+  });
+  if (colorVal) {
+    const btn = document.getElementById('ifcolor-'+colorVal);
+    if (btn) { btn.style.border = '2px solid var(--text-1)'; btn.style.transform = 'scale(1.2)'; }
+  } else {
+    document.getElementById('ifcolor-')?.classList.add('on');
+  }
+  const clearBtn = document.getElementById('insColorFilterClear');
+  if (clearBtn) clearBtn.style.display = colorVal ? 'block' : 'none';
   renderInsumos();
 }
 function _insEstado(i){
@@ -5715,8 +5799,16 @@ function renderInsumos() {
   document.getElementById('insKpiBajo').textContent = bajo;
   document.getElementById('insKpiAgot').textContent = agot;
   document.getElementById('insKpiSku').textContent = all.length;
-  // Filtro chip (por categoría)
-  const rows = all.filter(i => !_insumoChip || (i.categoria||'').toLowerCase() === _insumoChip);
+  // Filtros: categoría + tipo + color
+  const rows = all.filter(i => {
+    if (_insumoChip && (i.categoria||'').toLowerCase() !== _insumoChip) return false;
+    if (_insumoTipoFilter && !(i.tipo||'').toUpperCase().includes(_insumoTipoFilter.toUpperCase())) return false;
+    if (_insumoColorFilter) {
+      const colorLabel = (typeof _filColors!=='undefined' ? _filColors.find(c=>c.v===_insumoColorFilter)?.l : '') || '';
+      if (!colorLabel || !(i.nombre||'').toLowerCase().includes(colorLabel.toLowerCase())) return false;
+    }
+    return true;
+  });
   tbody.innerHTML = rows.length ? rows.map(i => {
     const e = _insEstado(i);
     const min = Number(i.stock_min!=null ? i.stock_min : 0.4);
