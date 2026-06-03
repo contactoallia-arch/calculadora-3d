@@ -6497,7 +6497,7 @@ const ART_DEF={
   printerCost:80000, printerLife:5000, maintenance:350, pieces:20,
   hourly:200, laborH:0.5, overhead:5000, failBuf:10,
   packaging:0, margin:50, spoolCur:'UYU', pkgCur:'UYU',
-  sec:{elec:true,printer:true,labor:true,time:true,extras:false,insumos:false}
+  sec:{material:true,elec:true,printer:true,labor:true,time:true,extras:false,insumos:false}
 };
 
 syncThemeToggle();
@@ -6665,30 +6665,35 @@ function articuloHTML(aid){
       <div class="divl"></div>
 
       <!-- 4. Material -->
-      <label class="fl" style="display:block;margin-bottom:8px">🧵 Material</label>
-      <div class="f"><label class="fl">Tipo de filamento</label>
-        <select id="matType-${aid}" onchange="artMatType(${aid})">
-          <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
-          <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
-          <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
-        </select>
+      <div class="sec-head">
+        <label class="fl">🧵 Material</label>
+        <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleSec(${aid},'material',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
       </div>
-      <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
-        <div class="irow">
-          <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
-          <div class="ctog" id="spoolTog-${aid}">
-            <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
-            <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
+      <div id="body-material-${aid}">
+        <div class="f"><label class="fl">Tipo de filamento</label>
+          <select id="matType-${aid}" onchange="artMatType(${aid})">
+            <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
+            <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
+            <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
+          </select>
+        </div>
+        <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
+          <div class="irow">
+            <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
+            <div class="ctog" id="spoolTog-${aid}">
+              <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
+              <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+            <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+            <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-          <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
-          <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
+        <div class="two">
+          <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
+          <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
         </div>
-      </div>
-      <div class="two">
-        <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
-        <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
       </div>
       <div class="divl"></div>
 
@@ -6989,7 +6994,7 @@ function artAddInsumo(aid) {
     <button type="button" onclick="artRemoveInsumo(${aid},${insId})"
       style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;line-height:1;padding:0;width:24px;text-align:center">×</button>`;
   document.getElementById('ins-rows-' + aid).appendChild(row);
-  a.insumos.push({insId, id: null, nombre: '', qty: 0, precio: 0, unidad: '', el: row});
+  a.insumos.push({insId, id: null, nombre: '', qty: 0, precio: 0, unidad: '', moneda: 'UYU', el: row});
 }
 async function artInsumoSearch(input, aid, insId) {
   const q = nrm(input.value.trim());
@@ -7006,7 +7011,7 @@ async function artInsumoSearch(input, aid, insId) {
     const ins = a.insumos.find(x => x.insId === insId); if (!ins) return;
     input.value = item.data.nombre;
     ins.id = item.data.id; ins.nombre = item.data.nombre;
-    ins.precio = item.data.precio; ins.unidad = item.data.unidad;
+    ins.precio = item.data.precio; ins.unidad = item.data.unidad; ins.moneda = item.data.moneda||'UYU';
     ins.el.querySelector('[data-ins-unit]').textContent = item.data.unidad;
     const qtyInp = ins.el.querySelectorAll('input')[1];
     artInsumoQtyChange(aid, insId, qtyInp.value);
@@ -7017,7 +7022,8 @@ function artInsumoQtyChange(aid, insId, val) {
   const a = _art(aid); if (!a) return;
   const ins = a.insumos.find(x => x.insId === insId); if (!ins) return;
   ins.qty = parseFloat(val) || 0;
-  const cost = ins.qty * ins.precio;
+  const p = ins.moneda === 'USD' ? ins.precio * exRate() : ins.precio;
+  const cost = ins.qty * p;
   ins.el.querySelector('[data-ins-cost]').textContent = cost > 0 ? '$ ' + fmtMoney(cost) : '';
   recalcTotal();
 }
@@ -7035,12 +7041,14 @@ function computeArt(aid){
   const qtyEnabled=document.getElementById('qtyEnabled-'+aid)?.checked||false;
   const rawQty=Math.max(1,gn('qty',aid)||1);   // cantidad real ingresada (para mostrar)
   const qty=qtyEnabled?rawQty:1;               // cantidad para cálculo
-  // Material
-  const spRaw=gn('spoolPrice',aid);
-  const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
-  const spU=a.ivaOnSpool?spU0*1.22:spU0;
-  const g=gn('grams',aid), ws=gn('waste',aid);
-  const matC=(g*(1+ws/100)/1000)*spU;
+  // Material (opcional — puede desactivarse si se usan solo insumos del stock)
+  let matC=0, g=gn('grams',aid), ws=gn('waste',aid);
+  if(a.sec.material!==false){
+    const spRaw=gn('spoolPrice',aid);
+    const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
+    const spU=a.ivaOnSpool?spU0*1.22:spU0;
+    matC=(g*(1+ws/100)/1000)*spU;
+  }
   // Tiempo
   let totalH=0;
   if(a.sec.time){ totalH=gn('tDays',aid)*24+gn('tHours',aid)+gn('tMins',aid)/60;
@@ -7061,9 +7069,12 @@ function computeArt(aid){
   let pkgC=0,extC=0;
   if(a.sec.extras){ const pkR=gn('packaging',aid); pkgC=a.pkgCur==='USD'?pkR*ex:pkR;
     a.extras.forEach(e=>{const v=parseFloat(e.el.querySelector('.xp').value)||0;extC+=v;}); }
-  // Insumos del stock
+  // Insumos del stock (precio convertido si está en USD)
   let insumoStockC=0;
-  if(a.sec.insumos){ (a.insumos||[]).forEach(ins=>{insumoStockC+=ins.qty*ins.precio;}); }
+  if(a.sec.insumos){ (a.insumos||[]).forEach(ins=>{
+    const p=ins.moneda==='USD'?ins.precio*ex:ins.precio;
+    insumoStockC+=ins.qty*p;
+  }); }
   const sub=matC+insumoStockC+elecC+deprC+maintC+laborC+ovhC+pkgC+extC;
   const failA=sub*(fail/100);
   const totalC=sub+failA;
@@ -7507,7 +7518,7 @@ function captureForm(){
       packaging:gv('packaging',id),
       sec:{...a.sec}, margin:a.margin, spoolCur:a.spoolCur, pkgCur:a.pkgCur, ivaOnSpool:a.ivaOnSpool, matPill:a.matPill, overridePrice:a.overridePrice||null,
       extras:a.extras.map(e=>({desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value})),
-      insumos:(a.insumos||[]).map(i=>({id:i.id,nombre:i.nombre,qty:i.qty,precio:i.precio,unidad:i.unidad}))
+      insumos:(a.insumos||[]).map(i=>({id:i.id,nombre:i.nombre,qty:i.qty,precio:i.precio,unidad:i.unidad,moneda:i.moneda||'UYU'}))
     };
   };
   return {
@@ -7529,8 +7540,8 @@ function restoreArticulo(aid,d){
   ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
   a.margin=d.margin!==undefined?d.margin:50; a.spoolCur=d.spoolCur||'UYU'; a.pkgCur=d.pkgCur||'UYU'; a.ivaOnSpool=!!d.ivaOnSpool; a.matPill=d.matPill||'PLA';
   if(d.overridePrice!=null){a.overridePrice=d.overridePrice;const b=document.getElementById('artOverrideBadge-'+aid);if(b)b.style.display='';} else a.overridePrice=null;
-  if(d.sec)a.sec={elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
-  ['elec','time','printer','labor','extras'].forEach(sec=>{
+  if(d.sec)a.sec={material:true,elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
+  ['material','elec','time','printer','labor','extras'].forEach(sec=>{
     const on=a.sec[sec]!==false;
     const chk=document.getElementById('en-'+sec+'-'+aid); const body=document.getElementById('body-'+sec+'-'+aid);
     if(chk)chk.checked=on; if(body)body.style.display=on?'':'none';
@@ -7549,7 +7560,7 @@ function restoreArticulo(aid,d){
       artAddInsumo(aid);
       const newIns=a.insumos[a.insumos.length-1];
       newIns.id=ins.id; newIns.nombre=ins.nombre||''; newIns.qty=parseFloat(ins.qty)||0;
-      newIns.precio=parseFloat(ins.precio)||0; newIns.unidad=ins.unidad||'';
+      newIns.precio=parseFloat(ins.precio)||0; newIns.unidad=ins.unidad||''; newIns.moneda=ins.moneda||'UYU';
       const r=newIns.el;
       r.querySelector('input[type="text"]').value=ins.nombre||'';
       const qi=r.querySelectorAll('input')[1]; if(qi)qi.value=ins.qty||0;
