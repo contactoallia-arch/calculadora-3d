@@ -971,16 +971,27 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 
 <!-- PDF PREVIEW OVERLAY -->
 <div id="pdfPreviewOv" style="display:none;position:fixed;inset:0;z-index:9999;background:#d7d2c8;overflow-y:auto">
-  <div class="pdf-tb" style="position:sticky;top:0;z-index:10;background:#211F1C;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;gap:12px;flex-wrap:wrap;box-shadow:0 2px 16px rgba(0,0,0,.35)">
+  <!-- Toolbar principal -->
+  <div id="pdf-tb-main" class="pdf-tb" style="position:sticky;top:0;z-index:10;background:#211F1C;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;gap:12px;flex-wrap:wrap;box-shadow:0 2px 16px rgba(0,0,0,.35)">
     <div style="min-width:0">
       <div style="font-size:13.5px;font-weight:800;color:#fff;letter-spacing:-.01em">Vista previa del presupuesto</div>
       <div style="font-size:11px;color:#E7E0D6;margin-top:1px">Hacé clic en cualquier texto para editarlo antes de generar</div>
     </div>
     <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-      <button onclick="imprimirPdfPreview()" style="height:36px;padding:0 14px;background:#E8722A;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir / PDF</button>
+      <button onclick="pedirConfirmImpresion()" style="height:36px;padding:0 14px;background:#E8722A;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir / PDF</button>
       <button onclick="compartirPdfWA()" style="height:36px;padding:0 14px;background:#25D366;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>WhatsApp</button>
       <button onclick="compartirPdfEmail()" style="height:36px;padding:0 14px;background:#4A90D9;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 5L2 7"/></svg>Email</button>
       <button onclick="cerrarPdfPreview()" style="height:36px;padding:0 12px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <!-- Barra de confirmación inline (oculta hasta que se toca Imprimir) -->
+  <div id="pdf-tb-confirm" class="pdf-tb" style="display:none;position:sticky;top:0;z-index:10;background:#C2531A;color:#fff;padding:12px 16px;box-shadow:0 2px 16px rgba(0,0,0,.35)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div id="pdf-confirm-msg" style="font-size:13px;font-weight:600;flex:1;min-width:200px"></div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button onclick="confirmarImpresion()" style="height:36px;padding:0 18px;background:#fff;color:#C2531A;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">✓ Sí, continuar</button>
+        <button onclick="cancelarConfirmImpresion()" style="height:36px;padding:0 14px;background:rgba(0,0,0,.2);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>
+      </div>
     </div>
   </div>
   <div id="pdfPageWrap" style="padding:24px;min-height:calc(100vh - 60px)"></div>
@@ -7221,18 +7232,28 @@ body{padding:24px}
 </style></head><body>${pageContent}</body></html>`;
 }
 
-async function imprimirPdfPreview(){
-  if(!_pdfPageData){alert('No hay datos del presupuesto.');return;}
-  const msg = _pdfIsExisting
-    ? '¿Generar e imprimir el PDF de este presupuesto?'
-    : 'Al generar el PDF, este presupuesto se guardará en la sección Presupuestos.\n¿Continuás?';
-  if(!confirm(msg)) return;
+function pedirConfirmImpresion(){
+  if(!_pdfPageData){showToast('Sin datos del presupuesto','err');return;}
+  const msg=_pdfIsExisting
+    ?'¿Generar e imprimir el PDF de este presupuesto?'
+    :'Al imprimir, este presupuesto se guardará en Presupuestos.';
+  document.getElementById('pdf-confirm-msg').textContent=msg;
+  document.getElementById('pdf-tb-main').style.display='none';
+  document.getElementById('pdf-tb-confirm').style.display='block';
+}
+function cancelarConfirmImpresion(){
+  document.getElementById('pdf-tb-confirm').style.display='none';
+  document.getElementById('pdf-tb-main').style.display='flex';
+}
+async function confirmarImpresion(){
+  cancelarConfirmImpresion();
   if(!_pdfIsExisting){
-    await savePresupuesto();
-    loadPresupuestos?.();
+    try{ await savePresupuesto(); loadPresupuestos?.(); }catch(e){}
   }
   _abrirVentanaImpresion();
 }
+// alias por compatibilidad con código anterior
+async function imprimirPdfPreview(){ pedirConfirmImpresion(); }
 
 function _abrirVentanaImpresion(){
   const html=_pdfFullHtml(_pdfPageData);
