@@ -3528,8 +3528,9 @@ async function abrirPdfPresupuesto(id){
   let tel=(cp||'').replace(/[^\d]/g,'');
   if(tel&&!tel.startsWith('598')&&tel.length<=9) tel='598'+tel.replace(/^0/,'');
   const shareData={tel,email:ce,asunto:`Presupuesto ${numLabel} — ArteLab`,texto:`Presupuesto ${numLabel} — ArteLab\nCliente: ${cn||'—'}\nProyecto: ${pedido||'Impresión 3D'}\nTotal: $ ${fmt(Math.round(precioFinal))} UYU\n\nPresupuesto válido por 10 días.\nhola@artelab.studio`};
-  const html=_buildPdfPageHtml({numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:false,showTotal:true,proyMat,logoUrl});
-  abrirPdfPreview(html,shareData);
+  const pageData={numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:false,showTotal:true,proyMat};
+  const html=_buildPdfPageHtml(pageData);
+  abrirPdfPreview(html,shareData,pageData);
 }
 
 function emailPres(id){
@@ -7198,33 +7199,49 @@ function calc(){recalcTotal();}
 
 // ── PDF PREVIEW OVERLAY ───────────────────────────────────────────────
 let _pdfShareData = null;
+let _pdfPageData = null;  // datos completos para re-generar el HTML
 
 function cerrarPdfPreview(){
   document.getElementById('pdfPreviewOv').style.display='none';
   document.body.style.overflow='';
 }
 
-function imprimirPdfPreview(){
-  const page=document.querySelector('#pdfPageWrap .pvp-page');
-  if(!page){alert('No hay contenido para imprimir.');return;}
-  // Clonar y limpiar atributos de edición
-  const clone=page.cloneNode(true);
-  clone.removeAttribute('contenteditable');
-  clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
-  const w=window.open('','_blank','width=900,height=750');
-  if(!w){alert('El navegador bloqueó la ventana emergente. Permitir popups para este sitio.');return;}
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Presupuesto ArteLab</title>
+function _pdfFullHtml(d){
+  // Genera HTML completo y auto-contenido para imprimir
+  const pageContent=_buildPdfPageHtml(d);
+  return`<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Presupuesto ${d.numLabel} — ArteLab</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#ECE9E3;font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.pvp-page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:#ECE9E3;position:relative;overflow:hidden}
-@media screen{body{background:#d7d2c8;padding:24px}.pvp-page{box-shadow:0 20px 60px rgba(33,31,28,.22)}}
-@media print{@page{size:A4;margin:0}body{background:#ECE9E3;padding:0}.pvp-page{width:210mm;min-height:297mm;margin:0;box-shadow:none;padding:14mm}}
-</style></head><body>${clone.outerHTML}</body></html>`);
+html,body{margin:0;padding:0;font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;background:#d7d2c8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+body{padding:24px}
+.pvp-page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:#ECE9E3;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(33,31,28,.22)}
+@media print{@page{size:A4;margin:0}html,body{padding:0;background:#ECE9E3}.pvp-page{width:210mm;min-height:297mm;margin:0;box-shadow:none;padding:14mm}}
+</style></head><body>${pageContent}</body></html>`;
+}
+
+function imprimirPdfPreview(){
+  if(!_pdfPageData){alert('No hay datos del presupuesto.');return;}
+  const html=_pdfFullHtml(_pdfPageData);
+  const w=window.open('','_blank','width=900,height=750');
+  if(!w){alert('Permitir ventanas emergentes en este sitio para imprimir.');return;}
+  w.document.open();
+  w.document.write(html);
   w.document.close();
-  const doPrint=()=>setTimeout(()=>{w.print();},400);
-  if(w.document.readyState==='complete') doPrint();
-  else w.onload=doPrint;
+  // Esperar a que carguen las imágenes antes de imprimir
+  const imgs=w.document.images;
+  if(!imgs.length){
+    setTimeout(()=>w.print(),300);
+  } else {
+    let loaded=0;
+    const check=()=>{loaded++;if(loaded>=imgs.length)setTimeout(()=>w.print(),200);};
+    Array.from(imgs).forEach(img=>{
+      if(img.complete) check();
+      else{img.onload=check;img.onerror=check;}
+    });
+    // Fallback por si onload no dispara
+    setTimeout(()=>w.print(),2000);
+  }
 }
 
 function compartirPdfWA(){
@@ -7240,8 +7257,9 @@ function compartirPdfEmail(){
   window.open(`mailto:${email||''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(texto)}`);
 }
 
-function abrirPdfPreview(pageHtml, shareData){
+function abrirPdfPreview(pageHtml, shareData, pageData){
   _pdfShareData=shareData||null;
+  _pdfPageData=pageData||null;
   const wrap=document.getElementById('pdfPageWrap');
   wrap.innerHTML=pageHtml;
   const page=wrap.querySelector('.pvp-page');
@@ -7357,8 +7375,9 @@ function exportPDF(){
   let tel=(cp||'').replace(/[^\d]/g,'');
   if(tel&&!tel.startsWith('598')&&tel.length<=9) tel='598'+tel.replace(/^0/,'');
   const shareData={tel,email:ce,asunto:`Presupuesto ${numLabel} — ArteLab`,texto:`Presupuesto ${numLabel} — ArteLab\nCliente: ${cn||'—'}\nProyecto: ${pedido||'Impresión 3D'}\nTotal: $ ${fmt(Math.round(precioFinal))} UYU\n\nPresupuesto válido por 10 días.\nhola@artelab.studio`};
-  const html=_buildPdfPageHtml({numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:S.ivaOnBill,showTotal:true,proyMat,logoUrl});
-  abrirPdfPreview(html,shareData);
+  const pageData={numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn:S.ivaOnBill,showTotal:true,proyMat};
+  const html=_buildPdfPageHtml(pageData);
+  abrirPdfPreview(html,shareData,pageData);
 }
 
 // ── WHATSAPP ──────────────────────────────────────────────────────────
