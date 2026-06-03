@@ -6655,7 +6655,10 @@ function articuloHTML(aid){
       <!-- 4. Material -->
       <div class="sec-head">
         <label class="fl">🧵 Material</label>
-        <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleSec(${aid},'material',this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="mat-tog-lbl-${aid}" style="font-size:11px;font-weight:600;color:var(--t2)">Activo</span>
+          <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleMaterial(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+        </div>
       </div>
       <div id="body-material-${aid}">
         <div class="f"><label class="fl">Tipo de filamento</label>
@@ -6877,6 +6880,12 @@ function artToggleSec(aid,sec,on){
   const body=document.getElementById('body-'+sec+'-'+aid);
   if(body)body.style.display=on?'':'none';
   renderArt(aid); recalcTotal();
+}
+function artToggleMaterial(aid,on){
+  const lbl=document.getElementById('mat-tog-lbl-'+aid);
+  if(lbl)lbl.textContent=on?'Activo':'Apagado';
+  if(lbl)lbl.style.color=on?'var(--t2)':'var(--bad-fg)';
+  artToggleSec(aid,'material',on);
 }
 function artIvaSpool(aid,on){const a=_art(aid);if(a)a.ivaOnSpool=on;renderArt(aid);recalcTotal();}
 function artSetCur(aid,field,cur){
@@ -7533,6 +7542,7 @@ function restoreArticulo(aid,d){
     const on=a.sec[sec]!==false;
     const chk=document.getElementById('en-'+sec+'-'+aid); const body=document.getElementById('body-'+sec+'-'+aid);
     if(chk)chk.checked=on; if(body)body.style.display=on?'':'none';
+    if(sec==='material'){const lbl=document.getElementById('mat-tog-lbl-'+aid);if(lbl){lbl.textContent=on?'Activo':'Apagado';lbl.style.color=on?'var(--t2)':'var(--bad-fg)';}}
   });
   const md=document.getElementById('margDisp-'+aid); if(md)md.textContent=a.margin+'%';
   const ms=document.getElementById('margSlider-'+aid); if(ms)ms.value=a.margin;
