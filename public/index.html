@@ -7267,10 +7267,18 @@ function _abrirVentanaImpresion(){
     if(printed)return;printed=true;
     setTimeout(()=>{
       w.print();
-      // Al cerrar el diálogo de impresión: cerrar popup y volver al overlay/app
-      w.addEventListener('afterprint',()=>{
-        setTimeout(()=>{ try{w.close();}catch(e){} cerrarPdfPreview(); },400);
-      });
+      // afterprint (Chrome/FF moderno)
+      try{w.addEventListener('afterprint',()=>{
+        setTimeout(()=>{ try{w.close();}catch(e){} cerrarPdfPreview(); },300);
+      });}catch(e){}
+      // Fallback: polling cada 600ms para detectar cuando el popup se cierra
+      const poll=setInterval(()=>{
+        try{
+          if(w.closed){ clearInterval(poll); cerrarPdfPreview(); }
+        }catch(e){ clearInterval(poll); cerrarPdfPreview(); }
+      },600);
+      // Limpiar polling a los 10 minutos por si queda huérfano
+      setTimeout(()=>clearInterval(poll),600000);
     },250);
   };
   const imgs=w.document.images;
