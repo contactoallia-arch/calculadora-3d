@@ -1704,6 +1704,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="kpi">
         <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div></div>
         <div class="k-val" id="insKpiValor">—</div>
+        <div class="k-sub" id="insKpiValorSub" style="font-size:10.5px;color:var(--text-3);margin-top:2px"></div>
         <div class="k-label">Valor en stock</div>
       </div>
       <div class="kpi">
@@ -4729,6 +4730,8 @@ async function loadReportes() {
 }
 
 // ── CONFIGURACIÓN ─────────────────────────────────────────────────────
+let _tipoCambioUSD = 40; // fallback, se actualiza desde config
+
 async function loadConfig() {
   const [cfgD, usersD, fijosD] = await Promise.all([
     apiGet('/api/configuracion'),
@@ -4741,6 +4744,7 @@ async function loadConfig() {
     document.getElementById('cfgEmpresa').value = c.nombre_empresa || '';
     document.getElementById('cfgWA').value = c.whatsapp_numero || '';
     document.getElementById('cfgTC').value = c.tipo_cambio_usd_uyu || '';
+    if (c.tipo_cambio_usd_uyu) _tipoCambioUSD = parseFloat(c.tipo_cambio_usd_uyu) || 40;
     document.getElementById('cfgMargen').value = c.margen_default || '';
   }
 
@@ -5385,11 +5389,28 @@ function renderInsumos() {
   const tbody = document.getElementById('insumosTbody');
   if (!tbody) return;
   const all = _insumosCache;
-  // KPIs
-  const valor = all.reduce((a,i)=>a + Number(i.stock||0)*Number(i.precio||0), 0);
+  // KPIs — separar UYU y USD
+  let valorUYU = 0, valorUSD = 0;
+  all.forEach(i => {
+    const v = Number(i.stock||0) * Number(i.precio||0);
+    if ((i.moneda||'UYU') === 'USD') valorUSD += v;
+    else valorUYU += v;
+  });
+  const tc = _tipoCambioUSD || 40;
+  const valorTotal = valorUYU + valorUSD * tc;
   const bajo = all.filter(i=>{const e=_insEstado(i);return e.t==='Bajo mínimo';}).length;
   const agot = all.filter(i=>Number(i.stock||0)<=0).length;
-  document.getElementById('insKpiValor').textContent = '$ '+fmtMoney(Math.round(valor));
+  document.getElementById('insKpiValor').textContent = '$ '+fmtMoney(Math.round(valorTotal));
+  const sub = document.getElementById('insKpiValorSub');
+  if (sub) {
+    if (valorUSD > 0 && valorUYU > 0) {
+      sub.textContent = `$ ${fmtMoney(Math.round(valorUYU))} + U$S ${fmtMoney(Math.round(valorUSD))} × ${tc}`;
+    } else if (valorUSD > 0) {
+      sub.textContent = `U$S ${fmtMoney(Math.round(valorUSD))} × ${tc} = $ ${fmtMoney(Math.round(valorTotal))}`;
+    } else {
+      sub.textContent = '';
+    }
+  }
   document.getElementById('insKpiBajo').textContent = bajo;
   document.getElementById('insKpiAgot').textContent = agot;
   document.getElementById('insKpiSku').textContent = all.length;
@@ -5421,7 +5442,7 @@ function renderInsumos() {
         <div class="stock-bar"><i style="width:${pct}%;background:${e.bar}"></i></div>
       </td>
       <td class="hide-m" style="color:var(--text-2);font-size:13px">${i.proveedor_nombre||'—'}</td>
-      <td class="num" style="font-size:13px">$ ${fmtMoney(i.precio)}<span style="color:var(--text-faint);font-size:11px">/${i.unidad||'u'}</span></td>
+      <td class="num" style="font-size:13px">${(i.moneda||'UYU')==='USD'?'<span style="font-size:10px;font-weight:700;color:var(--info-fg);background:var(--info-soft);padding:1px 5px;border-radius:4px;margin-right:3px">U$S</span>':''}${fmtMoney(i.precio)}<span style="color:var(--text-faint);font-size:11px">/${i.unidad||'u'}</span></td>
       <td><span class="badge ${e.cl}"><span class="bdot"></span>${e.t}</span></td>
       <td>
         <div style="display:flex;gap:3px">
@@ -5470,12 +5491,13 @@ async function abrirInsumoForm(id) {
     document.getElementById('insCat').value = item.categoria||'filamento';
     document.getElementById('insTipo').value = item.tipo||'PLA';
     document.getElementById('insPrecio').value = item.precio||'';
-    document.getElementById('insMoneda').value = item.moneda||'UYU';
     document.getElementById('insUnidad').value = item.unidad||'kg';
     document.getElementById('insStock').value = item.stock||0;
     document.getElementById('insNotas').value = item.notas||'';
     document.getElementById('insProveedor').value = item.proveedor_id||'';
     toggleInsCategoria();
+    // Forzar moneda DESPUÉS de toggleInsCategoria para que no se pise
+    document.getElementById('insMoneda').value = item.moneda||'UYU';
   }
   openM('mInsumo');
 }
