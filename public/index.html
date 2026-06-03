@@ -1297,6 +1297,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
             <th>Monto</th>
             <th class="hide-m" style="width:110px">Fechas</th>
             <th style="width:130px">Estado</th>
+            <th class="hide-m" style="width:110px">Vendedor</th>
           </tr></thead>
           <tbody id="presTbody"><tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Cargando…</td></tr></tbody>
         </table>
@@ -2765,6 +2766,9 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="f"><label class="fl">Fecha de entrega</label><input type="text" id="delivDate" placeholder="Ej: 15/05/2026"></div>
     </div>
     <div class="f"><label class="fl">Notas del pedido</label><textarea id="notes" rows="2" placeholder="Color, acabado, tolerancias, instrucciones especiales…"></textarea></div>
+    <div class="f"><label class="fl">Vendedor <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0">(uso interno)</span></label>
+      <select id="calcVendedor"><option value="">— Sin vendedor —</option></select>
+    </div>
   </div>
   <div class="dbanner">Sección desactivada — no aparecerá en el PDF.</div>
 </div>
@@ -3113,6 +3117,7 @@ function showPage(page) {
   if (page === 'agenda') loadAgenda();
   if (page === 'proveedores') loadProveedores();
   if (page === 'vendedores') loadVendedores();
+  if (page === 'calculadora') _cargarVendedoresCalc();
   if (page === 'reportes') loadReportes();
   if (page === 'reparto') loadRepartos();
   if (page === 'config') loadConfig();
@@ -3429,8 +3434,9 @@ function filterPresupuestos() {
         })()};font-size:11px">📅 ${p.fecha_entrega}</div>` : ''}
       </td>
       <td><span class="badge b-${estado}"><span class="bdot"></span>${LABELS_EST[estado]||estado}</span></td>
+      <td class="hide-m" style="font-size:12px;color:${p.vendedor_nombre?'var(--brand)':'var(--text-faint)'};font-weight:${p.vendedor_nombre?'600':'400'}">${p.vendedor_nombre||'—'}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin presupuestos</td></tr>`;
+  }).join('') : `<tr><td colspan="7" style="padding:36px;text-align:center;color:var(--text-3)">Sin presupuestos</td></tr>`;
 }
 
 // ── SLIDE-OVER DE DETALLE ──────────────────────────────────────────────
@@ -6794,6 +6800,20 @@ async function eliminarProveedor(id) {
 let _editVendedorId = null;
 let _vendedoresCache = [];
 
+async function _cargarVendedoresCalc() {
+  try {
+    const d = await apiGet('/api/vendedores');
+    if (!d.ok) return;
+    _vendedoresCache = d.data || [];
+    const sel = document.getElementById('calcVendedor');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Sin vendedor —</option>' +
+      _vendedoresCache.map(v => `<option value="${v.id}">${v.nombre}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch {}
+}
+
 async function loadVendedores() {
   const d = await apiGet('/api/vendedores');
   if (!d.ok) return;
@@ -7962,6 +7982,7 @@ async function savePresupuesto(){
     fecha:new Date().toLocaleDateString('es-UY'),
     fecha_entrega:document.getElementById('delivDate').value||null,
     notas:document.getElementById('notes').value||null,
+    vendedor_id:parseInt(document.getElementById('calcVendedor').value)||null,
     snap:(()=>{
       const s=captureForm();
       const arts=S.lcArts||[];
@@ -8143,6 +8164,7 @@ function captureForm(){
     cName:document.getElementById('cName').value, cEmail:document.getElementById('cEmail').value,
     cPhone:document.getElementById('cPhone').value, delivDate:document.getElementById('delivDate').value,
     notes:document.getElementById('notes').value,
+    vendedorId:parseInt(document.getElementById('calcVendedor').value)||null,
     exRate:document.getElementById('exRate').value, disp:S.disp, ivaOnBill:S.ivaOnBill, overridePrice:S.overridePrice,
     articulos:S.articulos.map(a=>art(a.id))
   };
@@ -8207,6 +8229,7 @@ function restoreForm(snap){
   const setg=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
   setg('pieceName',snap.pedido!==undefined?snap.pedido:snap.pieceName); setg('cName',snap.cName);
   setg('cEmail',snap.cEmail); setg('cPhone',snap.cPhone); setg('delivDate',snap.delivDate); setg('notes',snap.notes);
+  setg('calcVendedor',snap.vendedorId!=null?String(snap.vendedorId):'');
   if(snap.exRate)setg('exRate',snap.exRate);
   if(snap.disp)S.disp=snap.disp;
   S.ivaOnBill=!!snap.ivaOnBill; const ib=document.getElementById('ivaOnBill'); if(ib)ib.checked=S.ivaOnBill;
