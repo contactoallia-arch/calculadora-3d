@@ -2421,6 +2421,56 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="guardarEditGasto()">Guardar</button></div>
 </div>
 
+<!-- Modal: consumo de insumo -->
+<div class="modal" id="mConsumoInsumo" style="max-width:420px">
+  <div class="mh"><div class="mt" id="mConsumoTit">Registrar consumo</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:14px" id="mConsumoInfo"></div>
+    <div class="frow">
+      <div class="fgrp" style="flex:2">
+        <label>Cantidad consumida *</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="consumoCant" type="number" min="0.001" step="0.001" placeholder="0.000" oninput="updateConsumoPreview()" style="flex:1">
+          <span id="consumoUnidad" style="font-size:13px;font-weight:700;color:var(--text-3);white-space:nowrap">kg</span>
+        </div>
+      </div>
+    </div>
+    <div id="consumoPreview" style="margin-top:10px;padding:10px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12.5px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="color:var(--text-3)">Stock actual</span>
+        <span id="consumoPreviewActual" style="font-weight:700"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="color:var(--text-3)">Después del consumo</span>
+        <span id="consumoPreviewDespues" style="font-weight:700;color:var(--brand)"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border-2);padding-top:6px;margin-top:4px">
+        <span style="color:var(--text-3)">Valor que queda</span>
+        <span id="consumoPreviewValor" style="font-weight:700;color:var(--ok-fg)"></span>
+      </div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" style="background:var(--bad-fg);border-color:var(--bad-fg)" onclick="confirmarConsumo()">Descontar del stock</button></div>
+</div>
+
+<!-- Modal: ajustar stock -->
+<div class="modal" id="mAjusteStock" style="max-width:380px">
+  <div class="mh"><div class="mt" id="mAjusteTit">Actualizar stock</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:14px" id="mAjusteInfo"></div>
+    <div class="frow">
+      <div class="fgrp" style="flex:2">
+        <label>Nuevo stock</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input id="ajusteCant" type="number" min="0" step="0.001" placeholder="0.000" style="flex:1">
+          <span id="ajusteUnidad" style="font-size:13px;font-weight:700;color:var(--text-3);white-space:nowrap">kg</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="confirmarAjuste()">Guardar</button></div>
+</div>
+
 <!-- Modal: gasto fijo -->
 <div class="modal" id="mGastoFijo">
   <div class="mh"><div class="mt">Gasto fijo</div><button class="mx" onclick="closeM()">✕</button></div>
@@ -5671,21 +5721,107 @@ function renderInsumos() {
         </div>
       </td>
       <td class="hide-m" style="color:var(--text-2);font-size:13px;text-transform:capitalize">${i.tipo||i.categoria||'—'}</td>
-      <td style="min-width:130px">
-        <div class="num" style="font-size:13px;font-weight:700;margin-bottom:2px">${st} ${i.unidad||''} <span style="color:var(--text-faint);font-weight:500">/ mín ${min}</span></div>
+      <td style="min-width:120px">
+        <div class="num" style="font-size:13px;font-weight:700;margin-bottom:2px">${st % 1 === 0 ? st : st.toFixed(3).replace(/\.?0+$/, '')} ${i.unidad||''} <span style="color:var(--text-faint);font-weight:500;font-size:11px">/ mín ${min}</span></div>
         <div class="stock-bar"><i style="width:${pct}%;background:${e.bar}"></i></div>
       </td>
       <td class="hide-m" style="color:var(--text-2);font-size:13px">${i.proveedor_nombre||'—'}</td>
-      <td class="num" style="font-size:13px">${(i.moneda||'UYU')==='USD'?'<span style="font-size:10px;font-weight:700;color:var(--info-fg);background:var(--info-soft);padding:1px 5px;border-radius:4px;margin-right:3px">U$S</span>':''}${fmtMoney(i.precio)}<span style="color:var(--text-faint);font-size:11px">/${i.unidad||'u'}</span></td>
+      <td class="num" style="font-size:12px">
+        <div>${(i.moneda||'UYU')==='USD'?'<span style="font-size:10px;font-weight:700;color:var(--info-fg);background:var(--info-soft);padding:1px 4px;border-radius:3px;margin-right:2px">U$S</span>':''}${fmtMoney(i.precio)}<span style="color:var(--text-faint);font-size:10px">/${i.unidad||'u'}</span></div>
+        <div style="font-size:11px;color:var(--brand);margin-top:2px">= ${(i.moneda||'UYU')==='USD'?'U$S':'$'} ${fmtMoney((st * Number(i.precio||0)).toFixed(2))}</div>
+      </td>
       <td><span class="badge ${e.cl}"><span class="bdot"></span>${e.t}</span></td>
       <td>
         <div style="display:flex;gap:3px">
+          <button class="icon-btn" style="width:28px;height:28px;color:var(--bad-fg)" onclick="consumirInsumo(${i.id})" title="Registrar consumo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          <button class="icon-btn" style="width:28px;height:28px;color:var(--info-fg)" onclick="ajustarStockInsumo(${i.id})" title="Actualizar stock"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg></button>
           <button class="icon-btn" style="width:28px;height:28px" onclick="abrirInsumoForm(${i.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg></button>
           <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarInsumo(${i.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
         </div>
       </td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" style="padding:36px;text-align:center;color:var(--text-3)">Sin insumos. Agregá el primero.</td></tr>';
+}
+
+// ── CONSUMO Y AJUSTE DE STOCK ─────────────────────────────────────────
+let _consumoInsumoId = null;
+
+function consumirInsumo(id) {
+  const item = _insumosCache.find(x => Number(x.id) === Number(id));
+  if (!item) return;
+  _consumoInsumoId = id;
+  document.getElementById('mConsumoTit').textContent = 'Consumo · ' + item.nombre;
+  document.getElementById('mConsumoInfo').textContent =
+    `Stock actual: ${Number(item.stock||0).toFixed(3).replace(/\.?0+$/,'')} ${item.unidad||''} · Precio: $ ${fmtMoney(item.precio)}/${item.unidad||'u'}`;
+  document.getElementById('consumoCant').value = '';
+  document.getElementById('consumoUnidad').textContent = item.unidad || 'u';
+  document.getElementById('consumoPreview').style.display = 'none';
+  openM('mConsumoInsumo');
+  setTimeout(() => document.getElementById('consumoCant').focus(), 120);
+}
+
+function updateConsumoPreview() {
+  const item = _insumosCache.find(x => Number(x.id) === Number(_consumoInsumoId));
+  if (!item) return;
+  const cant = parseFloat(document.getElementById('consumoCant').value || 0);
+  const stockActual = Number(item.stock || 0);
+  const stockDespues = stockActual - cant;
+  const sym = (item.moneda||'UYU')==='USD' ? 'U$S ' : '$ ';
+  const prev = document.getElementById('consumoPreview');
+  if (cant > 0) {
+    prev.style.display = 'block';
+    document.getElementById('consumoPreviewActual').textContent = `${stockActual.toFixed(3).replace(/\.?0+$/,'')} ${item.unidad||''}`;
+    document.getElementById('consumoPreviewDespues').textContent =
+      `${stockDespues.toFixed(3).replace(/\.?0+$/,'')} ${item.unidad||''}` + (stockDespues < 0 ? ' ⚠' : '');
+    document.getElementById('consumoPreviewDespues').style.color = stockDespues < 0 ? 'var(--bad-fg)' : 'var(--brand)';
+    const valorRestante = Math.max(0, stockDespues) * Number(item.precio || 0);
+    document.getElementById('consumoPreviewValor').textContent = sym + fmtMoney(valorRestante.toFixed(2));
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+async function confirmarConsumo() {
+  const cant = parseFloat(document.getElementById('consumoCant').value || 0);
+  if (!cant || cant <= 0) { showToast('Ingresá una cantidad mayor a 0', 'err'); return; }
+  const d = await apiPut(`/api/insumos/${_consumoInsumoId}?action=add-stock`, { qty: -cant });
+  if (d.ok) {
+    showToast('Stock actualizado', 'ok');
+    closeM();
+    _clearInsumosCache();
+    loadInsumos();
+  } else showToast(d.error || 'Error', 'err');
+}
+
+let _ajusteInsumoId = null;
+
+function ajustarStockInsumo(id) {
+  const item = _insumosCache.find(x => Number(x.id) === Number(id));
+  if (!item) return;
+  _ajusteInsumoId = id;
+  document.getElementById('mAjusteTit').textContent = 'Actualizar stock · ' + item.nombre;
+  document.getElementById('mAjusteInfo').textContent =
+    `Stock actual: ${Number(item.stock||0).toFixed(3).replace(/\.?0+$/,'')} ${item.unidad||''}`;
+  document.getElementById('ajusteCant').value = Number(item.stock || 0);
+  document.getElementById('ajusteUnidad').textContent = item.unidad || 'u';
+  openM('mAjusteStock');
+  setTimeout(() => { const el = document.getElementById('ajusteCant'); el.focus(); el.select(); }, 120);
+}
+
+async function confirmarAjuste() {
+  const cant = parseFloat(document.getElementById('ajusteCant').value);
+  if (isNaN(cant) || cant < 0) { showToast('Valor inválido', 'err'); return; }
+  const item = _insumosCache.find(x => Number(x.id) === Number(_ajusteInsumoId));
+  if (!item) return;
+  // Calcular diferencia para usar add-stock
+  const diff = cant - Number(item.stock || 0);
+  const d = await apiPut(`/api/insumos/${_ajusteInsumoId}?action=add-stock`, { qty: diff });
+  if (d.ok) {
+    showToast(`Stock actualizado a ${cant} ${item.unidad||''}`, 'ok');
+    closeM();
+    _clearInsumosCache();
+    loadInsumos();
+  } else showToast(d.error || 'Error', 'err');
 }
 
 async function abrirInsumoForm(id) {
