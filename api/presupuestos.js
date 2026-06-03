@@ -234,7 +234,7 @@ export default async function handler(req, res) {
     const { estado, mes, cliente_id, search } = req.query || {};
     let sql = `SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.cliente_id,
       p.mat, p.qty, p.precio, p.margen, p.fecha, p.fecha_entrega,
-      p.estado, p.moneda, p.notas, p.enviado_whatsapp, p.snap, p.created_at,
+      p.estado, p.moneda, p.notas, p.enviado_whatsapp, p.snap, p.costos_internos, p.created_at,
       c.nombre as cliente_nombre, c.empresa as cliente_empresa, c.email as cliente_email, c.telefono as cliente_tel
       FROM presupuestos p
       LEFT JOIN clientes c ON c.id=p.cliente_id
@@ -246,7 +246,21 @@ export default async function handler(req, res) {
     if (search) { sql += " AND (p.pieza LIKE ? OR p.cliente LIKE ?)"; args.push(`%${search}%`, `%${search}%`); }
     sql += " ORDER BY p.id DESC LIMIT 500";
     const result = await db.execute({ sql, args });
-    const rows = result.rows.map(r => ({ ...r, snap: r.snap ? JSON.parse(r.snap) : null }));
+    const rows = result.rows.map(r => {
+      let snapObj = null;
+      try { snapObj = r.snap ? JSON.parse(r.snap) : null; } catch {}
+      // Calcular costo y ganancia
+      let costo = null;
+      if (snapObj?._totalCost != null) costo = Number(snapObj._totalCost);
+      else if (snapObj?._matC != null) costo = (snapObj._matC||0)+(snapObj._elecC||0)+(snapObj._deprC||0)+(snapObj._laborC||0);
+      if (costo === null && r.costos_internos) {
+        try { const c = JSON.parse(r.costos_internos); costo = c.reduce((s,x) => s+(Number(x.m)||0), 0); } catch {}
+      }
+      const precio = Number(r.precio||0);
+      const ganancia = costo !== null ? precio - costo : (Number(r.margen||0) > 0 ? precio * Number(r.margen) / 100 : null);
+      const margen_real = (ganancia !== null && precio > 0) ? Math.round((ganancia/precio)*100) : Number(r.margen||0);
+      return { ...r, snap: snapObj, costo, ganancia, margen_real };
+    });
     return res.status(200).json({ ok: true, data: rows });
   }
 
