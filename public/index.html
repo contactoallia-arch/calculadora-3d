@@ -4615,9 +4615,10 @@ async function saveGasto() {
 
   if (errores === 0) {
     showToast(`${items.length} gasto${items.length>1?'s':''} guardado${items.length>1?'s':''}${registrarInsumos?' e insumos actualizados':''}`, 'ok');
-    closeM(); loadGastos();
+    closeM();
   }
-  // Si hay errores: el modal queda abierto para que el usuario vea qué pasó
+  // Siempre refrescar la lista para mostrar lo que se guardó
+  loadGastos();
 }
 
 async function _upsertInsumo(item, provId, moneda) {
