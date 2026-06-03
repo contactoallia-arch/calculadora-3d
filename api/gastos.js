@@ -80,7 +80,12 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
-    const { mes, categoria, tipo, presupuesto_id } = req.query || {};
+    if (id) {
+      const r = await db.execute({ sql: "SELECT g.*, COALESCE(p.numero,p.id) as pres_numero, p.pieza as pres_pieza FROM gastos g LEFT JOIN presupuestos p ON p.id=g.presupuesto_id WHERE g.id=?", args: [id] });
+      if (!r.rows[0]) return res.status(404).json({ ok: false, error: "No encontrado" });
+      return res.status(200).json({ ok: true, data: r.rows[0] });
+    }
+    const { mes, categoria, tipo, presupuesto_id, desde, hasta } = req.query || {};
     let sql = `SELECT g.*, COALESCE(p.numero,p.id) as pres_numero, p.pieza as pres_pieza
                FROM gastos g
                LEFT JOIN presupuestos p ON p.id=g.presupuesto_id
@@ -88,10 +93,11 @@ export default async function handler(req, res) {
     const args = [];
     if (mes) {
       const [anio, mm] = mes.split("-");
-      // Soporta ambos formatos: ISO (2026-06-03) y DD/MM/YYYY (03/06/2026)
       sql += " AND (g.fecha LIKE ? OR g.fecha LIKE ? OR g.fecha LIKE ?)";
       args.push(`${anio}-${mm}%`, `%/${mm}/${anio}`, `%/${mm}/${anio}%`);
     }
+    if (desde) { sql += " AND g.fecha >= ?"; args.push(desde); }
+    if (hasta) { sql += " AND g.fecha <= ?"; args.push(hasta); }
     if (categoria) { sql += " AND g.categoria=?"; args.push(categoria); }
     if (tipo) { sql += " AND g.tipo=?"; args.push(tipo); }
     if (presupuesto_id) { sql += " AND g.presupuesto_id=?"; args.push(presupuesto_id); }

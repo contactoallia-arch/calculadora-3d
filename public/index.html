@@ -1561,11 +1561,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="card">
         <div class="card-pad" style="padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <h3 class="card-title">Movimientos</h3>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div style="display:flex;align-items:center;gap:3px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);height:32px;padding:0 8px">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              <select id="gastoMesNum" onchange="loadGastos()" style="border:none;background:transparent;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:0 2px"><option value="">Mes</option><option value="01">Ene</option><option value="02">Feb</option><option value="03">Mar</option><option value="04">Abr</option><option value="05">May</option><option value="06">Jun</option><option value="07">Jul</option><option value="08">Ago</option><option value="09">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option></select>
-              <select id="gastoAnio" onchange="loadGastos()" style="border:none;background:transparent;color:var(--text);font-size:12px;outline:none;cursor:pointer;padding:0 2px"><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <button class="chip on" id="gf-actual" onclick="setGastoFiltro('actual')">Mes actual</button>
+            <button class="chip" id="gf-anterior" onclick="setGastoFiltro('anterior')">Mes anterior</button>
+            <button class="chip" id="gf-todo" onclick="setGastoFiltro('todo')">Todo</button>
+            <div style="display:flex;align-items:center;gap:4px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);height:32px;padding:0 8px">
+              <input type="date" id="gastoDesde" onchange="setGastoFiltro('rango')" style="border:none;background:transparent;font-size:12px;color:var(--text);outline:none;width:120px">
+              <span style="color:var(--text-3);font-size:11px">→</span>
+              <input type="date" id="gastoHasta" onchange="setGastoFiltro('rango')" style="border:none;background:transparent;font-size:12px;color:var(--text);outline:none;width:120px">
             </div>
             <button class="btn btn--primary btn--sm" onclick="openGastoForm()">
               <svg class="icon" viewBox="0 0 18 18" style="width:15px;height:15px"><path d="M9 3v12M3 9h12"/></svg>
@@ -1581,7 +1584,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
               <th class="hide-m">Descripción</th>
               <th>Tipo</th>
               <th>Monto</th>
-              <th style="width:36px"></th>
+              <th style="width:60px"></th>
             </tr></thead>
             <tbody id="gastoTbody"><tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Cargando…</td></tr></tbody>
           </table>
@@ -2364,6 +2367,45 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="saveUser()">Guardar</button></div>
+</div>
+
+<!-- Modal: editar gasto -->
+<div class="modal" id="mEditGasto" style="max-width:520px">
+  <div class="mh"><div class="mt">Editar gasto</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <div class="frow">
+      <div class="fgrp"><label>Fecha</label><input id="egFecha" type="date"></div>
+      <div class="fgrp"><label>Categoría</label>
+        <select id="egCat">
+          <option value="">— categoría —</option>
+          <option>filamento</option><option>resina</option><option>electricidad</option>
+          <option>maquinaria</option><option>herramientas</option><option>packaging</option>
+          <option>marketing</option><option>otros</option>
+        </select>
+      </div>
+      <div class="fgrp"><label>Medio de pago</label>
+        <select id="egMedioPago">
+          <option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option>
+          <option value="tarjeta_debito">Tarjeta débito</option><option value="tarjeta_credito">Tarjeta crédito</option>
+          <option value="mercadopago">MercadoPago</option><option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fgrp" style="flex:2"><label>Descripción</label><input id="egDesc" placeholder="Descripción del gasto"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp">
+        <label>Monto</label>
+        <input id="egMonto" type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="fgrp"><label>Moneda</label><select id="egMoneda"><option>UYU</option><option>USD</option></select></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Nota / detalle <span style="font-weight:400;color:var(--text-3)">(opcional)</span></label><input id="egParaQue" placeholder="Ej: 2 kg × $ 500/kg"></div>
+    </div>
+  </div>
+  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="guardarEditGasto()">Guardar</button></div>
 </div>
 
 <!-- Modal: gasto fijo -->
@@ -4240,24 +4282,75 @@ const _CAT_COLOR = {
 };
 function _catColor(cat){ return _CAT_COLOR[(cat||'').toLowerCase()] || '#8A93A3'; }
 
+// ── FILTRO GASTOS ──────────────────────────────────────────────────────
+let _gastoFiltroTipo = 'actual'; // actual | anterior | todo | rango
+let _gastosCache = [];
+
+function setGastoFiltro(tipo) {
+  _gastoFiltroTipo = tipo;
+  ['actual','anterior','todo'].forEach(t => {
+    const el = document.getElementById('gf-'+t);
+    if (el) el.classList.toggle('on', t===tipo);
+  });
+  // Limpiar rango si no es rango
+  if (tipo !== 'rango') {
+    const d = document.getElementById('gastoDesde');
+    const h = document.getElementById('gastoHasta');
+    if (tipo !== 'rango' && d) { d.value=''; h.value=''; }
+  }
+  loadGastos();
+}
+
+function _getGastoFiltroURL() {
+  const now = new Date();
+  if (_gastoFiltroTipo === 'actual') {
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    return `/api/gastos?mes=${now.getFullYear()}-${mm}`;
+  }
+  if (_gastoFiltroTipo === 'anterior') {
+    const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const mm = String(prev.getMonth()+1).padStart(2,'0');
+    return `/api/gastos?mes=${prev.getFullYear()}-${mm}`;
+  }
+  if (_gastoFiltroTipo === 'rango') {
+    const desde = document.getElementById('gastoDesde')?.value || '';
+    const hasta = document.getElementById('gastoHasta')?.value || '';
+    let url = '/api/gastos';
+    const params = [];
+    if (desde) params.push('desde='+desde);
+    if (hasta) params.push('hasta='+hasta);
+    return url + (params.length ? '?'+params.join('&') : '');
+  }
+  return '/api/gastos'; // todo
+}
+
 async function loadGastos() {
-  _initMesFiltro('gastoMesNum','gastoAnio');
-  const mes = _getMesFiltro('gastoMesNum','gastoAnio');
-  let url = '/api/gastos';
-  if (mes) url += '?mes=' + mes;
+  const url = _getGastoFiltroURL();
   const d = await apiGet(url);
   if (!d.ok) return;
   const rows = d.data;
-  const total = rows.reduce((s,r) => s + Number(r.monto||0), 0);
-  const fijos = rows.filter(g=>g.tipo==='fijo_mensual').reduce((s,r)=>s+Number(r.monto||0),0);
-  const variables = total - fijos;
+  _gastosCache = rows;
 
-  // KPIs
-  const mesLbl = mes ? new Date(mes+'-01').toLocaleString('es-UY',{month:'long'}) : 'total';
-  const t1=document.getElementById('gastoKpiTotal'); if(t1) t1.textContent='$ '+fmtMoney(total);
-  const tl=document.getElementById('gastoKpiTotalLbl'); if(tl) tl.textContent='Gastos · '+mesLbl;
+  // KPIs — separar UYU y USD
+  const tc = _tipoCambioUSD || 40;
+  let totalUYU = 0, totalUSD = 0;
+  rows.forEach(g => {
+    const m = Number(g.monto||0);
+    if ((g.moneda||'UYU')==='USD') totalUSD += m; else totalUYU += m;
+  });
+  const totalCombinado = totalUYU + totalUSD * tc;
+  const fijos = rows.filter(g=>g.tipo==='fijo_mensual').reduce((s,r)=>s+Number(r.monto||0),0);
+  const variables = totalCombinado - fijos;
+
+  const lbl = _gastoFiltroTipo==='actual'?'Mes actual':_gastoFiltroTipo==='anterior'?'Mes anterior':_gastoFiltroTipo==='rango'?'Rango':'Todo';
+  const t1=document.getElementById('gastoKpiTotal');
+  if(t1){
+    t1.textContent='$ '+fmtMoney(Math.round(totalCombinado));
+    if (totalUSD>0 && totalUYU>0) t1.title=`$ ${fmtMoney(Math.round(totalUYU))} UYU + U$S ${fmtMoney(Math.round(totalUSD))} × ${tc}`;
+  }
+  const tl=document.getElementById('gastoKpiTotalLbl'); if(tl) tl.textContent='Gastos · '+lbl;
   const t2=document.getElementById('gastoKpiFijos'); if(t2) t2.textContent='$ '+fmtMoney(fijos);
-  const t3=document.getElementById('gastoKpiVar'); if(t3) t3.textContent='$ '+fmtMoney(variables);
+  const t3=document.getElementById('gastoKpiVar'); if(t3) t3.textContent='$ '+fmtMoney(Math.round(variables));
 
   const TIPO_LABELS = { manual:'Variable', fijo_mensual:'Fijo', produccion_automatico:'Producción' };
   document.getElementById('gastoTbody').innerHTML = rows.length ? rows.map(g => {
@@ -4266,15 +4359,22 @@ async function loadGastos() {
     const tipoCell = esFijo
       ? `<span class="chip" style="padding:3px 9px;font-size:11px;color:var(--vio-fg);background:var(--vio-soft);border-color:transparent">📅 Fijo</span>`
       : `<span style="font-size:11.5px;color:var(--text-3)">${TIPO_LABELS[g.tipo]||'Variable'}</span>`;
+    const isUSD = (g.moneda||'UYU')==='USD';
+    const montoCell = isUSD
+      ? `<div style="font-weight:700;color:var(--bad-fg)">−<span style="font-size:10px;font-weight:700;color:var(--info-fg);background:var(--info-soft);padding:1px 4px;border-radius:3px;margin-right:2px">U$S</span>${fmtMoney(g.monto)}</div><div style="font-size:10.5px;color:var(--text-3)">≈ $ ${fmtMoney(Math.round(g.monto*tc))}</div>`
+      : `<span style="font-weight:700;color:var(--bad-fg)">−$ ${fmtMoney(g.monto)}</span>`;
     return `<tr>
       <td class="mono" style="color:var(--text-3);font-size:12px">${g.fecha}</td>
       <td><span class="badge" style="background:var(--surface-2);color:${color};border:1px solid var(--border)"><span class="bdot" style="background:${color}"></span>${g.categoria}</span></td>
       <td class="hide-m" style="color:var(--text-2);font-size:13px">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${g.para_que}</div>`:''}${g.presupuesto_id?`<div style="font-size:11px;color:var(--info-fg);margin-top:2px">📋 Presup. #${String(g.pres_numero||g.presupuesto_id).padStart(4,'0')}${g.pres_pieza?' · '+g.pres_pieza:''}</div>`:''}</td>
       <td>${tipoCell}</td>
-      <td class="num" style="font-weight:700;color:var(--bad-fg)">−$ ${fmtMoney(g.monto)}</td>
-      <td><button class="icon-btn" style="width:28px;height:28px" onclick="eliminarGasto(${g.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button></td>
+      <td class="num">${montoCell}</td>
+      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
+        <button class="icon-btn" style="width:28px;height:28px" onclick="editarGasto(${g.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarGasto(${g.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button>
+      </td>
     </tr>`;
-  }).join('') : '<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin gastos</td></tr>';
+  }).join('') : '<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin gastos en este período</td></tr>';
 
   // Donut por categoría
   const porCat = {};
@@ -4618,12 +4718,9 @@ async function saveGasto() {
     showToast(`${items.length} gasto${items.length>1?'s':''} guardado${items.length>1?'s':''}${registrarInsumos?' e insumos actualizados':''}`, 'ok');
     closeM();
   }
-  // Siempre refrescar — resetear filtro al mes actual para que aparezca el gasto nuevo
-  const now = new Date();
-  const mesEl = document.getElementById('gastoMesNum');
-  const anioEl = document.getElementById('gastoAnio');
-  if (mesEl) mesEl.value = String(now.getMonth()+1).padStart(2,'0');
-  if (anioEl) anioEl.value = String(now.getFullYear());
+  // Resetear filtro al mes actual y refrescar
+  _gastoFiltroTipo = 'actual';
+  ['actual','anterior','todo'].forEach(t => { const el=document.getElementById('gf-'+t); if(el) el.classList.toggle('on',t==='actual'); });
   loadGastos();
   } catch(fatal) { showToast('Error crítico: ' + fatal.message, 'err'); console.error('saveGasto fatal:', fatal); }
 }
@@ -4657,6 +4754,47 @@ async function _upsertInsumo(item, provId, moneda) {
     _clearInsumosCache();
     if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();
   } catch {}
+}
+
+let _editGastoId = null;
+
+async function editarGasto(id) {
+  _editGastoId = id;
+  const g = _gastosCache.find(x=>Number(x.id)===Number(id));
+  if (!g) return;
+  // Convertir fecha al formato ISO para el input type=date
+  let fechaISO = g.fecha;
+  if (fechaISO && fechaISO.includes('/')) {
+    const parts = fechaISO.split('/');
+    // DD/MM/YYYY → YYYY-MM-DD
+    if (parts.length===3) fechaISO = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+  }
+  document.getElementById('egFecha').value = fechaISO || '';
+  document.getElementById('egCat').value = g.categoria || '';
+  document.getElementById('egMedioPago').value = g.medio_pago || 'efectivo';
+  document.getElementById('egDesc').value = g.descripcion || '';
+  document.getElementById('egMonto').value = g.monto || '';
+  document.getElementById('egMoneda').value = g.moneda || 'UYU';
+  document.getElementById('egParaQue').value = g.para_que || '';
+  openM('mEditGasto');
+}
+
+async function guardarEditGasto() {
+  if (!_editGastoId) return;
+  const body = {
+    fecha: document.getElementById('egFecha').value,
+    categoria: document.getElementById('egCat').value || 'otros',
+    medio_pago: document.getElementById('egMedioPago').value,
+    descripcion: document.getElementById('egDesc').value.trim(),
+    monto: parseFloat(document.getElementById('egMonto').value),
+    moneda: document.getElementById('egMoneda').value,
+    para_que: document.getElementById('egParaQue').value.trim() || null
+  };
+  if (!body.descripcion) { showToast('La descripción es requerida', 'err'); return; }
+  if (!body.monto || body.monto <= 0) { showToast('El monto es requerido', 'err'); return; }
+  const d = await apiPut('/api/gastos/' + _editGastoId, body);
+  if (d.ok) { showToast('Gasto actualizado', 'ok'); closeM(); loadGastos(); }
+  else showToast(d.error || 'Error al guardar', 'err');
 }
 
 async function eliminarGasto(id) {
