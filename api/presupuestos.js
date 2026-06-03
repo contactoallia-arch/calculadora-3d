@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const user = await requireAuth(req, res, db, ["admin", "operador"]);
     if (!user) return;
     const { estado_nuevo, nota } = req.body || {};
-    const r = await db.execute({ sql: "SELECT estado,pieza,snap,precio,margen,cliente_id,moneda FROM presupuestos WHERE id=?", args: [id] });
+    const r = await db.execute({ sql: "SELECT estado,pieza,snap,precio,margen,cliente_id,moneda,costos_internos FROM presupuestos WHERE id=?", args: [id] });
     const pres = r.rows[0];
     if (!pres) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
     const estado_actual = pres.estado || "borrador";
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
             await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: [c.cat, `${c.desc} — Presupuesto #${id}: ${pres.pieza}`, c.monto, "UYU", fecha, "produccion_automatico", id, user.id] });
           }
         }
-        // Descontar insumos del stock (solo una vez)
+        // Descontar insumos del stock vinculados desde la calculadora (solo una vez)
         if (snap._insumos && !snap._insumosDeducted) {
           for (const ins of snap._insumos) {
             if (ins.id && ins.qty > 0) {
@@ -97,6 +97,26 @@ export default async function handler(req, res) {
           }
           snap._insumosDeducted = true;
           await db.execute({ sql: "UPDATE presupuestos SET snap=? WHERE id=?", args: [JSON.stringify(snap), id] });
+        }
+      } catch {}
+    }
+
+    // Descontar insumos vinculados desde el formulario de presupuestos (costos_internos)
+    if (estado_nuevo === "produccion" && pres.costos_internos) {
+      try {
+        const costos = JSON.parse(pres.costos_internos);
+        const porDescontar = costos.filter(c => c.iid && c.iqty > 0 && !c.ideducted);
+        if (porDescontar.length > 0) {
+          const fecha = new Date().toLocaleDateString("es-UY");
+          for (const c of porDescontar) {
+            await db.execute({ sql: "UPDATE insumos SET stock=MAX(0,stock-?) WHERE id=? AND activo=1", args: [Number(c.iqty), c.iid] });
+            // Registrar como gasto de producción
+            if (c.m > 0) {
+              await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: ["filamento", `${c.d} — Presupuesto #${id}: ${pres.pieza}`, c.m, pres.moneda||"UYU", fecha, "produccion_automatico", id, user.id] });
+            }
+            c.ideducted = true;
+          }
+          await db.execute({ sql: "UPDATE presupuestos SET costos_internos=? WHERE id=?", args: [JSON.stringify(costos), id] });
         }
       } catch {}
     }

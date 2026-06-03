@@ -3720,7 +3720,7 @@ function agregarCostoPres(opts) {
       row.querySelector('.cpres-insumo-qty').value = opts.iqty || '';
       const badge = row.querySelector('.cpres-insumo-badge');
       badge.style.display = 'block';
-      badge.textContent = (opts.ideducted ? '✅ Stock descontado · ' : '📦 Insumo vinculado · ') + (opts.d||'');
+      badge.textContent = (opts.ideducted ? '✅ Stock descontado · ' : '📦 Insumo vinculado (descuenta al producir) · ') + (opts.d||'');
     }
   } else {
     row.querySelector('.cpres-desc').focus();
@@ -3752,7 +3752,7 @@ async function onCpresDescInput(input, id) {
     row.querySelector('.cpres-insumo-unit').textContent = item.data.unidad;
     const badge = row.querySelector('.cpres-insumo-badge');
     badge.style.display = 'block';
-    badge.textContent = `📦 Insumo vinculado · Stock actual: ${item.data.stock} ${item.data.unidad} · $ ${fmtMoney(item.data.precio)}/${item.data.unidad}`;
+    badge.textContent = `📦 Insumo vinculado (descuenta al producir) · Stock: ${item.data.stock} ${item.data.unidad} · $ ${fmtMoney(item.data.precio)}/${item.data.unidad}`;
     row.querySelector('.cpres-insumo-qty').focus();
   });
 }
@@ -3832,18 +3832,6 @@ async function guardarEditPres() {
     d = await apiPost('/api/presupuestos', body);
   }
   if (d.ok) {
-    // Descontar stock de insumos vinculados a costos (solo los no descontados aún)
-    for (const item of _editPresCostosItems) {
-      const el = item.el;
-      if (el.dataset.insumoId && el.dataset.insumoDeducted !== '1') {
-        const qty = parseFloat(el.querySelector('.cpres-insumo-qty')?.value||0);
-        if (qty > 0) {
-          await apiPut(`/api/insumos/${el.dataset.insumoId}?action=add-stock`, { qty: -qty });
-          el.dataset.insumoDeducted = '1';
-          _clearInsumosCache();
-        }
-      }
-    }
     showToast(_editPresId ? 'Presupuesto actualizado' : 'Presupuesto creado', 'ok');
     closeM(); loadPresupuestos();
   }
