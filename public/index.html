@@ -6012,6 +6012,16 @@ async function abrirInsumoForm(id) {
     toggleInsCategoria();
     // Forzar moneda DESPUÉS de toggleInsCategoria para que no se pise
     document.getElementById('insMoneda').value = item.moneda||'UYU';
+    // Pre-seleccionar el color si es filamento
+    if ((item.categoria||'') === 'filamento' && typeof _filColors !== 'undefined') {
+      setTimeout(() => {
+        const matchedColor = _filColors.find(c => (item.nombre||'').toLowerCase().includes(c.l.toLowerCase()));
+        if (matchedColor) {
+          const btn = document.querySelector(`.ins-color-btn[data-color="${matchedColor.v}"]`);
+          if (btn) selectInsColor(btn);
+        }
+      }, 80);
+    }
   }
   openM('mInsumo');
 }
@@ -6110,10 +6120,19 @@ async function guardarInsumo() {
   const cat = document.getElementById('insCat').value;
   const colorBtn = document.querySelector('.ins-color-btn[data-selected="1"]');
   const colorLabel = colorBtn ? colorBtn.dataset.label : '';
-  // Construir nombre con color si es filamento y no lo tiene ya
   let nombre = document.getElementById('insNombre').value.trim();
-  if (cat === 'filamento' && colorLabel && !nombre.toLowerCase().includes(colorLabel.toLowerCase())) {
-    nombre = [nombre, colorLabel].filter(Boolean).join(' ');
+  if (cat === 'filamento' && colorLabel) {
+    // Quitar cualquier color anterior embebido en el nombre
+    if (typeof _filColors !== 'undefined') {
+      _filColors.forEach(c => {
+        nombre = nombre.replace(new RegExp('\\s*' + c.l + '\\s*', 'gi'), ' ').trim();
+      });
+    }
+    nombre = nombre.replace(/\s+/g, ' ').trim();
+    // Agregar el color nuevo si no está ya
+    if (!nombre.toLowerCase().includes(colorLabel.toLowerCase())) {
+      nombre = nombre + ' ' + colorLabel;
+    }
     document.getElementById('insNombre').value = nombre;
   }
   const precioRaw = parseFloat(document.getElementById('insPrecio').value);
