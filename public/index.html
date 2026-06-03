@@ -1538,9 +1538,22 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="pg-body">
     <!-- 3 KPIs -->
     <div class="gastos-kpi-grid">
-      <div class="kpi">
+      <div class="kpi" style="min-width:0">
         <div class="k-top"><div class="k-ico" style="background:var(--brand-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/></svg></div></div>
-        <div class="k-val" id="gastoKpiTotal">—</div>
+        <div style="margin:4px 0 2px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px">
+            <span style="font-size:10px;font-weight:700;color:var(--text-3)">$ UYU</span>
+            <span id="gastoKpiUYU" class="num" style="font-size:13px;font-weight:800;color:var(--text-1)">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+            <span style="font-size:10px;font-weight:700;color:var(--info-fg)">U$S</span>
+            <span id="gastoKpiUSD" class="num" style="font-size:13px;font-weight:800;color:var(--info-fg)">—</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border-2);padding-top:3px">
+            <span style="font-size:10px;font-weight:700;color:var(--bad-fg)">Total $</span>
+            <span id="gastoKpiTotal" class="num" style="font-size:14px;font-weight:800;color:var(--bad-fg)">—</span>
+          </div>
+        </div>
         <div class="k-label" id="gastoKpiTotalLbl">Gastos · mes</div>
       </div>
       <div class="kpi">
@@ -4343,13 +4356,14 @@ async function loadGastos() {
   const variables = totalCombinado - fijos;
 
   const lbl = _gastoFiltroTipo==='actual'?'Mes actual':_gastoFiltroTipo==='anterior'?'Mes anterior':_gastoFiltroTipo==='rango'?'Rango':'Todo';
-  const t1=document.getElementById('gastoKpiTotal');
-  if(t1){
-    t1.textContent='$ '+fmtMoney(Math.round(totalCombinado));
-    if (totalUSD>0 && totalUYU>0) t1.title=`$ ${fmtMoney(Math.round(totalUYU))} UYU + U$S ${fmtMoney(Math.round(totalUSD))} × ${tc}`;
-  }
+  const elUYU = document.getElementById('gastoKpiUYU');
+  const elUSD = document.getElementById('gastoKpiUSD');
+  const elTotal = document.getElementById('gastoKpiTotal');
+  if (elUYU) elUYU.textContent = fmtMoney(Math.round(totalUYU));
+  if (elUSD) elUSD.textContent = fmtMoney(Math.round(totalUSD));
+  if (elTotal) elTotal.textContent = fmtMoney(Math.round(totalCombinado));
   const tl=document.getElementById('gastoKpiTotalLbl'); if(tl) tl.textContent='Gastos · '+lbl;
-  const t2=document.getElementById('gastoKpiFijos'); if(t2) t2.textContent='$ '+fmtMoney(fijos);
+  const t2=document.getElementById('gastoKpiFijos'); if(t2) t2.textContent='$ '+fmtMoney(Math.round(fijos));
   const t3=document.getElementById('gastoKpiVar'); if(t3) t3.textContent='$ '+fmtMoney(Math.round(variables));
 
   const TIPO_LABELS = { manual:'Variable', fijo_mensual:'Fijo', produccion_automatico:'Producción' };
