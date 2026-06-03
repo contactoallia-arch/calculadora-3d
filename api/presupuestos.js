@@ -88,6 +88,16 @@ export default async function handler(req, res) {
             await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: [c.cat, `${c.desc} — Presupuesto #${id}: ${pres.pieza}`, c.monto, "UYU", fecha, "produccion_automatico", id, user.id] });
           }
         }
+        // Descontar insumos del stock (solo una vez)
+        if (snap._insumos && !snap._insumosDeducted) {
+          for (const ins of snap._insumos) {
+            if (ins.id && ins.qty > 0) {
+              await db.execute({ sql: "UPDATE insumos SET stock=MAX(0,stock-?) WHERE id=? AND activo=1", args: [Number(ins.qty), ins.id] });
+            }
+          }
+          snap._insumosDeducted = true;
+          await db.execute({ sql: "UPDATE presupuestos SET snap=? WHERE id=?", args: [JSON.stringify(snap), id] });
+        }
       } catch {}
     }
     await logAction(db, user, "CAMBIAR_ESTADO", "presupuesto", id, { estado_actual, estado_nuevo, nota });

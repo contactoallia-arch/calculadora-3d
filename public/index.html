@@ -3229,11 +3229,11 @@ function togglePresSearch() {
 function filterPresupuestos() {
   const v1 = document.getElementById('presSearch')?.value||'';
   const v2 = document.getElementById('presSearchM')?.value||'';
-  const search = (v1||v2).toLowerCase();
+  const search = nrm(v1||v2);
   const rows = _presCache.filter(p => {
     const est = p.estado||'sin_enviar';
     if(_presChip && est !== _presChip) return false;
-    if(search && !(p.pieza||'').toLowerCase().includes(search) && !(p.cliente_nombre||p.cliente||'').toLowerCase().includes(search)) return false;
+    if(search && !nrm(p.pieza||'').includes(search) && !nrm(p.cliente_nombre||p.cliente||'').includes(search)) return false;
     return true;
   });
   const LABELS_EST = { sin_enviar:'Sin enviar', borrador:'Sin enviar', enviado:'Enviado', aprobado:'Aprobado', rechazado:'Rechazado', cobrado:'Cobrado', cancelado:'Cancelado', produccion:'En producción', listo:'Listo', entregado:'Entregado' };
@@ -3729,10 +3729,10 @@ function agregarCostoPres(opts) {
 
 async function onCpresDescInput(input, id) {
   recalcEditPresUtilidad();
-  const q = input.value.toLowerCase().trim();
+  const q = nrm(input.value.trim());
   if (q.length < 2) { _acHide(); return; }
   const items = await _getInsumos();
-  const matches = items.filter(i => i.nombre.toLowerCase().includes(q)).slice(0, 8);
+  const matches = items.filter(i => nrm(i.nombre).includes(q)).slice(0, 8);
   if (!matches.length) { _acHide(); return; }
   _acShow(input, matches.map(i => ({
     label: i.nombre,
@@ -3899,7 +3899,7 @@ async function loadClientes() {
 }
 
 function filterClientes() {
-  const s = (document.getElementById('cliSearch')?.value || '').toLowerCase();
+  const s = nrm(document.getElementById('cliSearch')?.value || '');
   const cont = document.getElementById('cliTbody');
   if (!cont) return;
   // KPIs (sobre todos los clientes)
@@ -3912,7 +3912,7 @@ function filterClientes() {
   // Filtro chip + búsqueda
   const rows = _cliCache.filter(c => {
     if (_cliChip && (c.tipo||'persona') !== _cliChip) return false;
-    if (s && !c.nombre.toLowerCase().includes(s) && !(c.email||'').toLowerCase().includes(s)) return false;
+    if (s && !nrm(c.nombre).includes(s) && !nrm(c.email||'').includes(s)) return false;
     return true;
   });
 
@@ -4668,10 +4668,10 @@ function onGiCatChange(sel) {
 
 async function onGiDescInput(input) {
   updateGastoTotal();
-  const q = input.value.toLowerCase().trim();
+  const q = nrm(input.value.trim());
   if (q.length < 2) { _acHide(); return; }
   const items = await _getInsumos();
-  const matches = items.filter(i => i.nombre.toLowerCase().includes(q)).slice(0, 8);
+  const matches = items.filter(i => nrm(i.nombre).includes(q)).slice(0, 8);
   if (!matches.length) { _acHide(); return; }
   _acShow(input, matches.map(i => ({
     label: i.nombre,
@@ -5617,7 +5617,7 @@ async function buscarClienteExistente(q) {
   if (!q || q.length < 2) { _acHide(); return; }
   _buscarClienteTimeout = setTimeout(async () => {
     const clients = await _getClientes();
-    const matches = clients.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()) || (c.empresa||'').toLowerCase().includes(q.toLowerCase())).slice(0,8);
+    const matches = clients.filter(c => nrm(c.nombre).includes(nrm(q)) || nrm(c.empresa||'').includes(nrm(q))).slice(0,8);
     if (!matches.length) { _acHide(); return; }
     _acShow(input, matches.map(c => ({
       label: c.nombre,
@@ -5665,7 +5665,7 @@ let _clientePickerCallback = null;
 function renderClientePickerListPres(q) {
   const list = document.getElementById('cPickerList'); if (!list) return;
   const items = _clientePickerCache || [];
-  const filtered = q ? items.filter(c => (c.nombre||'').toLowerCase().includes(q.toLowerCase()) || (c.email||'').toLowerCase().includes(q.toLowerCase())) : items;
+  const filtered = q ? items.filter(c => nrm(c.nombre||'').includes(nrm(q)) || nrm(c.email||'').includes(nrm(q))) : items;
   if (!filtered.length) { list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t3)">No se encontraron clientes.</div>'; return; }
   list.innerHTML = filtered.map(c => `
     <div onclick="_clientePickerCallback && _clientePickerCallback(${JSON.stringify(c).replace(/"/g,'&quot;')})"
@@ -6337,11 +6337,16 @@ async function loadProveedores() {
   if (!d.ok) return;
   const cont = document.getElementById('provTbody');
   const data = d.data || [];
+  const ex = typeof exRate === 'function' ? exRate() : 39.78;
   // KPIs
-  const compras = data.reduce((a,p)=>a+Number(p.total_comprado||p.comprado||0),0);
+  const totalUyu = data.reduce((a,p)=>a+Number(p.total_uyu||0),0);
+  const totalUsd = data.reduce((a,p)=>a+Number(p.total_usd||0),0);
   const pedidos = data.reduce((a,p)=>a+Number(p.total_pedidos||p.pedidos||0),0);
   document.getElementById('provKpiCount').textContent = data.length;
-  document.getElementById('provKpiCompras').textContent = '$ '+fmtMoney(compras);
+  const kpiCompras = totalUsd > 0 && totalUyu > 0
+    ? `U$S ${fmtD(totalUsd)} + $ ${fmtMoney(totalUyu)}`
+    : totalUsd > 0 ? `U$S ${fmtD(totalUsd)}` : `$ ${fmtMoney(totalUyu)}`;
+  document.getElementById('provKpiCompras').textContent = kpiCompras;
   document.getElementById('provKpiPedidos').textContent = pedidos;
 
   cont.className = 'prov-grid';
@@ -6349,7 +6354,11 @@ async function loadProveedores() {
     const color = _avColor(p.nombre);
     const ini = _avIni(p.nombre);
     const ped = p.total_pedidos||p.pedidos||0;
-    const comp = p.total_comprado||p.comprado||0;
+    const uyu = Number(p.total_uyu||0);
+    const usd = Number(p.total_usd||0);
+    const compDisplay = usd > 0 && uyu > 0
+      ? `U$S ${fmtD(usd)}<br><span style="font-size:10px;opacity:.7">+ $ ${fmtMoney(uyu)}</span>`
+      : usd > 0 ? `U$S ${fmtD(usd)}` : `$ ${fmtMoney(uyu)}`;
     const ult = p.ultimo_pedido||p.ult||'—';
     return `<div class="card card-pad lift">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -6368,8 +6377,8 @@ async function loadProveedores() {
         <span style="display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>${p.telefono||'—'}</span>
       </div>
       <div style="display:flex;gap:8px;padding-top:14px;border-top:1px solid var(--border-2)">
-        <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Pedidos</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">${ped}</div></div>
-        <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Comprado</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">$ ${fmtMoney(comp)}</div></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Insumos</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">${ped}</div></div>
+        <div style="flex:1.4"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Comprado</div><div class="num" style="font-size:12px;font-weight:700;margin-top:2px;line-height:1.3">${compDisplay}</div></div>
         <div style="flex:1"><div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px">Último</div><div class="num" style="font-size:13px;font-weight:700;margin-top:2px">${ult}</div></div>
       </div>
     </div>`;
@@ -6488,7 +6497,7 @@ const ART_DEF={
   printerCost:80000, printerLife:5000, maintenance:350, pieces:20,
   hourly:200, laborH:0.5, overhead:5000, failBuf:10,
   packaging:0, margin:50, spoolCur:'UYU', pkgCur:'UYU',
-  sec:{elec:true,printer:true,labor:true,time:true,extras:false}
+  sec:{elec:true,printer:true,labor:true,time:true,extras:false,insumos:false}
 };
 
 syncThemeToggle();
@@ -6538,7 +6547,7 @@ async function openClientePicker(){
 function renderClientePickerList(q){
   const list=document.getElementById('cPickerList'); if(!list)return;
   const items=_clientePickerCache||[];
-  const filtered=q?items.filter(c=>(c.nombre||'').toLowerCase().includes(q.toLowerCase())||(c.email||'').toLowerCase().includes(q.toLowerCase())):items;
+  const filtered=q?items.filter(c=>nrm(c.nombre||'').includes(nrm(q))||nrm(c.email||'').includes(nrm(q))):items;
   if(!filtered.length){
     list.innerHTML='<div style="text-align:center;padding:20px;color:var(--t3)">No se encontraron clientes.</div>';
     return;
@@ -6594,6 +6603,7 @@ function confirmAddPieza(){
 }
 
 // ── FORMAT ────────────────────────────────────────────────────────────
+function nrm(s){return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
 function fmt(v){return Math.round(v).toLocaleString('es-UY')}
 function fmtD(v){return v.toLocaleString('es-UY',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fmtC(v,cur,ex){
@@ -6679,6 +6689,18 @@ function articuloHTML(aid){
       <div class="two">
         <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
         <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
+      </div>
+      <div class="divl"></div>
+
+      <!-- 4b. Insumos del stock (opcional) -->
+      <div class="sec-head">
+        <label class="fl" style="display:flex;align-items:center;gap:6px">📦 Insumos del stock <span style="font-size:10px;opacity:.55;font-weight:400">(opcional)</span></label>
+        <label class="tsw"><input type="checkbox" id="en-insumos-${aid}" onchange="artToggleInsumos(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-insumos-${aid}" style="display:none">
+        <div id="ins-rows-${aid}" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button type="button" onclick="artAddInsumo(${aid})" style="margin-top:6px;padding:6px 14px;font-size:12px;font-weight:600;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;width:100%">+ Agregar insumo</button>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.4">El costo se suma al total. Al pasar a <strong>Producción</strong>, el stock se descuenta automáticamente.</div>
       </div>
       <div class="divl"></div>
 
@@ -6828,7 +6850,7 @@ function articuloHTML(aid){
 // ── ARTÍCULO: gestión ────────────────────────────────────────────────
 function addArticulo(snapData){
   const aid=S.artId++;
-  S.articulos.push({id:aid, sec:{...ART_DEF.sec}, col:{}, margin:50, spoolCur:'UYU', pkgCur:'UYU', ivaOnSpool:false, matPill:'PLA', extras:[], extId:0, overridePrice:null});
+  S.articulos.push({id:aid, sec:{...ART_DEF.sec}, col:{}, margin:50, spoolCur:'UYU', pkgCur:'UYU', ivaOnSpool:false, matPill:'PLA', extras:[], extId:0, overridePrice:null, insumos:[]});
   const wrap=document.getElementById('articulosWrap');
   wrap.insertAdjacentHTML('beforeend', articuloHTML(aid));
   const bloque=document.getElementById('art-'+aid);
@@ -6940,6 +6962,72 @@ function artRmExtra(aid,eid){
   renderArt(aid); recalcTotal();
 }
 
+// ── INSUMOS DEL STOCK EN CALCULADORA ─────────────────────────────────
+let _insCounter = 0;
+function artToggleInsumos(aid, on) {
+  const a = _art(aid); if (!a) return;
+  a.sec.insumos = on;
+  document.getElementById('body-insumos-' + aid).style.display = on ? '' : 'none';
+  if (on && !a.insumos.length) artAddInsumo(aid);
+  recalcTotal();
+}
+function artAddInsumo(aid) {
+  const a = _art(aid); if (!a) return;
+  const insId = ++_insCounter;
+  const row = document.createElement('div');
+  row.id = 'ins-row-' + insId;
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 72px 38px 70px 24px;align-items:center;gap:5px';
+  row.innerHTML = `
+    <input type="text" placeholder="Buscar insumo del stock…" autocomplete="off"
+      style="font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);width:100%"
+      oninput="artInsumoSearch(this,${aid},${insId})">
+    <input type="number" min="0" step="0.001" placeholder="Cant."
+      style="font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);width:100%"
+      oninput="artInsumoQtyChange(${aid},${insId},this.value)">
+    <span data-ins-unit style="font-size:11px;color:var(--t3);text-align:left"></span>
+    <span data-ins-cost style="font-size:11px;color:var(--text-2);text-align:right;font-weight:600"></span>
+    <button type="button" onclick="artRemoveInsumo(${aid},${insId})"
+      style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;line-height:1;padding:0;width:24px;text-align:center">×</button>`;
+  document.getElementById('ins-rows-' + aid).appendChild(row);
+  a.insumos.push({insId, id: null, nombre: '', qty: 0, precio: 0, unidad: '', el: row});
+}
+async function artInsumoSearch(input, aid, insId) {
+  const q = nrm(input.value.trim());
+  if (q.length < 2) { _acHide(); return; }
+  const items = await _getInsumos();
+  const matches = items.filter(i => nrm(i.nombre).includes(q)).slice(0, 8);
+  if (!matches.length) { _acHide(); return; }
+  _acShow(input, matches.map(i => ({
+    label: i.nombre,
+    sub: `Stock: ${i.stock} ${i.unidad} · $ ${fmtMoney(i.precio)}/${i.unidad}`,
+    data: i
+  })), item => {
+    const a = _art(aid); if (!a) return;
+    const ins = a.insumos.find(x => x.insId === insId); if (!ins) return;
+    input.value = item.data.nombre;
+    ins.id = item.data.id; ins.nombre = item.data.nombre;
+    ins.precio = item.data.precio; ins.unidad = item.data.unidad;
+    ins.el.querySelector('[data-ins-unit]').textContent = item.data.unidad;
+    const qtyInp = ins.el.querySelectorAll('input')[1];
+    artInsumoQtyChange(aid, insId, qtyInp.value);
+    qtyInp.focus();
+  });
+}
+function artInsumoQtyChange(aid, insId, val) {
+  const a = _art(aid); if (!a) return;
+  const ins = a.insumos.find(x => x.insId === insId); if (!ins) return;
+  ins.qty = parseFloat(val) || 0;
+  const cost = ins.qty * ins.precio;
+  ins.el.querySelector('[data-ins-cost]').textContent = cost > 0 ? '$ ' + fmtMoney(cost) : '';
+  recalcTotal();
+}
+function artRemoveInsumo(aid, insId) {
+  const a = _art(aid); if (!a) return;
+  const idx = a.insumos.findIndex(x => x.insId === insId);
+  if (idx >= 0) { a.insumos[idx].el?.remove(); a.insumos.splice(idx, 1); }
+  recalcTotal();
+}
+
 // ── MOTOR: cálculo de un artículo ─────────────────────────────────────
 function computeArt(aid){
   const a=_art(aid); if(!a)return null;
@@ -6973,7 +7061,10 @@ function computeArt(aid){
   let pkgC=0,extC=0;
   if(a.sec.extras){ const pkR=gn('packaging',aid); pkgC=a.pkgCur==='USD'?pkR*ex:pkR;
     a.extras.forEach(e=>{const v=parseFloat(e.el.querySelector('.xp').value)||0;extC+=v;}); }
-  const sub=matC+elecC+deprC+maintC+laborC+ovhC+pkgC+extC;
+  // Insumos del stock
+  let insumoStockC=0;
+  if(a.sec.insumos){ (a.insumos||[]).forEach(ins=>{insumoStockC+=ins.qty*ins.precio;}); }
+  const sub=matC+insumoStockC+elecC+deprC+maintC+laborC+ovhC+pkgC+extC;
   const failA=sub*(fail/100);
   const totalC=sub+failA;
   const margin=a.margin||0;
@@ -6984,10 +7075,11 @@ function computeArt(aid){
   const totalP=a.overridePrice!=null?a.overridePrice:calcTotalP;
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
-  return {matC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,rawQty,totalP,totalCost:totalCostAll,profit,effM,totalH,
+  return {matC,insumoStockC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,rawQty,totalP,totalCost:totalCostAll,profit,effM,totalH,
     desc:gv('desc',aid)||'Pieza', mat:gv('matType',aid), grams:g, margin,
     caract:gv('caract',aid), notasPieza:gv('notasPieza',aid),
-    alto:gv('alto',aid), ancho:gv('ancho',aid), profundo:gv('profundo',aid), peso:gv('peso',aid)};
+    alto:gv('alto',aid), ancho:gv('ancho',aid), profundo:gv('profundo',aid), peso:gv('peso',aid),
+    insumos:(a.insumos||[]).filter(i=>i.id&&i.qty>0).map(i=>({id:i.id,nombre:i.nombre,qty:i.qty,precio:i.precio,unidad:i.unidad}))};
 }
 
 // ── MOTOR: render de un artículo ──────────────────────────────────────
@@ -7000,7 +7092,7 @@ function renderArt(aid){
   document.getElementById('effMargin-'+aid).textContent=r.effM.toFixed(1)+'%';
   const price=document.getElementById('art-price-'+aid); if(price)price.textContent=fmtC(r.totalP,C,ex);
   const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g${r.rawQty>1?' · ×'+r.rawQty:''} · ${fmtC(r.totalP,C,ex)}`;
-  const mets=[{l:'Material',v:r.matC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
+  const mets=[{l:'Material',v:r.matC},{l:'Mat. stock',v:r.insumoStockC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
   const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
   return r;
 }
@@ -7245,7 +7337,17 @@ async function savePresupuesto(){
     fecha:new Date().toLocaleDateString('es-UY'),
     fecha_entrega:document.getElementById('delivDate').value||null,
     notas:document.getElementById('notes').value||null,
-    snap:captureForm()
+    snap:(()=>{
+      const s=captureForm();
+      const arts=S.lcArts||[];
+      s._matC=arts.reduce((t,r)=>t+r.matC,0);
+      s._elecC=arts.reduce((t,r)=>t+r.elecC,0);
+      s._deprC=arts.reduce((t,r)=>t+r.deprC+r.maintC,0);
+      s._laborC=arts.reduce((t,r)=>t+r.laborC,0);
+      const insList=arts.flatMap(r=>r.insumos||[]).filter(i=>i.id&&i.qty>0);
+      if(insList.length) s._insumos=insList;
+      return s;
+    })()
   };
   try{
     // ── 1. Guardar / actualizar cliente automáticamente ──────────────
@@ -7404,7 +7506,8 @@ function captureForm(){
       hourly:gv('hourly',id),laborH:gv('laborH',id),overhead:gv('overhead',id),failBuf:gv('failBuf',id),
       packaging:gv('packaging',id),
       sec:{...a.sec}, margin:a.margin, spoolCur:a.spoolCur, pkgCur:a.pkgCur, ivaOnSpool:a.ivaOnSpool, matPill:a.matPill, overridePrice:a.overridePrice||null,
-      extras:a.extras.map(e=>({desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value}))
+      extras:a.extras.map(e=>({desc:e.el.querySelector('.xd').value,price:e.el.querySelector('.xp').value})),
+      insumos:(a.insumos||[]).map(i=>({id:i.id,nombre:i.nombre,qty:i.qty,precio:i.precio,unidad:i.unidad}))
     };
   };
   return {
@@ -7438,6 +7541,23 @@ function restoreArticulo(aid,d){
   const ivs=document.getElementById('ivaOnSpool-'+aid); if(ivs)ivs.checked=a.ivaOnSpool;
   document.getElementById('spoolTog-'+aid)?.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.textContent===(a.spoolCur==='UYU'?'$':'U$S')));
   (d.extras||[]).forEach(e=>{artAddExtra(aid);const last=a.extras[a.extras.length-1];last.el.querySelector('.xd').value=e.desc||'';last.el.querySelector('.xp').value=e.price||0;});
+  // Restaurar insumos del stock
+  if(d.sec&&d.sec.insumos&&(d.insumos||[]).length){
+    const chk=document.getElementById('en-insumos-'+aid); if(chk)chk.checked=true;
+    document.getElementById('body-insumos-'+aid).style.display='';
+    (d.insumos||[]).forEach(ins=>{
+      artAddInsumo(aid);
+      const newIns=a.insumos[a.insumos.length-1];
+      newIns.id=ins.id; newIns.nombre=ins.nombre||''; newIns.qty=parseFloat(ins.qty)||0;
+      newIns.precio=parseFloat(ins.precio)||0; newIns.unidad=ins.unidad||'';
+      const r=newIns.el;
+      r.querySelector('input[type="text"]').value=ins.nombre||'';
+      const qi=r.querySelectorAll('input')[1]; if(qi)qi.value=ins.qty||0;
+      r.querySelector('[data-ins-unit]').textContent=ins.unidad||'';
+      const cost=newIns.qty*newIns.precio;
+      r.querySelector('[data-ins-cost]').textContent=cost>0?'$ '+fmtMoney(cost):'';
+    });
+  }
   renderArt(aid);
 }
 

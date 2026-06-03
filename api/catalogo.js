@@ -121,7 +121,8 @@ export default async function handler(req, res) {
         const r = await db.execute(`
           SELECT pr.*,
             (SELECT COUNT(*) FROM insumos i WHERE i.proveedor_id=pr.id AND i.activo=1) as total_pedidos,
-            (SELECT COALESCE(SUM(i.precio*i.stock),0) FROM insumos i WHERE i.proveedor_id=pr.id AND i.activo=1) as total_comprado
+            (SELECT COALESCE(SUM(CASE WHEN COALESCE(i.moneda,'UYU')='UYU' THEN i.precio*i.stock ELSE 0 END),0) FROM insumos i WHERE i.proveedor_id=pr.id AND i.activo=1) as total_uyu,
+            (SELECT COALESCE(SUM(CASE WHEN i.moneda='USD' THEN i.precio*i.stock ELSE 0 END),0) FROM insumos i WHERE i.proveedor_id=pr.id AND i.activo=1) as total_usd
           FROM proveedores pr WHERE pr.activo=1 ORDER BY pr.nombre`);
         return res.status(200).json({ ok: true, data: r.rows });
       }
