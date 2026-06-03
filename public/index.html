@@ -7221,20 +7221,17 @@ body{padding:24px}
 </style></head><body>${pageContent}</body></html>`;
 }
 
-function imprimirPdfPreview(){
+async function imprimirPdfPreview(){
   if(!_pdfPageData){alert('No hay datos del presupuesto.');return;}
   const msg = _pdfIsExisting
     ? '¿Generar e imprimir el PDF de este presupuesto?'
     : 'Al generar el PDF, este presupuesto se guardará en la sección Presupuestos.\n¿Continuás?';
-  showConfirm(msg, async()=>{
-    // Si viene de la calculadora (nuevo), guardar primero en Presupuestos
-    if(!_pdfIsExisting){
-      await savePresupuesto();
-      // Actualizar lista de presupuestos en segundo plano
-      loadPresupuestos?.();
-    }
-    _abrirVentanaImpresion();
-  },{title:'Generar PDF', btnLabel: _pdfIsExisting?'Imprimir':'Guardar e imprimir', danger:false});
+  if(!confirm(msg)) return;
+  if(!_pdfIsExisting){
+    await savePresupuesto();
+    loadPresupuestos?.();
+  }
+  _abrirVentanaImpresion();
 }
 
 function _abrirVentanaImpresion(){
