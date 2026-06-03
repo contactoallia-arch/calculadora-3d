@@ -4791,9 +4791,15 @@ async function saveGasto() {
 
 async function _upsertInsumo(item, provId, moneda) {
   try {
-    // Si ya sabemos el insumo (seleccionado por autocomplete), sumar stock directamente
+    // Si ya sabemos el insumo (seleccionado por autocomplete), sumar stock con precio promedio
     if (item.insumoId) {
-      await apiPut(`/api/insumos/${item.insumoId}?action=add-stock`, { qty: item.stockQty, precio: item.price });
+      const existing = _insumosAcCache?.find(x => Number(x.id) === Number(item.insumoId));
+      let precioProm = item.price;
+      if (existing && Number(existing.stock) > 0) {
+        const totalStock = Number(existing.stock) + item.stockQty;
+        precioProm = (Number(existing.stock) * Number(existing.precio) + item.stockQty * item.price) / totalStock;
+      }
+      await apiPut(`/api/insumos/${item.insumoId}?action=add-stock`, { qty: item.stockQty, precio: parseFloat(precioProm.toFixed(4)) });
       _clearInsumosCache();
       if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();
       return;
@@ -4813,7 +4819,17 @@ async function _upsertInsumo(item, provId, moneda) {
     };
     const r = await apiPost('/api/insumos', body);
     if (!r.ok && r.duplicate && r.existing_id) {
-      await apiPut(`/api/insumos/${r.existing_id}?action=add-stock`, { qty: item.stockQty, precio: item.price });
+      // Precio promedio ponderado: (stock_actual × precio_actual + nueva_qty × nuevo_precio) / total
+      const stockEx = r.existing_stock || 0;
+      const precioEx = r.existing_price || item.price;
+      const totalStock = stockEx + item.stockQty;
+      const precioPromedio = totalStock > 0
+        ? (stockEx * precioEx + item.stockQty * item.price) / totalStock
+        : item.price;
+      await apiPut(`/api/insumos/${r.existing_id}?action=add-stock`, {
+        qty: item.stockQty,
+        precio: parseFloat(precioPromedio.toFixed(4))
+      });
     }
     _clearInsumosCache();
     if (typeof cargarInsumosEnCalculadora === 'function') cargarInsumosEnCalculadora();

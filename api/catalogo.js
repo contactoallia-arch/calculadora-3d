@@ -32,12 +32,23 @@ export default async function handler(req, res) {
       if (m === "POST") {
         const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, notas } = req.body || {};
         if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
-        const dupArgs = [nombre, precio || 0];
-        let dupSql = "SELECT id,nombre FROM insumos WHERE LOWER(nombre)=LOWER(?) AND precio=? AND activo=1";
+        // Buscar duplicado por nombre + proveedor (sin importar el precio)
+        const dupArgs = [nombre];
+        let dupSql = "SELECT id,nombre,stock,precio FROM insumos WHERE LOWER(nombre)=LOWER(?) AND activo=1";
         if (proveedor_id) { dupSql += " AND proveedor_id=?"; dupArgs.push(proveedor_id); }
         else dupSql += " AND proveedor_id IS NULL";
         const dup = await db.execute({ sql: dupSql, args: dupArgs });
-        if (dup.rows.length) return res.status(409).json({ ok: false, error: `Ya existe "${dup.rows[0].nombre}" con ese proveedor y precio`, duplicate: true, existing_id: Number(dup.rows[0].id) });
+        if (dup.rows.length) {
+          const ex = dup.rows[0];
+          return res.status(409).json({
+            ok: false,
+            duplicate: true,
+            existing_id: Number(ex.id),
+            existing_stock: Number(ex.stock || 0),
+            existing_price: Number(ex.precio || 0),
+            error: `Ya existe "${ex.nombre}" con ese proveedor`
+          });
+        }
         const r = await db.execute({
           sql: "INSERT INTO insumos (nombre,categoria,tipo,proveedor_id,precio,moneda,unidad,stock,notas) VALUES (?,?,?,?,?,?,?,?,?)",
           args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, notas||null]
