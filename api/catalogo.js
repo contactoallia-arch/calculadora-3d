@@ -67,10 +67,10 @@ export default async function handler(req, res) {
           await logAction(db, user, "STOCK_INSUMO", "insumo", id);
           return res.status(200).json({ ok: true });
         }
-        const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, notas } = req.body || {};
+        const { nombre, categoria, tipo, proveedor_id, precio, moneda, unidad, stock, stock_min, notas } = req.body || {};
         await db.execute({
-          sql: "UPDATE insumos SET nombre=?,categoria=?,tipo=?,proveedor_id=?,precio=?,moneda=?,unidad=?,stock=?,notas=? WHERE id=?",
-          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, notas||null, id]
+          sql: "UPDATE insumos SET nombre=?,categoria=?,tipo=?,proveedor_id=?,precio=?,moneda=?,unidad=?,stock=?,stock_min=?,notas=? WHERE id=?",
+          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, stock_min!=null?Number(stock_min):null, notas||null, id]
         });
         await logAction(db, user, "EDITAR_INSUMO", "insumo", id);
         return res.status(200).json({ ok: true });

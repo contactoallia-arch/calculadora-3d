@@ -1857,6 +1857,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
       </div>
       <div class="fgrp" id="insStockWrap"><label>Stock actual</label><input id="insStock" type="number" min="0" step="0.001" value="0" placeholder="0"></div>
+      <div class="fgrp"><label>Stock mínimo <span style="font-weight:400;color:var(--text-3)">(alerta)</span></label><input id="insStockMin" type="number" min="0" step="0.001" value="0.4" placeholder="0.4"></div>
     </div>
     <div id="insDuplicadoAviso" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:var(--rs);padding:8px 12px;font-size:12px;color:#92400e;margin-bottom:8px">
       ⚠ Ya existe un insumo con ese nombre, proveedor y precio.
@@ -5680,9 +5681,9 @@ function setInsumoChip(val){
 }
 function _insEstado(i){
   const st = Number(i.stock||0);
-  const min = Number(i.stock_min||1);
+  const min = Number(i.stock_min!=null ? i.stock_min : 0.4);
   if (st <= 0) return {cl:'b-rechazado',t:'Agotado',bar:'var(--bad)'};
-  if (st <= min) return {cl:'b-produccion',t:'Bajo mínimo',bar:'var(--warn)'};
+  if (min > 0 && st <= min) return {cl:'b-produccion',t:'Bajo mínimo',bar:'var(--warn)'};
   return {cl:'b-aprobado',t:'En stock',bar:'var(--ok)'};
 }
 async function loadInsumos() {
@@ -5718,7 +5719,7 @@ function renderInsumos() {
   const rows = all.filter(i => !_insumoChip || (i.categoria||'').toLowerCase() === _insumoChip);
   tbody.innerHTML = rows.length ? rows.map(i => {
     const e = _insEstado(i);
-    const min = Number(i.stock_min||1);
+    const min = Number(i.stock_min!=null ? i.stock_min : 0.4);
     const st = Number(i.stock||0);
     const pct = Math.min(100, min ? (st/(min*2))*100 : (st>0?100:0));
     // Color real para filamentos
@@ -5895,6 +5896,7 @@ async function abrirInsumoForm(id) {
     document.getElementById('insMoneda').value = 'UYU';
     document.getElementById('insUnidad').value = 'kg';
     document.getElementById('insStock').value = '0';
+    document.getElementById('insStockMin').value = '0.4';
     document.getElementById('insCarretes').value = '1';
     document.getElementById('insKgCarrete').value = '1';
     document.getElementById('insNotas').value = '';
@@ -5912,6 +5914,7 @@ async function abrirInsumoForm(id) {
     document.getElementById('insPrecio').value = item.precio||'';
     document.getElementById('insUnidad').value = item.unidad||'kg';
     document.getElementById('insStock').value = item.stock||0;
+    document.getElementById('insStockMin').value = item.stock_min!=null ? item.stock_min : 0.4;
     document.getElementById('insNotas').value = item.notas||'';
     document.getElementById('insProveedor').value = item.proveedor_id||'';
     toggleInsCategoria();
@@ -6039,6 +6042,7 @@ async function guardarInsumo() {
     moneda: document.getElementById('insMoneda').value,
     unidad: document.getElementById('insUnidad').value,
     stock: parseFloat(document.getElementById('insStock').value)||0,
+    stock_min: parseFloat(document.getElementById('insStockMin').value)||0,
     notas: document.getElementById('insNotas').value.trim()||null
   };
   const d = _editInsumoId
