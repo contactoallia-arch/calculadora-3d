@@ -7205,12 +7205,26 @@ function cerrarPdfPreview(){
 }
 
 function imprimirPdfPreview(){
-  document.body.classList.add('pdfprint-mode');
-  window.addEventListener('afterprint',function h(){
-    document.body.classList.remove('pdfprint-mode');
-    window.removeEventListener('afterprint',h);
-  });
-  window.print();
+  const page=document.querySelector('#pdfPageWrap .pvp-page');
+  if(!page){alert('No hay contenido para imprimir.');return;}
+  // Clonar y limpiar atributos de edición
+  const clone=page.cloneNode(true);
+  clone.removeAttribute('contenteditable');
+  clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+  const w=window.open('','_blank','width=900,height=750');
+  if(!w){alert('El navegador bloqueó la ventana emergente. Permitir popups para este sitio.');return;}
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Presupuesto ArteLab</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#ECE9E3;font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.pvp-page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:#ECE9E3;position:relative;overflow:hidden}
+@media screen{body{background:#d7d2c8;padding:24px}.pvp-page{box-shadow:0 20px 60px rgba(33,31,28,.22)}}
+@media print{@page{size:A4;margin:0}body{background:#ECE9E3;padding:0}.pvp-page{width:210mm;min-height:297mm;margin:0;box-shadow:none;padding:14mm}}
+</style></head><body>${clone.outerHTML}</body></html>`);
+  w.document.close();
+  const doPrint=()=>setTimeout(()=>{w.print();},400);
+  if(w.document.readyState==='complete') doPrint();
+  else w.onload=doPrint;
 }
 
 function compartirPdfWA(){
@@ -7250,7 +7264,7 @@ function _buildPdfPageHtml(d){
 
   return `<main class="pvp-page">
   <header style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:17px">
-    <div><img src="${location.origin}/logo-transparent.png" alt="ArteLab" style="width:52mm;max-width:100%;display:block;height:auto" onerror="this.replaceWith(Object.assign(document.createElement('div'),{innerHTML:'<span style=&quot;font-size:22px;font-weight:900;color:#E8722A&quot;>ArteLab</span>'}))"></div>
+    <div><img src="${location.origin}/logo-transparent.png" alt="ArteLab" style="width:36mm;max-width:100%;display:block;height:auto" onerror="this.replaceWith(Object.assign(document.createElement('div'),{innerHTML:'<span style=&quot;font-size:22px;font-weight:900;color:#E8722A&quot;>ArteLab</span>'}))"></div>
     <div style="text-align:right;padding-top:2mm;min-width:68mm">
       <p style="margin:0;color:#E8722A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;line-height:1.2">Documento comercial</p>
       <h1 style="margin:13px 0 0;font-size:34px;line-height:.95;letter-spacing:-.04em;font-weight:900">PRESUPUESTO</h1>
