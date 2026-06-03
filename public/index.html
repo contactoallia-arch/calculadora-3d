@@ -311,12 +311,24 @@ input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12)}
 
 /* ─── PRINT ─── */
 #printDoc{display:none}
-/* Modo impresión desde el overlay de vista previa */
+/* ─── PDF PREVIEW STYLES ─── */
+#pdfPageWrap{background:#d7d2c8;padding:24px}
+.pvp-page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:#ECE9E3;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(33,31,28,.22);font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.pvp-page *{box-sizing:border-box}
+.pvp-page:focus{outline:none}
+.pvp-page [contenteditable]:hover{outline:1.5px dashed rgba(232,114,42,.5);border-radius:3px;cursor:text}
+@media(max-width:860px){.pvp-page{width:100%;min-height:auto;padding:22px;box-shadow:none}}
+/* Modo impresión desde el overlay */
 body.pdfprint-mode>*:not(#pdfPreviewOv){display:none!important}
 body.pdfprint-mode #pdfPreviewOv{display:block!important;position:static!important;overflow:visible!important;background:transparent!important;padding:0!important}
 body.pdfprint-mode .pdf-tb{display:none!important}
 body.pdfprint-mode #pdfPageWrap{padding:0!important;background:transparent!important}
 @media print{
+  body.pdfprint-mode #printDoc{display:none!important}
+  body.pdfprint-mode #pdfPreviewOv{display:block!important;position:static!important;overflow:visible!important;background:transparent!important;padding:0!important}
+  body.pdfprint-mode .pdf-tb{display:none!important}
+  body.pdfprint-mode #pdfPageWrap{padding:0!important;background:transparent!important}
+  body.pdfprint-mode .pvp-page{box-shadow:none!important;width:210mm!important;min-height:297mm!important;padding:14mm!important}
   .m-topbar,.m-bottomnav,aside,#sidebarOv,#toast,#scrim,#drawer,
   .app-wrap,#appWrap,.modal,#ov,#presBar,#notifPanel,
   .page,.nav-item,footer{display:none!important}
@@ -7226,31 +7238,19 @@ function abrirPdfPreview(pageHtml, shareData){
 }
 
 function _buildPdfPageHtml(d){
-  // d: {numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn,proyMat,logoUrl}
+  // d: {numLabel,dt,dvFmt,cn,ce,cp,pedido,notes,rows,precioFinal,ivaOn,proyMat}
   const iva=d.precioFinal*0.22, conIVA=d.precioFinal+iva;
-  let totalsCopy='',totalBoxAmt=fmt(Math.round(d.precioFinal)),totalBoxLbl='Total estimado';
-  if(d.showTotal&&d.ivaOn){
-    totalsCopy=`<div>Subtotal: <strong>$ ${fmt(Math.round(d.precioFinal))}</strong></div><div>IVA 22%: <strong>$ ${fmt(Math.round(iva))}</strong></div><div style="color:#8D8A82;font-size:10px">Precios en pesos uruguayos</div>`;
-    totalBoxAmt=fmt(Math.round(conIVA));totalBoxLbl='Total con IVA';
-  } else if(d.showTotal){
-    totalsCopy=`<div style="color:#8D8A82;font-size:10px">Precios en pesos uruguayos</div>`;
-  }
-  const totalsRow=d.showTotal?`<tr style="border-top:1px solid #E7E0D6"><td colspan="5" style="padding:13px 14px 15px"><div style="display:grid;grid-template-columns:1fr 176px;gap:16px;align-items:center;width:100%"><div style="text-align:right;color:#57544E;font-size:11px;line-height:1.55">${totalsCopy}</div><div style="width:176px;min-height:44px;background:#E8722A;color:#fff;border-radius:11px;padding:10px 14px 9px;overflow:hidden"><span style="display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;line-height:1.15">${totalBoxLbl}</span><strong style="display:block;margin-top:2px;font-size:25px;line-height:1;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap">$ ${totalBoxAmt}</strong></div></div></td></tr>`:
-    `<tr style="border-top:1px solid #E7E0D6"><td colspan="5" style="padding:13px 14px 15px"><div style="display:flex;justify-content:flex-end"><div style="background:#E8722A;color:#fff;border-radius:11px;padding:10px 14px 9px;min-width:176px"><span style="display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase">Total estimado</span><strong style="display:block;font-size:25px;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap">$ ${fmt(Math.round(d.precioFinal))}</strong></div></div></td></tr>`;
+  const totalFinal=d.ivaOn?Math.round(conIVA):Math.round(d.precioFinal);
+  const totalLbl=d.ivaOn?'Total con IVA':'Total estimado';
+  const ivaBlock=d.ivaOn?`<div style="text-align:right;color:#57544E;font-size:11px;line-height:1.6;min-width:0"><div>Subtotal: <strong>$ ${fmt(Math.round(d.precioFinal))}</strong></div><div>IVA 22%: <strong>$ ${fmt(Math.round(iva))}</strong></div><div style="color:#8D8A82;font-size:10px">Precios en pesos uruguayos</div></div>`:`<div style="text-align:right;color:#8D8A82;font-size:10px">Precios en pesos uruguayos</div>`;
+  const totalsRow=`<tr style="border-top:1px solid #E7E0D6"><td colspan="5" style="padding:13px 14px 15px"><div style="display:grid;grid-template-columns:1fr 176px;gap:16px;align-items:center;width:100%">${ivaBlock}<div style="width:176px;min-height:44px;background:#E8722A;color:#fff;border-radius:11px;padding:10px 14px 9px;overflow:hidden"><span style="display:block;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;line-height:1.15">${totalLbl}</span><strong style="display:block;margin-top:2px;font-size:25px;line-height:1;font-weight:900;text-align:right;letter-spacing:-.03em;white-space:nowrap">$ ${fmt(totalFinal)}</strong></div></div></td></tr>`;
   const proyLines=[(d.proyMat&&`Material: ${d.proyMat}`),(d.dvFmt&&d.dvFmt!=='—'&&`Entrega: ${d.dvFmt}`)].filter(Boolean).map(l=>`<p style="margin:0 0 4px;color:#57544E;font-size:11px;line-height:1.25">${l}</p>`).join('');
   const clienteLines=[(d.ce&&`<p style="margin:0 0 4px;color:#57544E;font-size:11px;line-height:1.25">${d.ce}</p>`),(d.cp&&`<p style="margin:0 0 4px;color:#57544E;font-size:11px;line-height:1.25">${d.cp}</p>`)].filter(Boolean).join('');
   const resumenBlock=d.notes?`<section style="position:relative;background:#211F1C;color:#fff;border-radius:14px;padding:18px 22px 17px 30px;margin-bottom:16px;overflow:hidden"><div style="position:absolute;left:15px;top:18px;bottom:18px;width:4px;border-radius:99px;background:#E8722A"></div><p style="margin:0;color:#F2A65A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase">Resumen del encargo</p><p style="max-width:154mm;margin:9px 0 0;color:#F1EDE7;font-size:12px;line-height:1.45">${d.notes}</p></section>`:'';
 
-  return `<style>
-#pdfPageWrap{background:#d7d2c8;padding:24px}
-.pvp-page{width:210mm;min-height:297mm;margin:0 auto;padding:14mm;background:#ECE9E3;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(33,31,28,.22);font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
-.pvp-page [contenteditable="true"]:hover,.pvp-page:hover [contenteditable]{outline:1.5px dashed rgba(232,114,42,.4);border-radius:3px}
-@media(max-width:860px){.pvp-page{width:100%;min-height:auto;padding:22px;box-shadow:none}}
-@media print{#pdfPageWrap{padding:0;background:transparent}.pvp-page{width:210mm;min-height:297mm;margin:0;box-shadow:none;padding:14mm}}
-</style>
-<main class="pvp-page">
+  return `<main class="pvp-page">
   <header style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:17px">
-    <div><img src="${d.logoUrl}" alt="ArteLab" style="width:52mm;max-width:100%;display:block;height:auto" onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'ArteLab',style:'font-size:22px;font-weight:900;color:#E8722A'}))"></div>
+    <div><img src="${location.origin}/logo-transparent.png" alt="ArteLab" style="width:52mm;max-width:100%;display:block;height:auto" onerror="this.replaceWith(Object.assign(document.createElement('div'),{innerHTML:'<span style=&quot;font-size:22px;font-weight:900;color:#E8722A&quot;>ArteLab</span>'}))"></div>
     <div style="text-align:right;padding-top:2mm;min-width:68mm">
       <p style="margin:0;color:#E8722A;font-size:8px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;line-height:1.2">Documento comercial</p>
       <h1 style="margin:13px 0 0;font-size:34px;line-height:.95;letter-spacing:-.04em;font-weight:900">PRESUPUESTO</h1>
@@ -7304,7 +7304,7 @@ function _buildPdfPageHtml(d){
   </section>
   <footer style="display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;padding:12px 16px 10px;background:#211F1C;color:#fff;border-radius:14px;overflow:hidden">
     <p style="margin:0;font-size:11px;font-weight:800;line-height:1.28">Para avanzar: responder este presupuesto con OK y enviar archivo, medidas o referencia.</p>
-    <p style="margin:0;color:#E7E0D6;font-size:10px;font-weight:700;white-space:nowrap;text-align:right">hola@artelab.studio · @artelab</p>
+    <p style="margin:0;color:#E7E0D6;font-size:10px;font-weight:700;white-space:nowrap;text-align:right">contactoallia@gmail.com · @artelab</p>
     <p style="margin:0;color:#F2A65A;font-size:9px;grid-column:1/-1">ArteLab · Diseño · Impresión 3D · Soluciones</p>
   </footer>
   <div style="position:absolute;left:14mm;right:14mm;bottom:8mm;height:1px;background:#D7D1C6"></div>
