@@ -4836,7 +4836,8 @@ async function _upsertInsumo(item, provId, moneda) {
       precio: item.price,
       moneda,
       unidad: item.cat === 'filamento' ? 'kg' : item.unidad,
-      stock: item.stockQty
+      stock: item.stockQty,
+      stock_min: item.cat === 'filamento' ? 0.4 : 1
     };
     const r = await apiPost('/api/insumos', body);
     if (!r.ok && r.duplicate && r.existing_id) {

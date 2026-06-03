@@ -49,9 +49,10 @@ export default async function handler(req, res) {
             error: `Ya existe "${ex.nombre}" con ese proveedor`
           });
         }
+        const { stock_min } = req.body || {};
         const r = await db.execute({
-          sql: "INSERT INTO insumos (nombre,categoria,tipo,proveedor_id,precio,moneda,unidad,stock,notas) VALUES (?,?,?,?,?,?,?,?,?)",
-          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, notas||null]
+          sql: "INSERT INTO insumos (nombre,categoria,tipo,proveedor_id,precio,moneda,unidad,stock,stock_min,notas) VALUES (?,?,?,?,?,?,?,?,?,?)",
+          args: [nombre, categoria||"otros", tipo||null, proveedor_id||null, precio||0, moneda||"UYU", unidad||"kg", stock||0, stock_min!=null?Number(stock_min):0.4, notas||null]
         });
         const nid = Number(r.lastInsertRowid);
         await logAction(db, user, "CREAR_INSUMO", "insumo", nid);
