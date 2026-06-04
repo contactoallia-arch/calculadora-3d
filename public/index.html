@@ -3519,9 +3519,13 @@ function abrirPresSlideover(id) {
   // Pre-seleccionar el "siguiente lógico"
   const logico = {sin_enviar:'enviado',enviado:'aprobado',aprobado:'produccion',produccion:'listo',listo:'entregado',entregado:'cobrado',cobrado:'entregado',rechazado:'enviado',cancelado:'sin_enviar'};
   if (logico[estado]) sel.value = logico[estado];
-  // Botón calculadora: solo si tiene snap con artículos
+  // Botón calculadora: siempre visible (si no tiene snap carga datos básicos)
   const calcBtn = document.getElementById('slCalcBtn');
-  if (calcBtn) calcBtn.style.display = (p.snap && (p.snap.articulos?.length || p.snap.pedido)) ? '' : 'none';
+  if (calcBtn) {
+    calcBtn.style.display = '';
+    calcBtn.title = p.snap ? 'Cargar en calculadora con todos los datos' : 'Cargar datos básicos en calculadora';
+    calcBtn.style.opacity = p.snap ? '1' : '0.75';
+  }
   // Mostrar
   document.getElementById('presSlideScrim').style.display='block';
   const sl = document.getElementById('presSlideover');
@@ -3727,30 +3731,21 @@ function editarPresupuesto(id) { abrirEditPres(id); }
 async function abrirEnCalculadora(id) {
   const p = _presCache.find(x => Number(x.id) === Number(id));
   if (!p) { showToast('Presupuesto no encontrado', 'err'); return; }
-  if (!p.snap || (!p.snap.articulos?.length && !p.snap.pedido)) {
-    showToast('Este presupuesto no tiene datos de calculadora. Usá "Editar" para modificarlo.', 'warn');
-    return;
-  }
-  // Cerrar lo que esté abierto
+  const snap = p.snap || _buildBootstrapSnap(p);
+  const isBootstrap = !p.snap;
   cerrarPresSlideover?.();
   closeM?.();
   await new Promise(r => setTimeout(r, 120));
-  // Ir a la calculadora (esto también carga los vendedores en el select)
   showPage('calculadora');
   await new Promise(r => setTimeout(r, 200));
-  // Restaurar el snap completo del presupuesto
-  restoreForm(p.snap);
+  restoreForm(snap);
   S.editingId = Number(p.id);
   S.editingNum = p.numero || p.id;
-  // Restaurar vendedor (del snap o del registro)
-  const vendedorId = p.snap.vendedorId || p.vendedor_id || null;
-  if (vendedorId) {
-    const vSel = document.getElementById('calcVendedor');
-    if (vSel) vSel.value = String(vendedorId);
-  }
+  const vendedorId = snap.vendedorId || p.vendedor_id || null;
+  if (vendedorId) { const vSel = document.getElementById('calcVendedor'); if (vSel) vSel.value = String(vendedorId); }
   updatePresBar();
   setTimeout(calc, 150);
-  showToast(`Presupuesto #${String(p.numero||p.id).padStart(4,'0')} cargado — editá y guardá`, 'ok');
+  showToast('Presupuesto #'+String(p.numero||p.id).padStart(4,'0')+(isBootstrap?' cargado con datos básicos — completá y guardá':' cargado — editá y guardá'),'ok');
 }
 
 // ── EDITAR / NUEVO PRESUPUESTO MODAL ──────────────────────────────────
@@ -3829,8 +3824,8 @@ async function abrirEditPres(id) {
     document.getElementById('editPresEstadoSec').style.display = 'block';
     renderEstadoEditPres(p);
     cargarHistorialPres(_editPresId);
-    // Mostrar botón calculadora si tiene snap
-    if (mCalcBtn && p.snap && (p.snap.articulos?.length || p.snap.pedido)) mCalcBtn.style.display = '';
+    // Mostrar siempre el botón calculadora al editar
+    if (mCalcBtn) mCalcBtn.style.display = '';
   }
   openM('mEditPres');
 }
@@ -8104,7 +8099,7 @@ async function renderHist(){
     const r=await fetch('/api/presupuestos');
     const d=await r.json();
     if(!d.ok)throw new Error(d.error);
-    const items=d.data.map(e=>({id:e.id,numero:e.numero||e.id,piece:e.pieza,client:e.cliente_nombre||e.cliente,mat:e.mat,qty:e.qty,price:e.precio,margin:e.margen,date:e.fecha,snap:e.snap,vendedor_id:e.vendedor_id||null,vendedor_nombre:e.vendedor_nombre||null}));
+    const items=d.data.map(e=>({id:e.id,numero:e.numero||e.id,piece:e.pieza,client:e.cliente_nombre||e.cliente,mat:e.mat,qty:e.qty,price:e.precio,margin:e.margen,date:e.fecha,snap:e.snap,vendedor_id:e.vendedor_id||null,vendedor_nombre:e.vendedor_nombre||null,notas:e.notas||null,fecha_entrega:e.fecha_entrega||null,cliente_email:e.cliente_email||null,cliente_tel:e.cliente_tel||null,costos_internos:e.costos_internos||null}));
     _histCache=items;
     if(!items.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">No hay presupuestos guardados.</div>';return;}
     const total=items.length;
@@ -8125,7 +8120,7 @@ async function renderHist(){
         <div class="hi-date" style="display:flex;align-items:center;justify-content:space-between">
           <span>${e.date}</span>
           <div style="display:flex;gap:5px">
-            <button onclick="event.stopPropagation();loadSnap(${e.id})" style="height:26px;padding:0 10px;background:${e.snap?'var(--acs)':'var(--surface-2)'};color:${e.snap?'var(--ac)':'var(--text-3)'};border:1px solid ${e.snap?'var(--acg)':'var(--border)'};border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fb)" title="${e.snap?'Cargar en calculadora':'Sin datos de calculadora'}">${e.snap?'✏️ Editar en calc.':'Sin calc.'}</button>
+            <button onclick="event.stopPropagation();loadSnap(${e.id})" style="height:26px;padding:0 10px;background:var(--acs);color:var(--ac);border:1px solid var(--acg);border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fb)" title="Cargar en calculadora">✏️ Editar en calc.</button>
             <button onclick="event.stopPropagation();delFromHist(${e.id},this)" style="height:26px;padding:0 8px;background:none;color:var(--t3);border:1px solid var(--bd);border-radius:100px;font-size:12px;cursor:pointer">🗑</button>
           </div>
         </div>
@@ -8137,23 +8132,56 @@ async function renderHist(){
   }
 }
 
+// Construye un snap mínimo para presupuestos sin datos de calculadora.
+// Carga nombre, cliente, precio y los insumos de costos_internos (si los tiene).
+function _buildBootstrapSnap(item){
+  let costos=[];
+  try{ const ci=item.costos_internos; costos=ci?(typeof ci==='string'?JSON.parse(ci):ci):[]; }catch{}
+  const insumos=costos
+    .filter(c=>c.iid&&Number(c.iqty)>0)
+    .map(c=>({id:Number(c.iid),nombre:c.d||'Insumo',qty:Number(c.iqty)||0,precio:Number(c.iprecio)||0,unidad:c.iunit||'ud',moneda:'UYU'}));
+  const mat=(item.mat||'PLA');
+  const articulo={
+    desc:item.piece||item.pieza||'',caract:'',notasPieza:'',
+    qty:String(Number(item.qty)||1),qtyEnabled:false,
+    alto:'',ancho:'',profundo:'',peso:'',
+    matType:mat,spoolPrice:'0',grams:'0',waste:'3',
+    kwhRate:'0',printerModel:'',watts:'0',
+    tDays:'0',tHours:'0',tMins:'0',
+    printerCost:'0',printerLife:'1000',maintenance:'0',pieces:'1',
+    hourly:'0',laborH:'0',overhead:'0',failBuf:'5',packaging:'0',
+    sec:{material:false,elec:false,printer:false,labor:false,time:false,extras:false},
+    margin:Number(item.margin||item.margen||50),
+    spoolCur:'UYU',pkgCur:'UYU',ivaOnSpool:false,matPill:mat,
+    overridePrice:null,extras:[],insumos
+  };
+  return{
+    pedido:item.piece||item.pieza||'',
+    cName:item.client||item.cliente_nombre||item.cliente||'',
+    cEmail:item.cliente_email||'',
+    cPhone:item.cliente_tel||'',
+    delivDate:item.fecha_entrega||'',
+    notes:item.notas||'',
+    vendedorId:item.vendedor_id||null,
+    overridePrice:Number(item.price||item.precio)||null,
+    articulos:[articulo]
+  };
+}
+
 function loadSnap(id){
   const e=_histCache.find(x=>x.id===id);
   if(!e){ showToast('Presupuesto no encontrado','err'); return; }
-  if(!e.snap){
-    showToast('Este presupuesto no tiene datos de calculadora (fue creado desde el formulario). Editalo desde la página de Presupuestos.','warn');
-    return;
-  }
-  restoreForm(e.snap);
+  const snap=e.snap||_buildBootstrapSnap(e);
+  const isBootstrap=!e.snap;
+  restoreForm(snap);
   S.editingId=e.id;
   S.editingNum=e.numero||e.id;
-  // Restaurar vendedor
-  const vendedorId=e.snap.vendedorId||e.vendedor_id||null;
+  const vendedorId=snap.vendedorId||e.vendedor_id||null;
   if(vendedorId){ const vSel=document.getElementById('calcVendedor'); if(vSel) vSel.value=String(vendedorId); }
   updatePresBar();
   closeM();
   setTimeout(calc,100);
-  showToast('Presupuesto #'+String(S.editingNum).padStart(4,'0')+' cargado — editá y guardá','ok');
+  showToast('Presupuesto #'+String(S.editingNum).padStart(4,'0')+(isBootstrap?' cargado con datos básicos — completá y guardá':' cargado — editá y guardá'),'ok');
 }
 
 async function delFromHist(id,btn){
