@@ -1330,7 +1330,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <!-- detalles -->
     <div id="slDetails" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;margin-bottom:18px"></div>
     <!-- acciones -->
-    <div style="display:flex;gap:8px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;margin-bottom:6px">
       <button class="btn btn--ghost" style="flex:1" onclick="cerrarPresSlideover();setTimeout(()=>abrirEditPres(_slPresId),80)">
         <svg class="icon" viewBox="0 0 18 18"><path d="M12 2l4 4-9 9H3v-4z"/><path d="M11 3l4 4"/></svg>
         Editar
@@ -1342,6 +1342,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 5 5 15 5"/><path d="M14 5l-1 11H5L4 5"/><path d="M7 5V3h4v2"/></svg>
       </button>
     </div>
+    <button id="slCalcBtn" class="btn btn--ghost" style="width:100%;margin-bottom:10px;border-style:dashed;font-size:13px;color:var(--brand);border-color:var(--brand)" onclick="abrirEnCalculadora(_slPresId)">
+      <svg class="icon" viewBox="0 0 18 18" style="color:var(--brand)"><rect x="2" y="2" width="14" height="14" rx="2"/><path d="M6 6h.01M9 6h.01M12 6h.01M6 9h.01M9 9h.01M12 9h.01M6 12h.01M9 12h.01M12 12h.01"/></svg>
+      Editar en calculadora
+    </button>
     <!-- cobros registrados -->
     <div id="slCobrosWrap" style="display:none;margin-bottom:14px">
       <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:8px">Pagos registrados</div>
@@ -2152,7 +2156,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div id="editPresHistorial" style="max-height:180px;overflow-y:auto"></div>
     </div>
   </div>
-  <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="guardarEditPres()">Guardar</button></div>
+  <div class="mf" style="flex-wrap:wrap;gap:8px">
+    <button class="bs2" onclick="closeM()">Cancelar</button>
+    <button id="mEditPresCalcBtn" class="bs2" style="display:none;color:var(--brand);border-color:var(--brand)" onclick="closeM();setTimeout(()=>abrirEnCalculadora(_editPresId),80)">
+      <svg style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="2" width="14" height="14" rx="2"/><path d="M6 6h.01M9 6h.01M12 6h.01M6 9h.01M9 9h.01M12 9h.01M6 12h.01M9 12h.01M12 12h.01"/></svg>
+      Calculadora
+    </button>
+    <button class="bp2" onclick="guardarEditPres()">Guardar</button>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -3508,6 +3519,9 @@ function abrirPresSlideover(id) {
   // Pre-seleccionar el "siguiente lógico"
   const logico = {sin_enviar:'enviado',enviado:'aprobado',aprobado:'produccion',produccion:'listo',listo:'entregado',entregado:'cobrado',cobrado:'entregado',rechazado:'enviado',cancelado:'sin_enviar'};
   if (logico[estado]) sel.value = logico[estado];
+  // Botón calculadora: solo si tiene snap con artículos
+  const calcBtn = document.getElementById('slCalcBtn');
+  if (calcBtn) calcBtn.style.display = (p.snap && (p.snap.articulos?.length || p.snap.pedido)) ? '' : 'none';
   // Mostrar
   document.getElementById('presSlideScrim').style.display='block';
   const sl = document.getElementById('presSlideover');
@@ -3709,6 +3723,36 @@ async function cambiarEstado(presId, nuevoEstado, nota, reloadPage) {
 // Mantenemos editarPresupuesto por si se usa desde el historial de la calculadora
 function editarPresupuesto(id) { abrirEditPres(id); }
 
+// ── ABRIR PRESUPUESTO EN CALCULADORA ─────────────────────────────────
+async function abrirEnCalculadora(id) {
+  const p = _presCache.find(x => Number(x.id) === Number(id));
+  if (!p) { showToast('Presupuesto no encontrado', 'err'); return; }
+  if (!p.snap || (!p.snap.articulos?.length && !p.snap.pedido)) {
+    showToast('Este presupuesto no tiene datos de calculadora. Usá "Editar" para modificarlo.', 'warn');
+    return;
+  }
+  // Cerrar lo que esté abierto
+  cerrarPresSlideover?.();
+  closeM?.();
+  await new Promise(r => setTimeout(r, 120));
+  // Ir a la calculadora (esto también carga los vendedores en el select)
+  showPage('calculadora');
+  await new Promise(r => setTimeout(r, 200));
+  // Restaurar el snap completo del presupuesto
+  restoreForm(p.snap);
+  S.editingId = Number(p.id);
+  S.editingNum = p.numero || p.id;
+  // Restaurar vendedor (del snap o del registro)
+  const vendedorId = p.snap.vendedorId || p.vendedor_id || null;
+  if (vendedorId) {
+    const vSel = document.getElementById('calcVendedor');
+    if (vSel) vSel.value = String(vendedorId);
+  }
+  updatePresBar();
+  setTimeout(calc, 150);
+  showToast(`Presupuesto #${String(p.numero||p.id).padStart(4,'0')} cargado — editá y guardá`, 'ok');
+}
+
 // ── EDITAR / NUEVO PRESUPUESTO MODAL ──────────────────────────────────
 let _editPresId = null;
 
@@ -3738,6 +3782,10 @@ async function abrirEditPres(id) {
   // Reset campos cliente y dimensiones
   _origAbrirEditPres_clienteReset();
   ['editPresAlto','editPresAncho','editPresProfundo','editPresPeso'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+
+  // Botón "Calculadora" en footer: solo al editar un pres. con snap
+  const mCalcBtn = document.getElementById('mEditPresCalcBtn');
+  if (mCalcBtn) mCalcBtn.style.display = 'none';
 
   if (!_editPresId) {
     // Nuevo presupuesto
@@ -3781,6 +3829,8 @@ async function abrirEditPres(id) {
     document.getElementById('editPresEstadoSec').style.display = 'block';
     renderEstadoEditPres(p);
     cargarHistorialPres(_editPresId);
+    // Mostrar botón calculadora si tiene snap
+    if (mCalcBtn && p.snap && (p.snap.articulos?.length || p.snap.pedido)) mCalcBtn.style.display = '';
   }
   openM('mEditPres');
 }
