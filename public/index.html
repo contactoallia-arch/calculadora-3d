@@ -8104,7 +8104,7 @@ async function renderHist(){
     const r=await fetch('/api/presupuestos');
     const d=await r.json();
     if(!d.ok)throw new Error(d.error);
-    const items=d.data.map(e=>({id:e.id,piece:e.pieza,client:e.cliente,mat:e.mat,qty:e.qty,price:e.precio,margin:e.margen,date:e.fecha,snap:e.snap}));
+    const items=d.data.map(e=>({id:e.id,numero:e.numero||e.id,piece:e.pieza,client:e.cliente_nombre||e.cliente,mat:e.mat,qty:e.qty,price:e.precio,margin:e.margen,date:e.fecha,snap:e.snap,vendedor_id:e.vendedor_id||null,vendedor_nombre:e.vendedor_nombre||null}));
     _histCache=items;
     if(!items.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--t3)">No hay presupuestos guardados.</div>';return;}
     const total=items.length;
@@ -8125,7 +8125,7 @@ async function renderHist(){
         <div class="hi-date" style="display:flex;align-items:center;justify-content:space-between">
           <span>${e.date}</span>
           <div style="display:flex;gap:5px">
-            <button onclick="event.stopPropagation();loadSnap(${e.id});closeM()" style="height:26px;padding:0 10px;background:var(--acs);color:var(--ac);border:1px solid var(--acg);border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fb)">Editar</button>
+            <button onclick="event.stopPropagation();loadSnap(${e.id})" style="height:26px;padding:0 10px;background:${e.snap?'var(--acs)':'var(--surface-2)'};color:${e.snap?'var(--ac)':'var(--text-3)'};border:1px solid ${e.snap?'var(--acg)':'var(--border)'};border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fb)" title="${e.snap?'Cargar en calculadora':'Sin datos de calculadora'}">${e.snap?'✏️ Editar en calc.':'Sin calc.'}</button>
             <button onclick="event.stopPropagation();delFromHist(${e.id},this)" style="height:26px;padding:0 8px;background:none;color:var(--t3);border:1px solid var(--bd);border-radius:100px;font-size:12px;cursor:pointer">🗑</button>
           </div>
         </div>
@@ -8139,12 +8139,21 @@ async function renderHist(){
 
 function loadSnap(id){
   const e=_histCache.find(x=>x.id===id);
-  if(!e||!e.snap)return;
+  if(!e){ showToast('Presupuesto no encontrado','err'); return; }
+  if(!e.snap){
+    showToast('Este presupuesto no tiene datos de calculadora (fue creado desde el formulario). Editalo desde la página de Presupuestos.','warn');
+    return;
+  }
   restoreForm(e.snap);
   S.editingId=e.id;
   S.editingNum=e.numero||e.id;
+  // Restaurar vendedor
+  const vendedorId=e.snap.vendedorId||e.vendedor_id||null;
+  if(vendedorId){ const vSel=document.getElementById('calcVendedor'); if(vSel) vSel.value=String(vendedorId); }
   updatePresBar();
-  closeM();setTimeout(calc,100);
+  closeM();
+  setTimeout(calc,100);
+  showToast('Presupuesto #'+String(S.editingNum).padStart(4,'0')+' cargado — editá y guardá','ok');
 }
 
 async function delFromHist(id,btn){
