@@ -7994,8 +7994,9 @@ function computeArt(aid){
   const rawQty=Math.max(1,gn('qty',aid)||1);   // cantidad real ingresada (para mostrar)
   const qty=qtyEnabled?rawQty:1;               // cantidad para cálculo
   // Material (opcional — puede desactivarse si se usan solo insumos del stock)
-  let matC=0, g=gn('grams',aid), ws=gn('waste',aid);
+  let matC=0, g=0, ws=0;
   if(a.sec.material!==false){
+    g=gn('grams',aid); ws=gn('waste',aid);
     const spRaw=gn('spoolPrice',aid);
     const spU0=a.spoolCur==='USD'?spRaw*ex:spRaw;
     const spU=a.ivaOnSpool?spU0*1.22:spU0;
@@ -8039,7 +8040,7 @@ function computeArt(aid){
   const profit=totalP-totalCostAll;
   const effM=totalP>0?(profit/totalP)*100:0;
   return {matC,insumoStockC,elecC,deprC,maintC,laborC,ovhC,pkgC,extC,failA,sub,totalC,unitPrice,qty,rawQty,totalP,totalCost:totalCostAll,profit,effM,totalH,
-    desc:gv('desc',aid)||'Pieza', mat:gv('matType',aid), grams:g, margin,
+    desc:gv('desc',aid)||'Pieza', mat:a.sec.material!==false?gv('matType',aid):null, grams:g, margin,
     caract:gv('caract',aid), notasPieza:gv('notasPieza',aid),
     alto:gv('alto',aid), ancho:gv('ancho',aid), profundo:gv('profundo',aid), peso:gv('peso',aid),
     insumos:(a.insumos||[]).filter(i=>i.id&&i.qty>0).map(i=>({id:i.id,nombre:i.nombre,qty:i.qty,precio:i.precio,unidad:i.unidad}))};
@@ -8054,7 +8055,7 @@ function renderArt(aid){
   document.getElementById('profitDisp-'+aid).textContent=fmtC(r.profit,C,ex);
   document.getElementById('effMargin-'+aid).textContent=r.effM.toFixed(1)+'%';
   const price=document.getElementById('art-price-'+aid); if(price)price.textContent=fmtC(r.totalP,C,ex);
-  const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g${r.rawQty>1?' · ×'+r.rawQty:''} · ${fmtC(r.totalP,C,ex)}`;
+  const sub=document.getElementById('art-sub-'+aid); if(sub){const matTxt=r.mat&&r.grams?`${r.mat} · ${r.grams}g · `:'';const qtyTxt=r.rawQty>1?`×${r.rawQty} · `:'';sub.textContent=`${matTxt}${qtyTxt}${fmtC(r.totalP,C,ex)}`;}
   const mets=[{l:'Material',v:r.matC},{l:'Mat. stock',v:r.insumoStockC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
   const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
   updateArtChips(aid);
@@ -8086,7 +8087,7 @@ function recalcTotal(){
   if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
   // Lista por artículo
   const tA=document.getElementById('tArticulos');
-  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.rawQty>1?` <span style="font-size:11px;color:var(--t3)">×${r.rawQty}</span>`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${r.mat} · ${r.grams}g${r.rawQty>1?` · precio unit. ${fmtC(r.unitPrice,C,ex)}`:''} · margen ${r.margin}%</div></div>`).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
+  if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>{const matD=r.mat&&r.grams?`${r.mat} · ${r.grams}g · `:'';const unitD=r.rawQty>1?` · precio unit. ${fmtC(r.unitPrice,C,ex)}`:'';return`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.rawQty>1?` <span style="font-size:11px;color:var(--t3)">×${r.rawQty}</span>`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${matD}margen ${r.margin}%${unitD}</div></div>`}).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
 }
 
 // ── DISPLAY (global) ──────────────────────────────────────────────────
