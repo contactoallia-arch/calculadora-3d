@@ -7188,20 +7188,19 @@ function _art(aid){return S.articulos.find(a=>a.id===aid);}
 function gv(id,aid){const el=document.getElementById(id+'-'+aid);return el?el.value:'';}
 function gn(id,aid){return parseFloat(gv(id,aid))||0;}
 
-// ── ARTÍCULO: HTML ────────────────────────────────────────────────────
+// ── ARTÍCULO: HTML (bloques flotantes independientes) ─────────────────
 function articuloHTML(aid){
   const n=S.articulos.length;
-  // Estilos reutilizables
-  const SC=`border:1px solid var(--bd);border-radius:var(--rs);margin:12px 0;overflow:hidden`; // sub-card
-  const SH=`display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sf2);gap:8px`; // sub-card header
-  const SB=`padding:12px 14px 14px;border-top:1px solid var(--bd2)`; // sub-card body
-  // Sub-card colapsable sin toggle (Materiales): click en el header expande/contrae
-  const gh=(t,key)=>`<div style="${SC}"><div onclick="artToggleGroup(${aid},'${key}')" style="${SH};cursor:pointer;user-select:none"><span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">${t}</span><span id="grp-arr-${key}-${aid}" style="font-size:10px;color:var(--t3);transition:transform .18s;display:inline-block">▼</span></div><div id="grp-${key}-${aid}" style="${SB}">`;
-  const ghe=()=>`</div></div>`;
-  // Sub-card con toggle en el header (el toggle muestra/oculta el cuerpo y activa/desactiva el cálculo)
-  const ght=(t,cid,h,ck='checked')=>`<div style="${SC}"><div style="${SH}"><span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">${t}</span><label class="tsw"><input type="checkbox" id="${cid}" ${ck} onchange="${h}"><div class="ttr"><div class="tth"></div></div></label></div>`;
-  // Sub-etiqueta dentro de un cuerpo de grupo
-  const sl=(t)=>`<div style="font-size:12px;font-weight:700;color:var(--t2);margin:8px 0 10px">${t}</div>`;
+  // Estilo de card flotante
+  const BK=`border:1px solid var(--bd);border-radius:var(--r);margin-bottom:10px;overflow:hidden;background:var(--sf);box-shadow:var(--sh)`;
+  // Header de bloque con título grande: acepta icono, título, sub
+  const BH=(ico,tit,sub,extra='')=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:12px;${extra}"><div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0"><div style="font-size:22px;line-height:1;flex-shrink:0">${ico}</div><div style="min-width:0"><div style="font-size:16px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${tit}</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">${sub}</div></div></div>`;
+  // Cuerpo de bloque
+  const BB=`padding:4px 18px 16px;border-top:1px solid var(--bd2)`;
+  // Flecha de colapso (reutilizable)
+  const ARR=(key)=>`<span id="blk-arr-${key}-${aid}" style="font-size:13px;color:var(--t3);flex-shrink:0;transition:transform .18s;display:inline-block;margin-left:8px">▼</span>`;
+  // Toggle switch (reutilizable)
+  const TOG=(cid,h,ck='checked')=>`<label class="tsw" onclick="event.stopPropagation()"><input type="checkbox" id="${cid}" ${ck} onchange="${h}"><div class="ttr"><div class="tth"></div></div></label>`;
   return `<div class="card full art-card" id="art-${aid}" style="border:1px solid var(--ac);border-left:4px solid var(--ac)">
     <div class="ch" onclick="artToggleCollapse(${aid})" style="cursor:pointer">
       <div class="ch-l">
@@ -7246,144 +7245,263 @@ function articuloHTML(aid){
         </div>
       </div>
 
-      <!-- ── BLOQUE: MATERIALES (colapsable, dos sub-toggles) ── -->
-      ${gh('🧵 Materiales','mat')}
-        <div class="sec-head">
-          <label class="fl">Material</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span id="mat-tog-lbl-${aid}" style="font-size:11px;font-weight:600;color:var(--t2)">Activo</span>
-            <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleMaterial(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+
+  return `<div id="art-wrap-${aid}">
+
+  <!-- ══ PIEZA ${n}: header + datos básicos ══ -->
+  <div class="card full art-card" id="art-${aid}" style="${BK};border-left:4px solid var(--ac)">
+    <div class="ch" onclick="artToggleCollapse(${aid})" style="cursor:pointer">
+      <div class="ch-l">
+        <div class="c-icon" style="background:var(--ac);color:#fff;font-family:var(--fh);font-weight:700">${n}</div>
+        <div><div class="ctit" id="art-disp-${aid}">Pieza ${n}</div><div class="csub" id="art-sub-${aid}">Completá los datos de la pieza</div></div>
+      </div>
+      <div class="ch-r" style="gap:10px">
+        <span class="num" id="art-price-${aid}" style="font-family:var(--fh);font-weight:700;color:var(--ac);font-size:15px">$ 0</span>
+        <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar pieza" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
+        <span class="arr">▼</span>
+      </div>
+    </div>
+    <div class="cb col" id="art-body-${aid}">
+      <div class="f"><label class="fl">Nombre de la pieza</label>
+        <input type="text" id="desc-${aid}" placeholder="Ej: Llavero personalizado…" oninput="document.getElementById('art-disp-${aid}').textContent=this.value||'Pieza ${n}'">
+      </div>
+      <div class="f"><label class="fl">Características</label>
+        <input type="text" id="caract-${aid}" placeholder="Ej: flexible, resistente al calor, traslúcido…">
+      </div>
+      <div class="two">
+        <div class="f"><label class="fl">Cantidad</label><input type="number" id="qty-${aid}" value="1" min="1" step="1" oninput="renderArt(${aid});recalcTotal()"></div>
+        <div class="f" style="display:flex;flex-direction:column;justify-content:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;height:44px">
+            <input type="checkbox" id="qtyEnabled-${aid}" style="width:17px;height:17px;accent-color:var(--ac);cursor:pointer" onchange="renderArt(${aid});recalcTotal()">
+            <span style="font-size:12.5px;font-weight:600;color:var(--t2)">Multiplicar por cantidad</span>
+          </label>
+        </div>
+      </div>
+      <div class="f"><label class="fl">Descripción / Notas de la pieza</label>
+        <textarea id="notasPieza-${aid}" rows="2" placeholder="Detalles técnicos, tolerancias, acabado, instrucciones especiales…"></textarea>
+      </div>
+      <div class="f"><label class="fl">Dimensiones y peso</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <input type="number" id="alto-${aid}" placeholder="Alto mm" min="0" step="1">
+          <input type="number" id="ancho-${aid}" placeholder="Ancho mm" min="0" step="1">
+          <input type="number" id="profundo-${aid}" placeholder="Prof. mm" min="0" step="1">
+          <input type="number" id="peso-${aid}" placeholder="Peso g" min="0" step="1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BLOQUE: MATERIALES ══ -->
+  <div id="art-blk-mat-${aid}" style="${BK}">
+    <div onclick="artCollapseBlock(${aid},'mat-grp')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:22px;line-height:1;flex-shrink:0">🧵</div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--t1)">Materiales</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">Material de filamento · Insumos del stock</div></div>
+      </div>
+      <span id="blk-arr-mat-grp-${aid}" style="font-size:13px;color:var(--t3);flex-shrink:0;transition:transform .18s;display:inline-block">▼</span>
+    </div>
+    <div id="body-mat-grp-${aid}" style="${BB}">
+      <div class="sec-head">
+        <label class="fl">🧵 Material</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="mat-tog-lbl-${aid}" style="font-size:11px;font-weight:600;color:var(--t2)">Activo</span>
+          <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleMaterial(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+        </div>
+      </div>
+      <div id="body-material-${aid}">
+        <div class="f"><label class="fl">Tipo de filamento</label>
+          <select id="matType-${aid}" onchange="artMatType(${aid})">
+            <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
+            <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
+            <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
+          </select>
+        </div>
+        <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
+          <div class="irow">
+            <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
+            <div class="ctog" id="spoolTog-${aid}">
+              <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
+              <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+            <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+            <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
           </div>
         </div>
-        <div id="body-material-${aid}">
-          <div class="f"><label class="fl">Tipo de filamento</label>
-            <select id="matType-${aid}" onchange="artMatType(${aid})">
-              <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
-              <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
-              <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
+        <div class="two">
+          <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
+          <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
+        </div>
+      </div>
+      <div class="divl"></div>
+      <div class="sec-head">
+        <label class="fl" style="display:flex;align-items:center;gap:6px">📦 Insumos del stock <span style="font-size:10px;opacity:.55;font-weight:400">(opcional)</span></label>
+        <label class="tsw"><input type="checkbox" id="en-insumos-${aid}" onchange="artToggleInsumos(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div id="body-insumos-${aid}" style="display:none">
+        <div id="ins-rows-${aid}" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button type="button" onclick="artAddInsumo(${aid})" style="margin-top:6px;padding:6px 14px;font-size:12px;font-weight:600;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;width:100%">+ Agregar insumo</button>
+        <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.4">El costo se suma al total. Al pasar a <strong>Producción</strong>, el stock se descuenta automáticamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BLOQUE: ELECTRICIDAD Y TIEMPO ══ -->
+  <div id="art-blk-elec-${aid}" style="${BK}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:8px">
+      <div onclick="artCollapseBlock(${aid},'elec-time')" style="display:flex;align-items:center;gap:12px;flex:1;cursor:pointer;min-width:0">
+        <div style="font-size:22px;line-height:1;flex-shrink:0">⚡</div>
+        <div style="min-width:0">
+          <div style="font-size:16px;font-weight:700;color:var(--t1)">Electricidad y tiempo</div>
+          <div style="font-size:11.5px;color:var(--t3);margin-top:1px">Tarifa UTE · Potencia · Tiempo de impresión</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        ${TOG('en-elec-time-'+aid,'artToggleElecTime('+aid+',this.checked)')}
+        <span onclick="artCollapseBlock(${aid},'elec-time')" id="blk-arr-elec-time-${aid}" style="font-size:13px;color:var(--t3);cursor:pointer;transition:transform .18s;display:inline-block">▼</span>
+      </div>
+    </div>
+    <div id="body-elec-time-${aid}" style="${BB}">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin:6px 0 10px">⚡ Electricidad</div>
+      <div id="body-elec-${aid}">
+        <div class="f"><label class="fl">Tarifa UTE (UYU/kWh)</label>
+          <div class="pills" id="utePills-${aid}">
+            <button class="pill on" onclick="artSetRate(${aid},this,10.35)">Residencial · 10.35</button>
+            <button class="pill" onclick="artSetRate(${aid},this,5.16)">Comercial · 5.16</button>
+            <button class="pill" onclick="artSetRate(${aid},this,'custom')">Personalizada</button>
+          </div>
+          <input type="number" id="kwhRate-${aid}" value="10.35" min="0" step="0.01" style="display:none;margin-top:6px">
+        </div>
+        <div class="two">
+          <div class="f"><label class="fl">Impresora</label>
+            <select id="printerModel-${aid}" onchange="artSetPrinter(${aid},this.value)">
+              <option value="A1">Bambu A1</option><option value="A1Mini">A1 Mini</option><option value="P1P">P1P</option><option value="P1S">P1S</option><option value="P2S">P2S</option><option value="X1C">X1C</option><option value="X1E">X1E</option><option value="H2C">H2C</option><option value="H2D">H2D</option><option value="H2S">H2S</option><option value="manual">Otra / Manual</option>
             </select>
           </div>
-          <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
-            <div class="irow">
-              <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
-              <div class="ctog" id="spoolTog-${aid}">
-                <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
-                <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-              <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
-              <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
-            </div>
-          </div>
-          <div class="two">
-            <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
-            <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
-          </div>
+          <div class="f"><label class="fl">Potencia (W)</label><input type="number" id="watts-${aid}" value="95" min="0" step="1"></div>
         </div>
-        <div class="divl"></div>
-        <div class="sec-head">
-          <label class="fl" style="display:flex;align-items:center;gap:6px">Insumos del stock <span style="font-size:10px;opacity:.55;font-weight:400">(opcional)</span></label>
-          <label class="tsw"><input type="checkbox" id="en-insumos-${aid}" onchange="artToggleInsumos(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      </div>
+      <div class="divl"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:10px">⏱ Tiempo de impresión</div>
+      <div id="body-time-${aid}">
+        <div class="time-grid">
+          <div class="time-unit"><label>Días</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tDays',-1)">−</button><input class="step-inp" type="number" id="tDays-${aid}" value="0" min="0"><button class="step-btn" onclick="artStep(${aid},'tDays',1)">+</button></div></div>
+          <div class="time-unit"><label>Horas</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tHours',-1)">−</button><input class="step-inp" type="number" id="tHours-${aid}" value="3" min="0" max="23"><button class="step-btn" onclick="artStep(${aid},'tHours',1)">+</button></div></div>
+          <div class="time-unit"><label>Minutos</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tMins',-1)">−</button><input class="step-inp" type="number" id="tMins-${aid}" value="30" min="0" max="59"><button class="step-btn" onclick="artStep(${aid},'tMins',1)">+</button></div></div>
         </div>
-        <div id="body-insumos-${aid}" style="display:none">
-          <div id="ins-rows-${aid}" style="display:flex;flex-direction:column;gap:6px"></div>
-          <button type="button" onclick="artAddInsumo(${aid})" style="margin-top:6px;padding:6px 14px;font-size:12px;font-weight:600;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;width:100%">+ Agregar insumo</button>
-          <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.4">El costo se suma al total. Al pasar a <strong>Producción</strong>, el stock se descuenta automáticamente.</div>
-        </div>
-      ${ghe()}
+        <div class="time-total"><div class="time-total-label">Total</div><div class="time-total-val" id="timeTotal-${aid}">3h 30min</div></div>
+      </div>
+    </div>
+  </div>
 
-      <!-- ── BLOQUE: ELECTRICIDAD Y TIEMPO (toggle único) ── -->
-      ${ght('⚡ Electricidad y tiempo','en-elec-time-'+aid,'artToggleElecTime('+aid+',this.checked)')}
-      <div id="body-elec-time-${aid}" style="${SB}">
-        ${sl('⚡ Electricidad')}
-        <div id="body-elec-${aid}">
-          <div class="f"><label class="fl">Tarifa UTE (UYU/kWh)</label>
-            <div class="pills" id="utePills-${aid}">
-              <button class="pill on" onclick="artSetRate(${aid},this,10.35)">Residencial · 10.35</button>
-              <button class="pill" onclick="artSetRate(${aid},this,5.16)">Comercial · 5.16</button>
-              <button class="pill" onclick="artSetRate(${aid},this,'custom')">Personalizada</button>
-            </div>
-            <input type="number" id="kwhRate-${aid}" value="10.35" min="0" step="0.01" style="display:none;margin-top:6px">
-          </div>
-          <div class="two">
-            <div class="f"><label class="fl">Impresora</label>
-              <select id="printerModel-${aid}" onchange="artSetPrinter(${aid},this.value)">
-                <option value="A1">Bambu A1</option><option value="A1Mini">A1 Mini</option><option value="P1P">P1P</option><option value="P1S">P1S</option><option value="P2S">P2S</option><option value="X1C">X1C</option><option value="X1E">X1E</option><option value="H2C">H2C</option><option value="H2D">H2D</option><option value="H2S">H2S</option><option value="manual">Otra / Manual</option>
-              </select>
-            </div>
-            <div class="f"><label class="fl">Potencia (W)</label><input type="number" id="watts-${aid}" value="95" min="0" step="1"></div>
-          </div>
-        </div>
-        <div class="divl"></div>
-        ${sl('⏱ Tiempo de impresión')}
-        <div id="body-time-${aid}">
-          <div class="time-grid">
-            <div class="time-unit"><label>Días</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tDays',-1)">−</button><input class="step-inp" type="number" id="tDays-${aid}" value="0" min="0"><button class="step-btn" onclick="artStep(${aid},'tDays',1)">+</button></div></div>
-            <div class="time-unit"><label>Horas</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tHours',-1)">−</button><input class="step-inp" type="number" id="tHours-${aid}" value="3" min="0" max="23"><button class="step-btn" onclick="artStep(${aid},'tHours',1)">+</button></div></div>
-            <div class="time-unit"><label>Minutos</label><div class="stepper"><button class="step-btn" onclick="artStep(${aid},'tMins',-1)">−</button><input class="step-inp" type="number" id="tMins-${aid}" value="30" min="0" max="59"><button class="step-btn" onclick="artStep(${aid},'tMins',1)">+</button></div></div>
-          </div>
-          <div class="time-total"><div class="time-total-label">Total</div><div class="time-total-val" id="timeTotal-${aid}">3h 30min</div></div>
-        </div>
-      </div></div>
+  <!-- ══ BLOQUE: IMPRESORA Y MANTENIMIENTO ══ -->
+  <div id="art-blk-printer-${aid}" style="${BK}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:8px">
+      <div onclick="artCollapseBlock(${aid},'printer')" style="display:flex;align-items:center;gap:12px;flex:1;cursor:pointer;min-width:0">
+        <div style="font-size:22px;line-height:1;flex-shrink:0">🖨</div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--t1)">Impresora y mantenimiento</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">Costo · Vida útil · Mantenimiento mensual</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        ${TOG('en-printer-'+aid,'artToggleSec('+aid+',\'printer\',this.checked)')}
+        <span onclick="artCollapseBlock(${aid},'printer')" id="blk-arr-printer-${aid}" style="font-size:13px;color:var(--t3);cursor:pointer;transition:transform .18s;display:inline-block">▼</span>
+      </div>
+    </div>
+    <div id="body-printer-${aid}" style="${BB}">
+      <div class="two">
+        <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost-${aid}" value="80000" min="0" step="100"></div>
+        <div class="f"><label class="fl">Vida útil (horas)</label><input type="number" id="printerLife-${aid}" value="5000" min="100" step="100"></div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="fl">Mantenimiento mensual</label><input type="number" id="maintenance-${aid}" value="350" min="0" step="10"></div>
+        <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces-${aid}" value="20" min="1" step="1"></div>
+      </div>
+    </div>
+  </div>
 
-      <!-- ── BLOQUE: IMPRESORA Y MANTENIMIENTO ── -->
-      ${ght('🖨 Impresora y mantenimiento','en-printer-'+aid,'artToggleSec('+aid+',\'printer\',this.checked)')}
-      <div id="body-printer-${aid}" style="${SB}">
-        <div class="two">
-          <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost-${aid}" value="80000" min="0" step="100"></div>
-          <div class="f"><label class="fl">Vida útil (horas)</label><input type="number" id="printerLife-${aid}" value="5000" min="100" step="100"></div>
-        </div>
-        <div class="two">
-          <div class="f"><label class="fl">Mantenimiento mensual</label><input type="number" id="maintenance-${aid}" value="350" min="0" step="10"></div>
-          <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces-${aid}" value="20" min="1" step="1"></div>
-        </div>
-      </div></div>
+  <!-- ══ BLOQUE: MANO DE OBRA ══ -->
+  <div id="art-blk-labor-${aid}" style="${BK}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:8px">
+      <div onclick="artCollapseBlock(${aid},'labor')" style="display:flex;align-items:center;gap:12px;flex:1;cursor:pointer;min-width:0">
+        <div style="font-size:22px;line-height:1;flex-shrink:0">🛠</div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--t1)">Mano de obra</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">Tarifa horaria · Horas · Gastos fijos</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        ${TOG('en-labor-'+aid,'artToggleSec('+aid+',\'labor\',this.checked)')}
+        <span onclick="artCollapseBlock(${aid},'labor')" id="blk-arr-labor-${aid}" style="font-size:13px;color:var(--t3);cursor:pointer;transition:transform .18s;display:inline-block">▼</span>
+      </div>
+    </div>
+    <div id="body-labor-${aid}" style="${BB}">
+      <div class="two">
+        <div class="f"><label class="fl">Tarifa horaria (UYU)</label><input type="number" id="hourly-${aid}" value="200" min="0" step="10"></div>
+        <div class="f"><label class="fl">Horas prep + post</label><input type="number" id="laborH-${aid}" value="0.5" min="0" step="0.25"></div>
+      </div>
+      <div class="two">
+        <div class="f"><label class="fl">Gastos fijos mensuales</label><input type="number" id="overhead-${aid}" value="5000" min="0" step="100"></div>
+        <div class="f"><label class="fl">Buffer fallas (%)</label><input type="number" id="failBuf-${aid}" value="10" min="0" max="50" step="1"></div>
+      </div>
+    </div>
+  </div>
 
-      <!-- ── BLOQUE: MANO DE OBRA ── -->
-      ${ght('🛠 Mano de obra','en-labor-'+aid,'artToggleSec('+aid+',\'labor\',this.checked)')}
-      <div id="body-labor-${aid}" style="${SB}">
-        <div class="two">
-          <div class="f"><label class="fl">Tarifa horaria (UYU)</label><input type="number" id="hourly-${aid}" value="200" min="0" step="10"></div>
-          <div class="f"><label class="fl">Horas prep + post</label><input type="number" id="laborH-${aid}" value="0.5" min="0" step="0.25"></div>
+  <!-- ══ BLOQUE: COSTOS ADICIONALES ══ -->
+  <div id="art-blk-extras-${aid}" style="${BK}">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:8px">
+      <div onclick="artCollapseBlock(${aid},'extras')" style="display:flex;align-items:center;gap:12px;flex:1;cursor:pointer;min-width:0">
+        <div style="font-size:22px;line-height:1;flex-shrink:0">📦</div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--t1)">Costos adicionales</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">Packaging · Insumos adicionales</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        ${TOG('en-extras-'+aid,'artToggleSec('+aid+',\'extras\',this.checked)','')}
+        <span onclick="artCollapseBlock(${aid},'extras')" id="blk-arr-extras-${aid}" style="font-size:13px;color:var(--t3);cursor:pointer;transition:transform .18s;display:inline-block;transform:rotate(-90deg)">▼</span>
+      </div>
+    </div>
+    <div id="body-extras-${aid}" style="display:none;${BB}">
+      <div class="f"><label class="fl">Packaging / embalaje</label>
+        <div class="irow">
+          <input type="number" id="packaging-${aid}" value="0" min="0" step="1">
+          <div class="ctog" id="pkgTog-${aid}"><button class="on" onclick="artSetCur(${aid},'pkg','UYU')">$</button><button onclick="artSetCur(${aid},'pkg','USD')">U$S</button></div>
         </div>
-        <div class="two">
-          <div class="f"><label class="fl">Gastos fijos mensuales</label><input type="number" id="overhead-${aid}" value="5000" min="0" step="100"></div>
-          <div class="f"><label class="fl">Buffer fallas (%)</label><input type="number" id="failBuf-${aid}" value="10" min="0" max="50" step="1"></div>
-        </div>
-      </div></div>
+      </div>
+      <label class="fl" style="display:block;margin:10px 0 8px">Insumos adicionales</label>
+      <div class="xl" id="xList-${aid}"></div>
+      <button class="addbtn" onclick="artAddExtra(${aid})">＋ Agregar insumo adicional</button>
+    </div>
+  </div>
 
-      <!-- ── BLOQUE: COSTOS ADICIONALES ── -->
-      ${ght('📦 Costos adicionales','en-extras-'+aid,'artToggleSec('+aid+',\'extras\',this.checked)','')}
-      <div id="body-extras-${aid}" style="display:none;${SB}">
-        <div class="f"><label class="fl">Packaging / embalaje</label>
-          <div class="irow">
-            <input type="number" id="packaging-${aid}" value="0" min="0" step="1">
-            <div class="ctog" id="pkgTog-${aid}"><button class="on" onclick="artSetCur(${aid},'pkg','UYU')">$</button><button onclick="artSetCur(${aid},'pkg','USD')">U$S</button></div>
-          </div>
-        </div>
-        <label class="fl" style="display:block;margin:10px 0 8px">Insumos adicionales</label>
-        <div class="xl" id="xList-${aid}"></div>
-        <button class="addbtn" onclick="artAddExtra(${aid})">＋ Agregar insumo adicional</button>
-      </div></div>
+  <!-- ══ BLOQUE: MARGEN ══ -->
+  <div id="art-blk-marg-${aid}" style="${BK}">
+    <div onclick="artCollapseBlock(${aid},'marg')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:22px;line-height:1">📈</div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--t1)">Margen de ganancia</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">Porcentaje aplicado sobre el costo total</div></div>
+      </div>
+      <span id="blk-arr-marg-${aid}" style="font-size:13px;color:var(--t3);flex-shrink:0;transition:transform .18s;display:inline-block">▼</span>
+    </div>
+    <div id="body-marg-${aid}" style="${BB}">
+      <div class="marg-big" id="margDisp-${aid}" style="font-size:34px">50%</div>
+      <div class="pills" id="margPills-${aid}" style="margin-bottom:8px">
+        <button class="pill" onclick="artSetMargin(${aid},this,20)">20%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,30)">30%</button>
+        <button class="pill on" onclick="artSetMargin(${aid},this,50)">50%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,80)">80%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,120)">120%</button>
+        <button class="pill" onclick="artSetMargin(${aid},this,200)">200%</button>
+      </div>
+      <input type="range" id="margSlider-${aid}" min="0" max="300" value="50" oninput="artOnSlider(${aid},this.value)">
+      <div class="sl-labs"><span>0%</span><span>150%</span><span>300%</span></div>
+    </div>
+  </div>
 
-      <!-- ── BLOQUE: MARGEN ── -->
-      ${gh('📈 Margen de ganancia','marg')}
-        <div class="marg-big" id="margDisp-${aid}" style="font-size:34px">50%</div>
-        <div class="pills" id="margPills-${aid}" style="margin-bottom:8px">
-          <button class="pill" onclick="artSetMargin(${aid},this,20)">20%</button>
-          <button class="pill" onclick="artSetMargin(${aid},this,30)">30%</button>
-          <button class="pill on" onclick="artSetMargin(${aid},this,50)">50%</button>
-          <button class="pill" onclick="artSetMargin(${aid},this,80)">80%</button>
-          <button class="pill" onclick="artSetMargin(${aid},this,120)">120%</button>
-          <button class="pill" onclick="artSetMargin(${aid},this,200)">200%</button>
-        </div>
-        <input type="range" id="margSlider-${aid}" min="0" max="300" value="50" oninput="artOnSlider(${aid},this.value)">
-        <div class="sl-labs"><span>0%</span><span>150%</span><span>300%</span></div>
-      ${ghe()}
-
-      <!-- ── BLOQUE: PRECIO ── -->
-      ${gh('💰 Precio de esta pieza','result')}
+  <!-- ══ BLOQUE: PRECIO ══ -->
+  <div id="art-blk-result-${aid}" style="${BK}">
+    <div onclick="artCollapseBlock(${aid},'result')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:22px;line-height:1">💰</div>
+        <div><div style="font-size:16px;font-weight:700;color:var(--ac)">Precio de esta pieza</div><div style="font-size:11.5px;color:var(--t3);margin-top:1px">Precio calculado con margen · override manual</div></div>
+      </div>
+      <span id="blk-arr-result-${aid}" style="font-size:13px;color:var(--t3);flex-shrink:0;transition:transform .18s;display:inline-block">▼</span>
+    </div>
+    <div id="body-result-${aid}" style="${BB}">
       <div class="price-hero" style="margin-bottom:0">
         <div class="ph-main">
           <div class="ph-label">Presupuesto de esta pieza</div>
@@ -7397,15 +7515,11 @@ function articuloHTML(aid){
               style="width:140px;height:40px;font-size:17px;font-family:var(--mono);font-weight:700;border:2px solid var(--ac);border-radius:var(--rs);background:var(--surface);color:var(--ac);padding:0 10px;outline:none"
               oninput="(()=>{const v=parseFloat(this.value);const r=computeArt(${aid});if(r&&v>0){const em=Math.max(0,((v-r.totalCost)/v)*100);const ms=document.getElementById('margSlider-${aid}');const md=document.getElementById('margDisp-${aid}');if(ms)ms.value=Math.min(300,em);if(md)md.textContent=em.toFixed(1)+'%';document.getElementById('margPills-${aid}')?.querySelectorAll('.pill').forEach(b=>b.classList.remove('on'));}})()"
               onkeydown="if(event.key==='Enter')confirmOverrideArt(${aid});if(event.key==='Escape')cancelOverrideArt(${aid})">
-            <button onclick="confirmOverrideArt(${aid})"
-              style="height:40px;padding:0 13px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">✓</button>
-            <button onclick="cancelOverrideArt(${aid})"
-              style="height:40px;padding:0 10px;background:var(--surface);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:13px;cursor:pointer;font-family:var(--fb)">✕</button>
+            <button onclick="confirmOverrideArt(${aid})" style="height:40px;padding:0 13px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--fb)">✓</button>
+            <button onclick="cancelOverrideArt(${aid})" style="height:40px;padding:0 10px;background:var(--surface);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:13px;cursor:pointer;font-family:var(--fb)">✕</button>
           </div>
           <div id="artOverrideBadge-${aid}" style="display:none;margin-top:6px;font-size:11.5px;color:var(--warn-fg);font-weight:600">
-            ⚠ Editado ·
-            <button onclick="clearOverrideArt(${aid})"
-              style="border:none;background:none;color:var(--warn-fg);font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:var(--fb);padding:0">Recalcular</button>
+            ⚠ Editado · <button onclick="clearOverrideArt(${aid})" style="border:none;background:none;color:var(--warn-fg);font-size:11.5px;font-weight:700;cursor:pointer;text-decoration:underline;font-family:var(--fb);padding:0">Recalcular</button>
           </div>
         </div>
         <div class="ph-stats">
@@ -7415,9 +7529,9 @@ function articuloHTML(aid){
         </div>
       </div>
       <div class="mets" id="metsGrid-${aid}" style="margin-top:14px"></div>
-      </div></div>
-
     </div>
+  </div>
+
   </div>`;
 }
 
@@ -7427,11 +7541,9 @@ function addArticulo(snapData){
   S.articulos.push({id:aid, sec:{...ART_DEF.sec}, col:{}, margin:50, spoolCur:'UYU', pkgCur:'UYU', ivaOnSpool:false, matPill:'PLA', extras:[], extId:0, overridePrice:null, insumos:[]});
   const wrap=document.getElementById('articulosWrap');
   wrap.insertAdjacentHTML('beforeend', articuloHTML(aid));
-  const bloque=document.getElementById('art-'+aid);
-  // Aplicar packaging apagado por defecto (sección extras off)
-  document.getElementById('body-extras-'+aid).style.display='none';
-  // Listeners de recálculo
-  bloque.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',()=>{renderArt(aid);recalcTotal();}));
+  // Listeners de recálculo en todos los bloques del artículo
+  const artWrap=document.getElementById('art-wrap-'+aid);
+  artWrap.querySelectorAll('input:not([type="range"]):not([type="checkbox"]),select,textarea').forEach(el=>el.addEventListener('input',()=>{renderArt(aid);recalcTotal();}));
   document.getElementById('rcardTotal').style.display='';
   if(snapData) restoreArticulo(aid,snapData);
   renderArt(aid); recalcTotal();
@@ -7441,10 +7553,8 @@ function rmArticulo(aid){
   const i=S.articulos.findIndex(a=>a.id===aid);
   if(i<0)return;
   S.articulos.splice(i,1);
-  document.getElementById('art-'+aid)?.remove();
-  if(S.articulos.length===0){
-    document.getElementById('rcardTotal').style.display='none';
-  }
+  document.getElementById('art-wrap-'+aid)?.remove();
+  if(S.articulos.length===0) document.getElementById('rcardTotal').style.display='none';
   recalcTotal();
 }
 function artToggleCollapse(aid){
@@ -7457,12 +7567,21 @@ function artToggleSec(aid,sec,on){
   const a=_art(aid); if(a)a.sec[sec]=on;
   const body=document.getElementById('body-'+sec+'-'+aid);
   if(body)body.style.display=on?'':'none';
+  const arr=document.getElementById('blk-arr-'+sec+'-'+aid);
+  if(arr)arr.style.transform=on?'':'rotate(-90deg)';
   renderArt(aid); recalcTotal();
 }
-function artToggleGroup(aid,key){
-  const body=document.getElementById('grp-'+key+'-'+aid);
-  const arr=document.getElementById('grp-arr-'+key+'-'+aid);
+// artCollapseBlock: colapso visual independiente del toggle de cálculo
+function artCollapseBlock(aid,key){
+  // Mapeo de clave → body ID
+  const bodyId={'mat-grp':'body-mat-grp','elec-time':'body-elec-time','printer':'body-printer','labor':'body-labor','extras':'body-extras','marg':'body-marg','result':'body-result'}[key]||('body-'+key);
+  const body=document.getElementById(bodyId+'-'+aid);
+  const arr=document.getElementById('blk-arr-'+key+'-'+aid);
+  const a=_art(aid);
   if(!body)return;
+  // Si el toggle del bloque está OFF, no permitir expansión visual
+  const secKey={'elec-time':'elec','printer':'printer','labor':'labor','extras':'extras'}[key];
+  if(secKey&&a&&a.sec[secKey]===false)return;
   const hide=body.style.display!=='none';
   body.style.display=hide?'none':'';
   if(arr)arr.style.transform=hide?'rotate(-90deg)':'';
@@ -7472,6 +7591,8 @@ function artToggleElecTime(aid,on){
   a.sec.elec=on; a.sec.time=on;
   const wrapper=document.getElementById('body-elec-time-'+aid);
   if(wrapper)wrapper.style.display=on?'':'none';
+  const arr=document.getElementById('blk-arr-elec-time-'+aid);
+  if(arr)arr.style.transform=on?'':'rotate(-90deg)';
   recalcTotal();
 }
 function artToggleMaterial(aid,on){
@@ -8357,15 +8478,16 @@ function restoreArticulo(aid,d){
   if(d.overridePrice!=null){a.overridePrice=d.overridePrice;const b=document.getElementById('artOverrideBadge-'+aid);if(b)b.style.display='';} else a.overridePrice=null;
   if(d.sec)a.sec={material:true,elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
   // Toggle combinado elec+tiempo (usa sec.elec como referencia)
-  const elecOn=a.sec.elec!==false;
-  a.sec.time=elecOn;
+  const elecOn=a.sec.elec!==false; a.sec.time=elecOn;
   const etChk=document.getElementById('en-elec-time-'+aid); const etBody=document.getElementById('body-elec-time-'+aid);
   if(etChk)etChk.checked=elecOn; if(etBody)etBody.style.display=elecOn?'':'none';
-  // Resto de secciones (sin elec/time — ya manejados arriba)
+  const etArr=document.getElementById('blk-arr-elec-time-'+aid); if(etArr)etArr.style.transform=elecOn?'':'rotate(-90deg)';
+  // Resto de secciones
   ['material','printer','labor','extras'].forEach(sec=>{
     const on=a.sec[sec]!==false;
     const chk=document.getElementById('en-'+sec+'-'+aid); const body=document.getElementById('body-'+sec+'-'+aid);
     if(chk)chk.checked=on; if(body)body.style.display=on?'':'none';
+    const arr=document.getElementById('blk-arr-'+sec+'-'+aid); if(arr)arr.style.transform=on?'':'rotate(-90deg)';
     if(sec==='material'){const lbl=document.getElementById('mat-tog-lbl-'+aid);if(lbl){lbl.textContent=on?'Activo':'Apagado';lbl.style.color=on?'var(--t2)':'var(--bad-fg)';}}
   });
   const md=document.getElementById('margDisp-'+aid); if(md)md.textContent=a.margin+'%';
