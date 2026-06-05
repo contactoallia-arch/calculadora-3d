@@ -3738,6 +3738,7 @@ async function abrirEnCalculadora(id) {
   await new Promise(r => setTimeout(r, 120));
   showPage('calculadora');
   await new Promise(r => setTimeout(r, 200));
+  await _getInsumos();
   restoreForm(snap);
   S.editingId = Number(p.id);
   S.editingNum = p.numero || p.id;
@@ -8287,11 +8288,14 @@ function restoreArticulo(aid,d){
       artAddInsumo(aid);
       const newIns=a.insumos[a.insumos.length-1];
       newIns.id=ins.id; newIns.nombre=ins.nombre||''; newIns.qty=parseFloat(ins.qty)||0;
-      newIns.precio=parseFloat(ins.precio)||0; newIns.unidad=ins.unidad||''; newIns.moneda=ins.moneda||'UYU';
+      const _liveIns=ins.id?((_insumosAcCache||[]).find(x=>Number(x.id)===Number(ins.id))||(_insumosFilamento||[]).find(x=>Number(x.id)===Number(ins.id))):null;
+      newIns.precio=_liveIns?parseFloat(_liveIns.precio)||0:parseFloat(ins.precio)||0;
+      newIns.unidad=_liveIns?(_liveIns.unidad||ins.unidad||''):(ins.unidad||'');
+      newIns.moneda=_liveIns?(_liveIns.moneda||ins.moneda||'UYU'):(ins.moneda||'UYU');
       const r=newIns.el;
       r.querySelector('input[type="text"]').value=ins.nombre||'';
       const qi=r.querySelectorAll('input')[1]; if(qi)qi.value=ins.qty||0;
-      r.querySelector('[data-ins-unit]').textContent=ins.unidad||'';
+      r.querySelector('[data-ins-unit]').textContent=newIns.unidad||'';
       const cost=newIns.qty*newIns.precio;
       r.querySelector('[data-ins-cost]').textContent=cost>0?'$ '+fmtMoney(cost):'';
     });
