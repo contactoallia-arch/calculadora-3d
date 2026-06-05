@@ -3739,8 +3739,21 @@ function editarPresupuesto(id) { abrirEditPres(id); }
 async function abrirEnCalculadora(id) {
   const p = _presCache.find(x => Number(x.id) === Number(id));
   if (!p) { showToast('Presupuesto no encontrado', 'err'); return; }
-  const snap = p.snap || _buildBootstrapSnap(p);
   const isBootstrap = !p.snap;
+  // Copia superficial del snap para no mutar el caché; sincroniza campos básicos
+  // con los datos más recientes del presupuesto (pueden haber sido editados en el modal)
+  const snap = { ...(p.snap || _buildBootstrapSnap(p)) };
+  snap.pedido  = p.pieza || snap.pedido || '';
+  snap.cName   = p.cliente_nombre || p.cliente || snap.cName || '';
+  if (p.cliente_email) snap.cEmail = p.cliente_email;
+  if (p.cliente_tel)   snap.cPhone = p.cliente_tel;
+  snap.notes   = p.notas != null ? (p.notas || '') : (snap.notes || '');
+  if (p.fecha_entrega) snap.delivDate = p.fecha_entrega;
+  if (p.vendedor_id)   snap.vendedorId = p.vendedor_id;
+  // Sincronizar precio: si ya había override o es bootstrap, usar el precio guardado
+  if (p.precio > 0 && (snap.overridePrice != null || isBootstrap)) {
+    snap.overridePrice = Number(p.precio);
+  }
   cerrarPresSlideover?.();
   closeM?.();
   await new Promise(r => setTimeout(r, 120));
