@@ -29,17 +29,19 @@ async function restaurarStockInsumos(db, presId, pieza, numero, userId) {
       }
     }
 
-    // Restaurar costos_internos (form de presupuestos)
+    // Restaurar costos_internos (form de presupuestos) — excluye ítems de calculadora (ifromCalc)
     if (pres.costos_internos) {
       const costos = JSON.parse(pres.costos_internos);
       let hubo = false;
-      for (const c of costos.filter(c => c.iid && c.iqty > 0 && c.ideducted)) {
-        await db.execute({ sql: "UPDATE insumos SET stock=stock+? WHERE id=? AND activo=1", args: [Number(c.iqty), c.iid] });
+      for (const c of costos.filter(c => c.iid && c.iqty > 0 && c.ideducted && !c.ifromCalc)) {
+        const qtr = c.iqty_deducted != null ? Number(c.iqty_deducted) : Number(c.iqty);
+        if (qtr <= 0) continue;
+        await db.execute({ sql: "UPDATE insumos SET stock=stock+? WHERE id=? AND activo=1", args: [qtr, c.iid] });
         try {
           const st = await db.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [c.iid] });
-          await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [c.iid, Number(c.iqty), Number(st.rows[0]?.stock||0), "restauracion", ref, presId, userId] });
+          await db.execute({ sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)", args: [c.iid, qtr, Number(st.rows[0]?.stock||0), "restauracion", ref, presId, userId] });
         } catch {}
-        c.ideducted = false;
+        c.ideducted = false; c.iqty_deducted = 0;
         hubo = true;
       }
       if (hubo) await db.execute({ sql: "UPDATE presupuestos SET costos_internos=? WHERE id=?", args: [JSON.stringify(costos), presId] });
@@ -165,7 +167,8 @@ export default async function handler(req, res) {
     if (esProduccionOListo && pres.costos_internos) {
       try {
         const costos = JSON.parse(pres.costos_internos);
-        const porDescontar = costos.filter(c => c.iid && c.iqty > 0 && !c.ideducted);
+        // Excluir ítems de calculadora (stock ya manejado por snap)
+        const porDescontar = costos.filter(c => c.iid && c.iqty > 0 && !c.ideducted && !c.ifromCalc);
         if (porDescontar.length > 0) {
           const fecha = new Date().toLocaleDateString("es-UY");
           const num = String(pres.numero||id).padStart(4,'0');
@@ -180,6 +183,7 @@ export default async function handler(req, res) {
               await db.execute({ sql: "INSERT INTO gastos (categoria,descripcion,monto,moneda,fecha,tipo,presupuesto_id,created_by) VALUES (?,?,?,?,?,?,?,?)", args: ["filamento", `${c.d} — Presupuesto #${id}: ${pres.pieza}`, c.m, pres.moneda||"UYU", fecha, "produccion_automatico", id, user.id] });
             }
             c.ideducted = true;
+            c.iqty_deducted = Number(c.iqty); // registrar qty real descontada
           }
           await db.execute({ sql: "UPDATE presupuestos SET costos_internos=? WHERE id=?", args: [JSON.stringify(costos), id] });
         }
@@ -211,10 +215,63 @@ export default async function handler(req, res) {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
       const { numero, pieza, cliente, cliente_id, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, vendedor_id, costos_internos, cliente_tipo, cliente_empresa, cliente_rut, alto, ancho, profundo, peso } = req.body || {};
+
+      // ── Delta de stock al editar en estados post-producción (listo/entregado/cobrado) ──
+      // Solo ítems regulares del modal (ifromCalc excluidos — el snap los maneja)
+      const ESTADOS_AJUSTE = ["listo", "entregado", "cobrado"];
+      let costos_internos_final = costos_internos || null;
+      try {
+        const curR = await db2.execute({ sql: "SELECT estado, costos_internos, numero, pieza FROM presupuestos WHERE id=?", args: [id] });
+        const cur = curR.rows[0];
+        if (ESTADOS_AJUSTE.includes(cur?.estado) && costos_internos != null) {
+          let oldCostos = [];
+          try { oldCostos = cur.costos_internos ? JSON.parse(cur.costos_internos) : []; } catch {}
+          const newCostos = JSON.parse(costos_internos);
+
+          // Qty ya descontada por iid (solo ítems regulares)
+          const oldDeducted = {};
+          for (const c of oldCostos.filter(c => c.iid && !c.ifromCalc && (c.ideducted || (c.iqty_deducted > 0)))) {
+            const q = c.iqty_deducted != null ? Number(c.iqty_deducted) : Number(c.iqty)||0;
+            oldDeducted[c.iid] = (oldDeducted[c.iid] || 0) + q;
+          }
+
+          // Nueva qty por iid (solo ítems regulares)
+          const newQty = {};
+          for (const c of newCostos.filter(c => c.iid && !c.ifromCalc && c.iqty > 0)) {
+            newQty[c.iid] = (newQty[c.iid] || 0) + Number(c.iqty);
+          }
+
+          // Aplicar delta al stock
+          const allIids = new Set([...Object.keys(oldDeducted).map(Number), ...Object.keys(newQty).map(Number)]);
+          const presNum = String(cur?.numero||id).padStart(4,'0');
+          const ref = `Ajuste edición · Pres. #${presNum}: ${cur?.pieza||''}`;
+          for (const iid of allIids) {
+            const delta = (newQty[iid] || 0) - (oldDeducted[iid] || 0);
+            if (Math.abs(delta) < 0.0001) continue;
+            const stR = await db2.execute({ sql: "SELECT stock FROM insumos WHERE id=?", args: [iid] });
+            const prev = Number(stR.rows[0]?.stock || 0);
+            const nuevo = delta > 0 ? Math.max(0, prev - delta) : prev + Math.abs(delta);
+            await db2.execute({ sql: "UPDATE insumos SET stock=? WHERE id=? AND activo=1", args: [nuevo, iid] });
+            try {
+              await db2.execute({
+                sql: "INSERT INTO stock_movimientos (insumo_id,cantidad,stock_resultante,tipo,referencia,presupuesto_id,fecha,created_by) VALUES (?,?,?,?,?,?,date('now'),?)",
+                args: [iid, -delta, nuevo, "ajuste_presupuesto", ref, id, user.id]
+              });
+            } catch {}
+          }
+
+          // Actualizar iqty_deducted en el JSON guardado (solo ítems regulares)
+          const updatedCostos = newCostos.map(c =>
+            (c.iid && !c.ifromCalc) ? { ...c, iqty_deducted: Number(c.iqty)||0, ideducted: true } : c
+          );
+          costos_internos_final = JSON.stringify(updatedCostos);
+        }
+      } catch {}
+
       // snap usa COALESCE para no borrarlo si el formulario no lo envía
       await db2.execute({
         sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=COALESCE(?,snap),moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,costos_internos=?,cliente_tipo=?,cliente_empresa=?,cliente_rut=?,alto=?,ancho=?,profundo=?,peso=?,updated_at=datetime('now') WHERE id=?",
-        args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, costos_internos||null, cliente_tipo||null, cliente_empresa||null, cliente_rut||null, alto||null, ancho||null, profundo||null, peso||null, id]
+        args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, costos_internos_final, cliente_tipo||null, cliente_empresa||null, cliente_rut||null, alto||null, ancho||null, profundo||null, peso||null, id]
       });
       return res.status(200).json({ ok: true });
     }

@@ -3826,7 +3826,7 @@ async function abrirEditPres(id) {
         const moneda = live ? (live.moneda||'UYU') : (ins.moneda||'UYU');
         const unidad = live ? (live.unidad||ins.unidad||'') : (ins.unidad||'');
         const precioUYU = moneda === 'USD' ? precio * _ex : precio;
-        agregarCostoPres({d: ins.nombre||'', m: parseFloat((ins.qty * precioUYU).toFixed(2)), iid: Number(ins.id), iqty: ins.qty, iprecio: precioUYU, iunit: unidad, ideducted: true, ifromCalc: true});
+        agregarCostoPres({d: ins.nombre||'', m: parseFloat((ins.qty * precioUYU).toFixed(2)), iid: Number(ins.id), iqty: ins.qty, iprecio: precioUYU, iunit: unidad, ideducted: true, ifromCalc: true, iqty_deducted: ins.qty});
       });
       if ((p.snap._elecC||0) > 0) agregarCostoPres({d: 'Electricidad', m: parseFloat((p.snap._elecC).toFixed(2))});
       if ((p.snap._deprC||0) > 0) agregarCostoPres({d: 'Depreciación impresora', m: parseFloat((p.snap._deprC).toFixed(2))});
@@ -3973,6 +3973,7 @@ function agregarCostoPres(opts) {
       row.dataset.insumoUnit = opts.iunit || '';
       if (opts.ideducted) row.dataset.insumoDeducted = '1';
       if (opts.ifromCalc) row.dataset.fromCalc = '1';
+      if (opts.iqty_deducted != null) row.dataset.insumoQtyDeducted = opts.iqty_deducted;
       const wrap = row.querySelector('.cpres-qty-wrap');
       wrap.style.display = 'flex';
       row.querySelector('.cpres-insumo-unit').textContent = opts.iunit || '';
@@ -4076,6 +4077,7 @@ async function guardarEditPres() {
         iprecio:el.dataset.insumoPrecio?parseFloat(el.dataset.insumoPrecio):null,
         iunit:el.dataset.insumoUnit||null,
         ideducted:el.dataset.insumoDeducted==='1',
+        iqty_deducted:el.dataset.insumoQtyDeducted!=null?parseFloat(el.dataset.insumoQtyDeducted):null,
         ...(el.dataset.fromCalc==='1'?{ifromCalc:true}:{})};
     })) : null,
     fecha: fechaISOtoUY(document.getElementById('editPresFecha').value) || new Date().toLocaleDateString('es-UY'),
