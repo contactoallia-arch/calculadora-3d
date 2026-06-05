@@ -1049,7 +1049,13 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div id="pd-notes" class="pd-notes" style="display:none"></div>
     <div class="pd-validity">Presupuesto válido por 15 días desde la fecha de emisión.</div>
     <div class="pd-footer" style="display:flex;align-items:center;justify-content:center;gap:14px">
-      <span>ArteLab UY · Impresión 3D · Uruguay</span>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span>ArteLab UY · Impresión 3D · Uruguay</span>
+        <span style="display:inline-flex;align-items:center;gap:4px">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:3px;background:#1ACA9D;color:#fff;font-size:8px;font-weight:900;font-family:Arial,sans-serif;flex-shrink:0">P</span>
+          <span style="font-size:9px;color:#999;font-weight:600">Prex · <span style="color:#555;font-weight:700">38592</span></span>
+        </span>
+      </div>
       <span style="display:flex;flex-direction:column;align-items:center;gap:2px">
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=56x56&data=https://www.instagram.com/artelab3d.uy/" width="44" height="44" style="border-radius:4px;display:block" alt="Instagram">
         <span style="font-size:9px;color:#ccc">@artelab3d.uy</span>
@@ -8333,7 +8339,11 @@ function _buildPdfPageHtml(d){
     <div>
       <p style="margin:0 0 4px;font-size:11px;font-weight:800;line-height:1.28">Respondé con <span style="color:#F2A65A">OK</span> para aprobar y que comiencen a correr los plazos. Podés agregar una nota si tenés alguna medida o aclaración.</p>
       <p style="margin:0 0 2px;color:#E7E0D6;font-size:10px;font-weight:700">contactoallia@gmail.com</p>
-      <p style="margin:0;color:#F2A65A;font-size:9px">ArteLab · Diseño · Impresión 3D · Soluciones · Uruguay</p>
+      <p style="margin:0 0 4px;color:#F2A65A;font-size:9px">ArteLab · Diseño · Impresión 3D · Soluciones · Uruguay</p>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;background:#1ACA9D;color:#fff;font-size:8.5px;font-weight:900;letter-spacing:-.5px;font-family:Arial,sans-serif;flex-shrink:0">P</span>
+        <span style="color:#ccc;font-size:8.5px;font-weight:600;letter-spacing:.01em">Prex · <span style="color:#fff">38592</span></span>
+      </span>
     </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=https://www.instagram.com/artelab3d.uy/" width="52" height="52" style="display:block;border-radius:5px;background:#fff;padding:2px" alt="Instagram">
