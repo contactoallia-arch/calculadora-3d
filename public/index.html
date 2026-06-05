@@ -3529,8 +3529,17 @@ function filterPresupuestos() {
     const nombre = p.cliente_nombre||p.cliente||'—';
     const color = _avColor(nombre);
     const ini = _avIni(nombre);
-    const pieza = p.pieza||'Sin nombre';
-    const qty = p.qty>1 ? ` ×${p.qty}` : '';
+    const pieza = (() => {
+      const arts = p.snap?.articulos;
+      if (arts?.length > 0) {
+        return arts.map(a => {
+          const n = a.desc || 'Pieza';
+          const q = a.qtyEnabled && parseInt(a.qty||1) > 1 ? ` ×${parseInt(a.qty)}` : '';
+          return n + q;
+        }).join(' + ');
+      }
+      return (p.pieza||'Sin nombre') + (p.qty>1?` ×${p.qty}`:'');
+    })();
     return `<tr style="cursor:pointer" onclick="abrirPresSlideover(${p.id})">
       <td class="mono" style="color:var(--text-faint);font-weight:700;font-size:13px">#${num}</td>
       <td>
@@ -3539,7 +3548,7 @@ function filterPresupuestos() {
           <b style="font-size:13.5px">${nombre}</b>
         </div>
       </td>
-      <td class="hide-m" style="color:var(--text-2);font-size:13px">${pieza}${qty}</td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px">${pieza}</td>
       <td class="mono" style="font-weight:700;font-size:13.5px">
         $ ${fmtMoney(p.precio)}
         ${p.ganancia!=null?`<div style="font-size:10.5px;font-weight:600;color:${p.ganancia>=0?'var(--ok-fg)':'var(--bad-fg)'}">gan. $ ${fmtMoney(Math.round(p.ganancia))}</div>`:''}
