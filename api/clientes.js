@@ -35,16 +35,31 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "GET") {
+    // Subconsultas correlacionadas para evitar producto cartesiano cuando un cliente
+    // tiene múltiples presupuestos Y múltiples cobros al mismo tiempo.
+    // Fallback por nombre (LOWER/TRIM) para presupuestos sin cliente_id seteado.
     const r = await db.execute(`
       SELECT c.*,
-        COUNT(DISTINCT p.id) as total_presupuestos,
-        COALESCE(SUM(CASE WHEN p.estado IN ('entregado','cobrado') THEN p.precio ELSE 0 END),0) as total_facturado,
-        COALESCE(SUM(co.monto),0) as total_cobrado
+        (
+          SELECT COUNT(*) FROM presupuestos p
+          WHERE p.cliente_id=c.id
+             OR (p.cliente_id IS NULL AND LOWER(TRIM(p.cliente))=LOWER(TRIM(c.nombre)))
+        ) as total_presupuestos,
+        (
+          SELECT COALESCE(SUM(p.precio),0) FROM presupuestos p
+          WHERE (p.cliente_id=c.id OR (p.cliente_id IS NULL AND LOWER(TRIM(p.cliente))=LOWER(TRIM(c.nombre))))
+            AND p.estado IN ('entregado','cobrado')
+        ) as total_facturado,
+        (
+          SELECT COALESCE(SUM(co.monto),0) FROM cobros co
+          WHERE co.presupuesto_id IN (
+            SELECT p.id FROM presupuestos p
+            WHERE p.cliente_id=c.id
+               OR (p.cliente_id IS NULL AND LOWER(TRIM(p.cliente))=LOWER(TRIM(c.nombre)))
+          )
+        ) as total_cobrado
       FROM clientes c
-      LEFT JOIN presupuestos p ON p.cliente_id=c.id
-      LEFT JOIN cobros co ON co.cliente_id=c.id
       WHERE c.activo=1
-      GROUP BY c.id
       ORDER BY c.nombre
     `);
     return res.status(200).json({ ok: true, data: r.rows });
