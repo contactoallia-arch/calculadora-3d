@@ -7201,51 +7201,6 @@ function articuloHTML(aid){
   const ARR=(key)=>`<span id="blk-arr-${key}-${aid}" style="font-size:13px;color:var(--t3);flex-shrink:0;transition:transform .18s;display:inline-block;margin-left:8px">▼</span>`;
   // Toggle switch (reutilizable)
   const TOG=(cid,h,ck='checked')=>`<label class="tsw" onclick="event.stopPropagation()"><input type="checkbox" id="${cid}" ${ck} onchange="${h}"><div class="ttr"><div class="tth"></div></div></label>`;
-  return `<div class="card full art-card" id="art-${aid}" style="border:1px solid var(--ac);border-left:4px solid var(--ac)">
-    <div class="ch" onclick="artToggleCollapse(${aid})" style="cursor:pointer">
-      <div class="ch-l">
-        <div class="c-icon" style="background:var(--ac);color:#fff;font-family:var(--fh);font-weight:700">${n}</div>
-        <div><div class="ctit" id="art-disp-${aid}">Pieza ${n}</div><div class="csub" id="art-sub-${aid}">Completá los datos de la pieza</div></div>
-      </div>
-      <div class="ch-r" style="gap:10px">
-        <span class="num" id="art-price-${aid}" style="font-family:var(--fh);font-weight:700;color:var(--ac);font-size:15px">$ 0</span>
-        <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar pieza" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
-        <span class="arr">▼</span>
-      </div>
-    </div>
-    <div class="cb col" id="art-body-${aid}">
-
-      <!-- ── PIEZA ── -->
-      <div class="f"><label class="fl">Nombre de la pieza</label>
-        <input type="text" id="desc-${aid}" placeholder="Ej: Llavero personalizado…" oninput="document.getElementById('art-disp-${aid}').textContent=this.value||'Pieza ${n}'">
-      </div>
-      <div class="f"><label class="fl">Características</label>
-        <input type="text" id="caract-${aid}" placeholder="Ej: flexible, resistente al calor, traslúcido…">
-      </div>
-      <div class="two">
-        <div class="f"><label class="fl">Cantidad</label>
-          <input type="number" id="qty-${aid}" value="1" min="1" step="1" oninput="renderArt(${aid});recalcTotal()">
-        </div>
-        <div class="f" style="display:flex;flex-direction:column;justify-content:flex-end">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;height:44px">
-            <input type="checkbox" id="qtyEnabled-${aid}" style="width:17px;height:17px;accent-color:var(--ac);cursor:pointer" onchange="renderArt(${aid});recalcTotal()">
-            <span style="font-size:12.5px;font-weight:600;color:var(--t2)">Multiplicar por cantidad</span>
-          </label>
-        </div>
-      </div>
-      <div class="f"><label class="fl">Descripción / Notas de la pieza</label>
-        <textarea id="notasPieza-${aid}" rows="2" placeholder="Detalles técnicos, tolerancias, acabado, instrucciones especiales…"></textarea>
-      </div>
-      <div class="f"><label class="fl">Dimensiones y peso</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <input type="number" id="alto-${aid}" placeholder="Alto mm" min="0" step="1">
-          <input type="number" id="ancho-${aid}" placeholder="Ancho mm" min="0" step="1">
-          <input type="number" id="profundo-${aid}" placeholder="Prof. mm" min="0" step="1">
-          <input type="number" id="peso-${aid}" placeholder="Peso g" min="0" step="1">
-        </div>
-      </div>
-
-
   return `<div id="art-wrap-${aid}">
 
   <!-- ══ PIEZA ${n}: header + datos básicos ══ -->
