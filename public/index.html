@@ -7191,12 +7191,17 @@ function gn(id,aid){return parseFloat(gv(id,aid))||0;}
 // ── ARTÍCULO: HTML ────────────────────────────────────────────────────
 function articuloHTML(aid){
   const n=S.articulos.length;
-  // Encabezado de grupo — solo título
-  const gh=(t)=>`<div style="margin:14px -18px 0;border-top:1px solid var(--bd)"></div><div style="margin:0 -18px 12px;padding:7px 18px;background:var(--sf2)"><span style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">${t}</span></div>`;
-  // Encabezado de grupo con toggle
-  const ght=(t,cid,h,ck='checked')=>`<div style="margin:14px -18px 0;border-top:1px solid var(--bd)"></div><div style="margin:0 -18px;padding:7px 18px;background:var(--sf2);display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">${t}</span><label class="tsw"><input type="checkbox" id="${cid}" ${ck} onchange="${h}"><div class="ttr"><div class="tth"></div></div></label></div>`;
-  // Sub-etiqueta dentro de grupo
-  const sl=(t)=>`<div style="font-size:12px;font-weight:700;color:var(--t2);margin:10px 0 8px">${t}</div>`;
+  // Estilos reutilizables
+  const SC=`border:1px solid var(--bd);border-radius:var(--rs);margin:12px 0;overflow:hidden`; // sub-card
+  const SH=`display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--sf2);gap:8px`; // sub-card header
+  const SB=`padding:12px 14px 14px;border-top:1px solid var(--bd2)`; // sub-card body
+  // Sub-card colapsable sin toggle (Materiales): click en el header expande/contrae
+  const gh=(t,key)=>`<div style="${SC}"><div onclick="artToggleGroup(${aid},'${key}')" style="${SH};cursor:pointer;user-select:none"><span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">${t}</span><span id="grp-arr-${key}-${aid}" style="font-size:10px;color:var(--t3);transition:transform .18s;display:inline-block">▼</span></div><div id="grp-${key}-${aid}" style="${SB}">`;
+  const ghe=()=>`</div></div>`;
+  // Sub-card con toggle en el header (el toggle muestra/oculta el cuerpo y activa/desactiva el cálculo)
+  const ght=(t,cid,h,ck='checked')=>`<div style="${SC}"><div style="${SH}"><span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)">${t}</span><label class="tsw"><input type="checkbox" id="${cid}" ${ck} onchange="${h}"><div class="ttr"><div class="tth"></div></div></label></div>`;
+  // Sub-etiqueta dentro de un cuerpo de grupo
+  const sl=(t)=>`<div style="font-size:12px;font-weight:700;color:var(--t2);margin:8px 0 10px">${t}</div>`;
   return `<div class="card full art-card" id="art-${aid}" style="border:1px solid var(--ac);border-left:4px solid var(--ac)">
     <div class="ch" onclick="artToggleCollapse(${aid})" style="cursor:pointer">
       <div class="ch-l">
@@ -7241,55 +7246,56 @@ function articuloHTML(aid){
         </div>
       </div>
 
-      <!-- ── GRUPO: MATERIALES ── -->
-      ${gh('Materiales')}
-      <div class="sec-head">
-        <label class="fl">🧵 Material</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="mat-tog-lbl-${aid}" style="font-size:11px;font-weight:600;color:var(--t2)">Activo</span>
-          <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleMaterial(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+      <!-- ── BLOQUE: MATERIALES (colapsable, dos sub-toggles) ── -->
+      ${gh('🧵 Materiales','mat')}
+        <div class="sec-head">
+          <label class="fl">Material</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="mat-tog-lbl-${aid}" style="font-size:11px;font-weight:600;color:var(--t2)">Activo</span>
+            <label class="tsw"><input type="checkbox" id="en-material-${aid}" checked onchange="artToggleMaterial(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+          </div>
         </div>
-      </div>
-      <div id="body-material-${aid}">
-        <div class="f"><label class="fl">Tipo de filamento</label>
-          <select id="matType-${aid}" onchange="artMatType(${aid})">
-            <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
-            <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
-            <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
-          </select>
-        </div>
-        <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
-          <div class="irow">
-            <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
-            <div class="ctog" id="spoolTog-${aid}">
-              <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
-              <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
+        <div id="body-material-${aid}">
+          <div class="f"><label class="fl">Tipo de filamento</label>
+            <select id="matType-${aid}" onchange="artMatType(${aid})">
+              <option value="PLA">PLA</option><option value="PETG">PETG</option><option value="ABS">ABS</option>
+              <option value="TPU">TPU</option><option value="ASA">ASA</option><option value="Nylon">Nylon</option>
+              <option value="Resina">Resina</option><option value="Personalizado">Personalizado</option>
+            </select>
+          </div>
+          <div class="f"><label class="fl">Precio del carrete (1 kg)</label>
+            <div class="irow">
+              <input type="number" id="spoolPrice-${aid}" value="800" min="0" step="1">
+              <div class="ctog" id="spoolTog-${aid}">
+                <button class="on" onclick="artSetCur(${aid},'spool','UYU')">$</button>
+                <button onclick="artSetCur(${aid},'spool','USD')">U$S</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+              <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
+              <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
             </div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
-            <label class="tsw"><input type="checkbox" id="ivaOnSpool-${aid}" onchange="artIvaSpool(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
-            <span style="font-size:12px;color:var(--t2)">+ IVA (22%) sobre el carrete</span>
+          <div class="two">
+            <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
+            <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
           </div>
         </div>
-        <div class="two">
-          <div class="f"><label class="fl">Material usado (g)</label><input type="number" id="grams-${aid}" value="50" min="0" step="1"></div>
-          <div class="f"><label class="fl">Desperdicio / soporte (%)</label><input type="number" id="waste-${aid}" value="5" min="0" max="100" step="1"></div>
+        <div class="divl"></div>
+        <div class="sec-head">
+          <label class="fl" style="display:flex;align-items:center;gap:6px">Insumos del stock <span style="font-size:10px;opacity:.55;font-weight:400">(opcional)</span></label>
+          <label class="tsw"><input type="checkbox" id="en-insumos-${aid}" onchange="artToggleInsumos(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
         </div>
-      </div>
-      <div class="divl"></div>
-      <div class="sec-head">
-        <label class="fl" style="display:flex;align-items:center;gap:6px">📦 Insumos del stock <span style="font-size:10px;opacity:.55;font-weight:400">(opcional)</span></label>
-        <label class="tsw"><input type="checkbox" id="en-insumos-${aid}" onchange="artToggleInsumos(${aid},this.checked)"><div class="ttr"><div class="tth"></div></div></label>
-      </div>
-      <div id="body-insumos-${aid}" style="display:none">
-        <div id="ins-rows-${aid}" style="display:flex;flex-direction:column;gap:6px"></div>
-        <button type="button" onclick="artAddInsumo(${aid})" style="margin-top:6px;padding:6px 14px;font-size:12px;font-weight:600;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;width:100%">+ Agregar insumo</button>
-        <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.4">El costo se suma al total. Al pasar a <strong>Producción</strong>, el stock se descuenta automáticamente.</div>
-      </div>
+        <div id="body-insumos-${aid}" style="display:none">
+          <div id="ins-rows-${aid}" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button type="button" onclick="artAddInsumo(${aid})" style="margin-top:6px;padding:6px 14px;font-size:12px;font-weight:600;background:var(--surface-2);border:1px dashed var(--border);border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;width:100%">+ Agregar insumo</button>
+          <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.4">El costo se suma al total. Al pasar a <strong>Producción</strong>, el stock se descuenta automáticamente.</div>
+        </div>
+      ${ghe()}
 
-      <!-- ── GRUPO: ELECTRICIDAD Y TIEMPO (toggle único para ambos) ── -->
-      ${ght('Electricidad y tiempo','en-elec-time-'+aid,'artToggleElecTime('+aid+',this.checked)')}
-      <div id="body-elec-time-${aid}">
+      <!-- ── BLOQUE: ELECTRICIDAD Y TIEMPO (toggle único) ── -->
+      ${ght('⚡ Electricidad y tiempo','en-elec-time-'+aid,'artToggleElecTime('+aid+',this.checked)')}
+      <div id="body-elec-time-${aid}" style="${SB}">
         ${sl('⚡ Electricidad')}
         <div id="body-elec-${aid}">
           <div class="f"><label class="fl">Tarifa UTE (UYU/kWh)</label>
@@ -7319,11 +7325,11 @@ function articuloHTML(aid){
           </div>
           <div class="time-total"><div class="time-total-label">Total</div><div class="time-total-val" id="timeTotal-${aid}">3h 30min</div></div>
         </div>
-      </div>
+      </div></div>
 
-      <!-- ── GRUPO: IMPRESORA Y MANTENIMIENTO ── -->
-      ${ght('Impresora y mantenimiento','en-printer-'+aid,'artToggleSec('+aid+',\'printer\',this.checked)')}
-      <div id="body-printer-${aid}" style="padding-top:10px">
+      <!-- ── BLOQUE: IMPRESORA Y MANTENIMIENTO ── -->
+      ${ght('🖨 Impresora y mantenimiento','en-printer-'+aid,'artToggleSec('+aid+',\'printer\',this.checked)')}
+      <div id="body-printer-${aid}" style="${SB}">
         <div class="two">
           <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost-${aid}" value="80000" min="0" step="100"></div>
           <div class="f"><label class="fl">Vida útil (horas)</label><input type="number" id="printerLife-${aid}" value="5000" min="100" step="100"></div>
@@ -7332,11 +7338,11 @@ function articuloHTML(aid){
           <div class="f"><label class="fl">Mantenimiento mensual</label><input type="number" id="maintenance-${aid}" value="350" min="0" step="10"></div>
           <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces-${aid}" value="20" min="1" step="1"></div>
         </div>
-      </div>
+      </div></div>
 
-      <!-- ── GRUPO: MANO DE OBRA ── -->
-      ${ght('Mano de obra','en-labor-'+aid,'artToggleSec('+aid+',\'labor\',this.checked)')}
-      <div id="body-labor-${aid}" style="padding-top:10px">
+      <!-- ── BLOQUE: MANO DE OBRA ── -->
+      ${ght('🛠 Mano de obra','en-labor-'+aid,'artToggleSec('+aid+',\'labor\',this.checked)')}
+      <div id="body-labor-${aid}" style="${SB}">
         <div class="two">
           <div class="f"><label class="fl">Tarifa horaria (UYU)</label><input type="number" id="hourly-${aid}" value="200" min="0" step="10"></div>
           <div class="f"><label class="fl">Horas prep + post</label><input type="number" id="laborH-${aid}" value="0.5" min="0" step="0.25"></div>
@@ -7345,11 +7351,11 @@ function articuloHTML(aid){
           <div class="f"><label class="fl">Gastos fijos mensuales</label><input type="number" id="overhead-${aid}" value="5000" min="0" step="100"></div>
           <div class="f"><label class="fl">Buffer fallas (%)</label><input type="number" id="failBuf-${aid}" value="10" min="0" max="50" step="1"></div>
         </div>
-      </div>
+      </div></div>
 
-      <!-- ── GRUPO: COSTOS ADICIONALES ── -->
-      ${ght('Costos adicionales','en-extras-'+aid,'artToggleSec('+aid+',\'extras\',this.checked)','')}
-      <div id="body-extras-${aid}" style="display:none;padding-top:10px">
+      <!-- ── BLOQUE: COSTOS ADICIONALES ── -->
+      ${ght('📦 Costos adicionales','en-extras-'+aid,'artToggleSec('+aid+',\'extras\',this.checked)','')}
+      <div id="body-extras-${aid}" style="display:none;${SB}">
         <div class="f"><label class="fl">Packaging / embalaje</label>
           <div class="irow">
             <input type="number" id="packaging-${aid}" value="0" min="0" step="1">
@@ -7359,24 +7365,25 @@ function articuloHTML(aid){
         <label class="fl" style="display:block;margin:10px 0 8px">Insumos adicionales</label>
         <div class="xl" id="xList-${aid}"></div>
         <button class="addbtn" onclick="artAddExtra(${aid})">＋ Agregar insumo adicional</button>
-      </div>
+      </div></div>
 
-      <!-- ── GRUPO: MARGEN ── -->
-      ${gh('Margen de ganancia')}
-      <div class="marg-big" id="margDisp-${aid}" style="font-size:34px">50%</div>
-      <div class="pills" id="margPills-${aid}" style="margin-bottom:8px">
-        <button class="pill" onclick="artSetMargin(${aid},this,20)">20%</button>
-        <button class="pill" onclick="artSetMargin(${aid},this,30)">30%</button>
-        <button class="pill on" onclick="artSetMargin(${aid},this,50)">50%</button>
-        <button class="pill" onclick="artSetMargin(${aid},this,80)">80%</button>
-        <button class="pill" onclick="artSetMargin(${aid},this,120)">120%</button>
-        <button class="pill" onclick="artSetMargin(${aid},this,200)">200%</button>
-      </div>
-      <input type="range" id="margSlider-${aid}" min="0" max="300" value="50" oninput="artOnSlider(${aid},this.value)">
-      <div class="sl-labs"><span>0%</span><span>150%</span><span>300%</span></div>
+      <!-- ── BLOQUE: MARGEN ── -->
+      ${gh('📈 Margen de ganancia','marg')}
+        <div class="marg-big" id="margDisp-${aid}" style="font-size:34px">50%</div>
+        <div class="pills" id="margPills-${aid}" style="margin-bottom:8px">
+          <button class="pill" onclick="artSetMargin(${aid},this,20)">20%</button>
+          <button class="pill" onclick="artSetMargin(${aid},this,30)">30%</button>
+          <button class="pill on" onclick="artSetMargin(${aid},this,50)">50%</button>
+          <button class="pill" onclick="artSetMargin(${aid},this,80)">80%</button>
+          <button class="pill" onclick="artSetMargin(${aid},this,120)">120%</button>
+          <button class="pill" onclick="artSetMargin(${aid},this,200)">200%</button>
+        </div>
+        <input type="range" id="margSlider-${aid}" min="0" max="300" value="50" oninput="artOnSlider(${aid},this.value)">
+        <div class="sl-labs"><span>0%</span><span>150%</span><span>300%</span></div>
+      ${ghe()}
 
-      <!-- ── GRUPO: RESULTADO ── -->
-      ${gh('Precio de esta pieza')}
+      <!-- ── BLOQUE: PRECIO ── -->
+      ${gh('💰 Precio de esta pieza','result')}
       <div class="price-hero" style="margin-bottom:0">
         <div class="ph-main">
           <div class="ph-label">Presupuesto de esta pieza</div>
@@ -7408,6 +7415,7 @@ function articuloHTML(aid){
         </div>
       </div>
       <div class="mets" id="metsGrid-${aid}" style="margin-top:14px"></div>
+      </div></div>
 
     </div>
   </div>`;
@@ -7450,6 +7458,14 @@ function artToggleSec(aid,sec,on){
   const body=document.getElementById('body-'+sec+'-'+aid);
   if(body)body.style.display=on?'':'none';
   renderArt(aid); recalcTotal();
+}
+function artToggleGroup(aid,key){
+  const body=document.getElementById('grp-'+key+'-'+aid);
+  const arr=document.getElementById('grp-arr-'+key+'-'+aid);
+  if(!body)return;
+  const hide=body.style.display!=='none';
+  body.style.display=hide?'none':'';
+  if(arr)arr.style.transform=hide?'rotate(-90deg)':'';
 }
 function artToggleElecTime(aid,on){
   const a=_art(aid); if(!a)return;
