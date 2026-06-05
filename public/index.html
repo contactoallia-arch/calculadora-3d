@@ -7443,7 +7443,7 @@ function articuloHTML(aid){
       </div>
       <div class="ch-r" style="gap:8px">
         <span class="num" id="art-price-${aid}" style="font-family:var(--fh);font-weight:700;color:var(--ac);font-size:15px">$ 0</span>
-        <button onclick="event.stopPropagation();artToggleAllBlocks(${aid})" id="art-all-toggle-${aid}" title="Colapsar / expandir todo" style="border:1px solid var(--bd);background:var(--sf);color:var(--t2);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1">⊟</button>
+        <button onclick="event.stopPropagation();artToggleAllBlocks(${aid})" id="art-all-toggle-${aid}" title="Colapsar / expandir todo" style="border:1px solid var(--bd);background:var(--sf);color:var(--t2);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:20px;font-weight:300;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1">−</button>
         <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar pieza" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
         <span class="arr">▼</span>
       </div>
@@ -7792,7 +7792,7 @@ function artToggleAllBlocks(aid){
     });
     if(artCard) artCard.classList.remove('coll');
     if(chipsEl) chipsEl.style.display='none';
-    if(btnEl){ btnEl.textContent='⊟'; btnEl.title='Colapsar todo'; }
+    if(btnEl){ btnEl.textContent='−'; btnEl.title='Colapsar todo'; }
   } else {
     // ── COLAPSAR: ocultar todos los bloques flotantes ──
     _ART_BLK_SUFS.forEach(s=>{
@@ -7802,7 +7802,7 @@ function artToggleAllBlocks(aid){
     if(artCard) artCard.classList.add('coll');
     updateArtChips(aid);
     if(chipsEl) chipsEl.style.display='flex';
-    if(btnEl){ btnEl.textContent='⊞'; btnEl.title='Expandir todo'; }
+    if(btnEl){ btnEl.textContent='+'; btnEl.title='Expandir todo'; }
   }
 }
 
