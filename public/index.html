@@ -7441,8 +7441,9 @@ function articuloHTML(aid){
         <div class="c-icon" style="background:var(--ac);color:#fff;font-family:var(--fh);font-weight:700">${n}</div>
         <div><div class="ctit" id="art-disp-${aid}">Pieza ${n}</div><div class="csub" id="art-sub-${aid}">Completá los datos de la pieza</div></div>
       </div>
-      <div class="ch-r" style="gap:10px">
+      <div class="ch-r" style="gap:8px">
         <span class="num" id="art-price-${aid}" style="font-family:var(--fh);font-weight:700;color:var(--ac);font-size:15px">$ 0</span>
+        <button onclick="event.stopPropagation();artToggleAllBlocks(${aid})" id="art-all-toggle-${aid}" title="Colapsar / expandir todo" style="border:1px solid var(--bd);background:var(--sf);color:var(--t2);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1">⊟</button>
         <button onclick="event.stopPropagation();rmArticulo(${aid})" title="Quitar pieza" style="border:none;background:none;cursor:pointer;color:var(--t3);font-size:16px;padding:2px 6px;border-radius:6px">🗑</button>
         <span class="arr">▼</span>
       </div>
@@ -7475,6 +7476,7 @@ function articuloHTML(aid){
         </div>
       </div>
     </div>
+    <div id="art-chips-${aid}" style="display:none;padding:8px 14px 12px;border-top:1px solid var(--bd);flex-wrap:wrap;gap:5px"></div>
   </div>
 
   <!-- ══ BLOQUE: MATERIALES ══ -->
@@ -7772,6 +7774,67 @@ function artCollapseBlock(aid,key){
   body.style.display=hide?'none':'';
   if(arr)arr.style.transform=hide?'rotate(-90deg)':'';
 }
+// ── COLAPSO TOTAL de una pieza (todos los bloques a la vez) ──────────
+const _ART_BLOCKS = ['mat-grp','elec-time','printer','labor','extras','marg','result'];
+const _ART_BODY_IDS = {'mat-grp':'body-mat-grp','elec-time':'body-elec-time','printer':'body-printer','labor':'body-labor','extras':'body-extras','marg':'body-marg','result':'body-result'};
+const _ART_SEC_MAP  = {'elec-time':'elec','printer':'printer','labor':'labor','extras':'extras'};
+
+function artToggleAllBlocks(aid){
+  const chipsEl = document.getElementById('art-chips-'+aid);
+  const artCard = document.getElementById('art-'+aid);
+  const btnEl   = document.getElementById('art-all-toggle-'+aid);
+  const isCollapsed = chipsEl && chipsEl.style.display !== 'none';
+
+  if(isCollapsed){
+    // ── EXPANDIR ──
+    const a = _art(aid);
+    _ART_BLOCKS.forEach(key=>{
+      const body = document.getElementById(_ART_BODY_IDS[key]+'-'+aid);
+      const arr  = document.getElementById('blk-arr-'+key+'-'+aid);
+      const secKey = _ART_SEC_MAP[key];
+      if(body && (!secKey || !a || a.sec[secKey]!==false)){
+        body.style.display='';
+        if(arr) arr.style.transform='';
+      }
+    });
+    if(artCard) artCard.classList.remove('coll');
+    if(chipsEl) chipsEl.style.display='none';
+    if(btnEl){ btnEl.textContent='⊟'; btnEl.title='Colapsar todo'; }
+  } else {
+    // ── COLAPSAR ──
+    _ART_BLOCKS.forEach(key=>{
+      const body = document.getElementById(_ART_BODY_IDS[key]+'-'+aid);
+      const arr  = document.getElementById('blk-arr-'+key+'-'+aid);
+      if(body){ body.style.display='none'; if(arr) arr.style.transform='rotate(-90deg)'; }
+    });
+    if(artCard) artCard.classList.add('coll');
+    updateArtChips(aid);
+    if(chipsEl) chipsEl.style.display='flex';
+    if(btnEl){ btnEl.textContent='⊞'; btnEl.title='Expandir todo'; }
+  }
+}
+
+function updateArtChips(aid){
+  const el = document.getElementById('art-chips-'+aid);
+  if(!el || el.style.display==='none') return;
+  const r = computeArt(aid); if(!r) return;
+  const C = S.disp, ex = exRate();
+  const fmt = v => fmtC(v,C,ex);
+  const chip = (ico,lbl,val,hi)=>{
+    if(val < 0.01 && !hi) return '';
+    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;background:${hi?'var(--ac)':'var(--sf2)'};color:${hi?'#fff':'var(--t2)'};border:1px solid ${hi?'transparent':'var(--bd)'};white-space:nowrap">${ico} <span style="color:${hi?'rgba(255,255,255,.75)':'var(--t3)'};">${lbl}</span> ${fmt(val)}</span>`;
+  };
+  el.innerHTML = [
+    chip('🧵','Mat',   r.matC + r.insumoStockC),
+    chip('⚡','Elec',  r.elecC),
+    chip('🖨','Imp',   r.deprC + r.maintC),
+    chip('🛠','MdO',   r.laborC + r.ovhC),
+    chip('📦','Extra', r.pkgC + r.extC + r.failA),
+    `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;background:var(--sf2);color:var(--t2);border:1px solid var(--bd);white-space:nowrap">📈 <span style="color:var(--t3)">Mg</span> ${r.margin}%</span>`,
+    chip('💰','',      r.totalP, true),
+  ].join('');
+}
+
 function artToggleElecTime(aid,on){
   const a=_art(aid); if(!a)return;
   a.sec.elec=on; a.sec.time=on;
@@ -8002,6 +8065,7 @@ function renderArt(aid){
   const sub=document.getElementById('art-sub-'+aid); if(sub)sub.textContent=`${r.mat} · ${r.grams}g${r.rawQty>1?' · ×'+r.rawQty:''} · ${fmtC(r.totalP,C,ex)}`;
   const mets=[{l:'Material',v:r.matC},{l:'Mat. stock',v:r.insumoStockC},{l:'Electricidad',v:r.elecC},{l:'Depreciación',v:r.deprC},{l:'Mantenim.',v:r.maintC},{l:'Mano obra',v:r.laborC},{l:'Gastos fijos',v:r.ovhC},{l:'Packaging',v:r.pkgC},{l:'Insumos',v:r.extC},{l:'Buffer',v:r.failA},{l:'Costo unit.',v:r.totalC,hl:1},{l:'Precio unit.',v:r.unitPrice,hl:1}].filter(m=>m.v>0.001||m.hl);
   const mg=document.getElementById('metsGrid-'+aid); if(mg)mg.innerHTML=mets.map(m=>`<div class="met ${m.hl?'hl':''}"><div class="met-l">${m.l}</div><div class="met-v">${fmtC(m.v,C,ex)}</div></div>`).join('');
+  updateArtChips(aid);
   return r;
 }
 
