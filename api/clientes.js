@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         (
           SELECT COALESCE(SUM(p.precio),0) FROM presupuestos p
           WHERE (p.cliente_id=c.id OR (p.cliente_id IS NULL AND LOWER(TRIM(p.cliente))=LOWER(TRIM(c.nombre))))
-            AND p.estado IN ('entregado','cobrado')
+            AND p.estado IN ('aprobado','produccion','listo','entregado','cobrado')
         ) as total_facturado,
         (
           SELECT COALESCE(SUM(co.monto),0) FROM cobros co
