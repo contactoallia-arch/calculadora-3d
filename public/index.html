@@ -7775,9 +7775,8 @@ function artCollapseBlock(aid,key){
   if(arr)arr.style.transform=hide?'rotate(-90deg)':'';
 }
 // ── COLAPSO TOTAL de una pieza (todos los bloques a la vez) ──────────
-const _ART_BLOCKS = ['mat-grp','elec-time','printer','labor','extras','marg','result'];
-const _ART_BODY_IDS = {'mat-grp':'body-mat-grp','elec-time':'body-elec-time','printer':'body-printer','labor':'body-labor','extras':'body-extras','marg':'body-marg','result':'body-result'};
-const _ART_SEC_MAP  = {'elec-time':'elec','printer':'printer','labor':'labor','extras':'extras'};
+// Sufijos de los bloques flotantes de cada pieza (coinciden con art-blk-{suf}-{aid})
+const _ART_BLK_SUFS = ['mat','elec','printer','labor','extras','marg','result'];
 
 function artToggleAllBlocks(aid){
   const chipsEl = document.getElementById('art-chips-'+aid);
@@ -7786,26 +7785,19 @@ function artToggleAllBlocks(aid){
   const isCollapsed = chipsEl && chipsEl.style.display !== 'none';
 
   if(isCollapsed){
-    // ── EXPANDIR ──
-    const a = _art(aid);
-    _ART_BLOCKS.forEach(key=>{
-      const body = document.getElementById(_ART_BODY_IDS[key]+'-'+aid);
-      const arr  = document.getElementById('blk-arr-'+key+'-'+aid);
-      const secKey = _ART_SEC_MAP[key];
-      if(body && (!secKey || !a || a.sec[secKey]!==false)){
-        body.style.display='';
-        if(arr) arr.style.transform='';
-      }
+    // ── EXPANDIR: mostrar todos los bloques flotantes ──
+    _ART_BLK_SUFS.forEach(s=>{
+      const blk = document.getElementById('art-blk-'+s+'-'+aid);
+      if(blk) blk.style.display='';
     });
     if(artCard) artCard.classList.remove('coll');
     if(chipsEl) chipsEl.style.display='none';
     if(btnEl){ btnEl.textContent='⊟'; btnEl.title='Colapsar todo'; }
   } else {
-    // ── COLAPSAR ──
-    _ART_BLOCKS.forEach(key=>{
-      const body = document.getElementById(_ART_BODY_IDS[key]+'-'+aid);
-      const arr  = document.getElementById('blk-arr-'+key+'-'+aid);
-      if(body){ body.style.display='none'; if(arr) arr.style.transform='rotate(-90deg)'; }
+    // ── COLAPSAR: ocultar todos los bloques flotantes ──
+    _ART_BLK_SUFS.forEach(s=>{
+      const blk = document.getElementById('art-blk-'+s+'-'+aid);
+      if(blk) blk.style.display='none';
     });
     if(artCard) artCard.classList.add('coll');
     updateArtChips(aid);
