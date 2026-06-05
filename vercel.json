@@ -10,6 +10,7 @@
     { "source": "/api/gastos-fijos/generar-mes", "destination": "/api/gastos?recurso=fijos&action=generar-mes" },
     { "source": "/api/gastos-fijos/:id",         "destination": "/api/gastos?recurso=fijos&id=:id" },
     { "source": "/api/gastos-fijos",             "destination": "/api/gastos?recurso=fijos" },
+    { "source": "/api/presupuestos/:id/duplicar", "destination": "/api/presupuestos?id=:id&action=duplicar" },
     { "source": "/api/presupuestos/:id/estado",  "destination": "/api/presupuestos?id=:id&action=estado" },
     { "source": "/api/presupuestos/:id/estados", "destination": "/api/presupuestos?id=:id&action=estados" },
     { "source": "/api/presupuestos/:id",         "destination": "/api/presupuestos?id=:id" },

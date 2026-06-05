@@ -1335,6 +1335,9 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <svg class="icon" viewBox="0 0 18 18"><path d="M12 2l4 4-9 9H3v-4z"/><path d="M11 3l4 4"/></svg>
         Editar
       </button>
+      <button class="btn btn--ghost btn--sm" title="Duplicar presupuesto" onclick="duplicarPresupuesto(_slPresId)">
+        <svg class="icon" viewBox="0 0 18 18"><rect x="4" y="4" width="10" height="10" rx="1.5"/><path d="M2 14V4a2 2 0 012-2h10"/></svg>
+      </button>
       <button class="btn btn--ghost btn--sm" title="Registrar cobro" onclick="cerrarPresSlideover();setTimeout(()=>registrarCobroDesde(_slPresId),80)">
         <svg class="icon" viewBox="0 0 18 18"><line x1="9" y1="1" x2="9" y2="17"/><path d="M13 4H7a3 3 0 000 6h4a3 3 0 010 6H5"/></svg>
       </button>
@@ -2837,6 +2840,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <button onclick="confirmEditNum()" style="height:32px;padding:0 11px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb)">OK</button>
       <button onclick="cancelEditNum()" style="height:32px;padding:0 10px;background:var(--sf2);color:var(--t2);border:1px solid var(--bd);border-radius:var(--rs);font-size:12px;cursor:pointer;font-family:var(--fb)">✕</button>
     </div>
+    <button onclick="duplicarDesdeCalculadora()" title="Duplicar como nuevo presupuesto" style="margin-left:auto;height:32px;padding:0 12px;border:1px solid var(--acg);border-radius:var(--rs);background:transparent;color:var(--ac);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fb);display:flex;align-items:center;gap:5px;flex-shrink:0;transition:all var(--tr)" onmouseover="this.style.background='var(--brand-soft)'" onmouseout="this.style.background='transparent'">
+      <svg style="width:13px;height:13px;flex-shrink:0" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="10" height="10" rx="1.5"/><path d="M2 14V4a2 2 0 012-2h10"/></svg>
+      Duplicar
+    </button>
   </div>
   <div class="r-body">
     <!-- Tipo de cambio -->
@@ -4116,6 +4123,39 @@ function cargarDesdeProducto() {
   if (moneda) document.getElementById('editPresMoneda').value = moneda;
   if (desc && !document.getElementById('editPresNotas').value) document.getElementById('editPresNotas').value = desc;
   sel.value = ''; // resetear el select
+}
+
+// ── DUPLICAR PRESUPUESTO ──────────────────────────────────────────────
+async function duplicarPresupuesto(id) {
+  const p = _presById ? _presById(id) : _presCache.find(x => Number(x.id) === Number(id));
+  const nombre = p ? `#${String(p.numero||p.id).padStart(4,'0')} — ${p.pieza||''}` : `#${id}`;
+  showConfirm(
+    `Duplicar ${nombre} como nuevo presupuesto en estado "sin enviar". Los costos y datos se copian, el stock no se descuenta hasta que corresponda.`,
+    async () => {
+      const d = await apiPost(`/api/presupuestos/${id}/duplicar`, {});
+      if (!d.ok) { showToast(d.error || 'Error al duplicar', 'err'); return; }
+      const num = String(d.data.numero).padStart(4,'0');
+      showToast(`✓ Presupuesto #${num} creado`, 'ok');
+      cerrarPresSlideover?.();
+      await loadPresupuestos();
+      setTimeout(() => abrirEditPres(d.data.id), 350);
+    },
+    { title: 'Duplicar presupuesto', btnLabel: 'Duplicar', danger: false }
+  );
+}
+
+async function duplicarDesdeCalculadora() {
+  if (!S.editingId) return;
+  showConfirm(
+    `Duplicar presupuesto #${String(S.editingNum||S.editingId).padStart(4,'0')} como nuevo presupuesto. Se copia el estado actual guardado.`,
+    async () => {
+      const d = await apiPost(`/api/presupuestos/${S.editingId}/duplicar`, {});
+      if (!d.ok) { showToast(d.error || 'Error al duplicar', 'err'); return; }
+      const num = String(d.data.numero).padStart(4,'0');
+      showToast(`✓ Presupuesto #${num} creado — podés editarlo desde Presupuestos`, 'ok');
+    },
+    { title: 'Duplicar presupuesto', btnLabel: 'Duplicar', danger: false }
+  );
 }
 
 async function eliminarPresupuesto(id) {

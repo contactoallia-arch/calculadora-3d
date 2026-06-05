@@ -77,6 +77,47 @@ export default async function handler(req, res) {
   const db = getDB();
   const { id, action } = req.query;
 
+  // /api/presupuestos/:id/duplicar
+  if (id && action === "duplicar") {
+    if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Método no permitido" });
+    const user = await requireAuth(req, res, db);
+    if (!user) return;
+    const r = await db.execute({ sql: "SELECT * FROM presupuestos WHERE id=?", args: [id] });
+    const orig = r.rows[0];
+    if (!orig) return res.status(404).json({ ok: false, error: "No encontrado" });
+
+    // Resetear flag de insumos descontados en el snap
+    let snapData = null;
+    if (orig.snap) {
+      try {
+        const s = JSON.parse(orig.snap);
+        s._insumosDeducted = false;
+        snapData = JSON.stringify(s);
+      } catch { snapData = orig.snap; }
+    }
+
+    // Resetear flags de deducción en costos_internos
+    let costosData = null;
+    if (orig.costos_internos) {
+      try {
+        const costos = JSON.parse(orig.costos_internos);
+        costosData = JSON.stringify(costos.map(c => ({ ...c, ideducted: false, iqty_deducted: null })));
+      } catch { costosData = orig.costos_internos; }
+    }
+
+    const maxRes = await db.execute("SELECT MAX(COALESCE(numero,id)) as mx FROM presupuestos");
+    const nextNum = (Number(maxRes.rows[0]?.mx) || 0) + 1;
+    const hoy = new Date().toLocaleDateString("es-UY");
+
+    const ins = await db.execute({
+      sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,notas,vendedor_id,costos_internos,cliente_tipo,cliente_empresa,cliente_rut,alto,ancho,profundo,peso) VALUES (?,?,?,?,?,?,?,?,?,?,'sin_enviar',?,?,?,?,?,?,?,?,?,?,?,?)",
+      args: [nextNum, orig.pieza, orig.cliente, orig.cliente_id, orig.mat, orig.qty, orig.precio, orig.margen, hoy, snapData, orig.moneda, orig.tipo_cambio, orig.notas, orig.vendedor_id, costosData, orig.cliente_tipo, orig.cliente_empresa, orig.cliente_rut, orig.alto, orig.ancho, orig.profundo, orig.peso]
+    });
+    const newId = Number(ins.lastInsertRowid);
+    await logAction(db, user, "DUPLICAR_PRESUPUESTO", "presupuesto", newId, { origen_id: Number(id) });
+    return res.status(200).json({ ok: true, data: { id: newId, numero: nextNum } });
+  }
+
   // /api/presupuestos/:id/estados
   if (id && action === "estados") {
     const user = await requireAuth(req, res, db);
