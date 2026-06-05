@@ -2554,16 +2554,6 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <tbody id="cfgUsersTbody"></tbody>
       </table>
     </div>
-    <div class="section-card">
-      <div class="section-card-ttl">
-        Gastos fijos recurrentes
-        <button class="tbtn p" onclick="openGastoFijoForm()">+ Agregar</button>
-      </div>
-      <table class="dtbl">
-        <thead><tr><th>Nombre</th><th>Categoría</th><th>Monto</th><th>Día del mes</th><th>Activo</th><th></th></tr></thead>
-        <tbody id="cfgFijosTbody"></tbody>
-      </table>
-    </div>
   </div>
 </div>
 
@@ -5509,10 +5499,9 @@ async function loadConfig() {
     document.getElementById('profilePass2').value = '';
   }
 
-  const [cfgD, usersD, fijosD] = await Promise.all([
+  const [cfgD, usersD] = await Promise.all([
     apiGet('/api/configuracion'),
-    apiGet('/api/usuarios'),
-    apiGet('/api/gastos-fijos')
+    apiGet('/api/usuarios')
   ]);
 
   if (cfgD.ok) {
@@ -5546,16 +5535,6 @@ async function loadConfig() {
     }
   }
 
-  if (fijosD.ok) {
-    document.getElementById('cfgFijosTbody').innerHTML = fijosD.data.map(f => `<tr>
-      <td class="b">${f.nombre}</td>
-      <td>${f.categoria}</td>
-      <td style="font-family:var(--fh)">$ ${fmtMoney(f.monto)} ${f.moneda}</td>
-      <td>Día ${f.dia_del_mes}</td>
-      <td>${f.activo ? '✓' : '—'}</td>
-      <td><button class="tbtn d" onclick="eliminarGastoFijo(${f.id})">🗑</button></td>
-    </tr>`).join('');
-  }
 }
 
 async function saveConfig() {
