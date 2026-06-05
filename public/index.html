@@ -957,6 +957,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></svg>
       Auditoría
     </button>
+    <button class="nav-item" id="nav-database" style="display:none" onclick="showPage('database')">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      Base de datos
+    </button>
   </nav>
   <div class="sidebar-user">
     <div class="sidebar-av" id="sidebarAv">A</div>
@@ -2557,7 +2561,6 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="fgrp"><label>Rol</label>
         <select id="userRol">
           <option value="operador">Operador</option>
-          <option value="visor">Visor</option>
           <option value="admin">Admin</option>
         </select>
       </div>
@@ -2714,6 +2717,57 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Detalle</th></tr></thead>
         <tbody id="logTbody"><tr><td colspan="5" style="padding:32px;text-align:center;color:var(--t3)">Cargando…</td></tr></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: DATABASE
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-database" class="page">
+  <div class="pg-hdr">
+    <div>
+      <div class="pg-title">Base de datos</div>
+      <div class="pg-sub">Explorador de tablas y consultas SQL (solo lectura)</div>
+    </div>
+  </div>
+  <div class="pg-body">
+    <div class="section-card">
+      <div class="section-card-ttl">Tablas</div>
+      <div id="dbTableChips" style="display:flex;gap:8px;flex-wrap:wrap;padding:4px 0"></div>
+    </div>
+    <div class="section-card" id="dbTableCard" style="display:none;margin-top:16px">
+      <div class="section-card-ttl" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span id="dbTableTitle" style="font-family:var(--mono)">—</span>
+        <span id="dbRowCount" style="font-size:12px;font-weight:400;color:var(--text-3)"></span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+        <select id="dbSearchCol" style="height:34px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text);padding:0 8px;font-size:13px;font-family:var(--sans)"></select>
+        <input id="dbSearch" placeholder="Buscar…" style="height:34px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface);color:var(--text);padding:0 10px;font-size:13px;font-family:var(--sans);width:180px" oninput="_dbCurrentPage=1;loadDbTable()">
+        <button class="hbtn" onclick="loadDbTable()">↻ Refrescar</button>
+      </div>
+      <div class="tbl-wrap" style="overflow-x:auto">
+        <table class="dtbl" style="min-width:100%">
+          <thead id="dbThead"></thead>
+          <tbody id="dbTbody"><tr><td colspan="20" style="padding:32px;text-align:center;color:var(--text-3)">Seleccioná una tabla</td></tr></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:12px" id="dbPagination"></div>
+    </div>
+    <div class="section-card" style="margin-top:16px">
+      <div class="section-card-ttl">Consulta SQL personalizada</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:10px">Solo se permiten SELECT, PRAGMA o WITH. Sin modificaciones a la base de datos.</div>
+      <textarea id="dbSqlInput" style="width:100%;height:80px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text);padding:10px 12px;font-family:var(--mono);font-size:13px;resize:vertical;outline:none" placeholder="SELECT * FROM presupuestos LIMIT 10"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn--primary" onclick="runDbQuery()">▶ Ejecutar</button>
+        <span id="dbQueryStatus" style="font-size:12px;color:var(--text-3)"></span>
+      </div>
+      <div class="tbl-wrap" id="dbQueryResult" style="display:none;margin-top:12px;overflow-x:auto">
+        <table class="dtbl">
+          <thead id="dbQueryThead"></thead>
+          <tbody id="dbQueryTbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -3091,7 +3145,10 @@ function initSidebar() {
   document.getElementById('sidebarAv').textContent = (u.nombre || 'U')[0].toUpperCase();
   const topUser = document.getElementById('topbarUser');
   if (topUser) topUser.innerHTML = `<div style="width:28px;height:28px;border-radius:8px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;font-family:var(--display)">${(u.nombre||'?')[0].toUpperCase()}</div><span style="font-weight:600;color:var(--text)">${u.nombre||''}</span>`;
-  if (u.rol === 'admin') document.getElementById('nav-logs').style.display = '';
+  if (u.rol === 'admin') {
+    document.getElementById('nav-logs').style.display = '';
+    document.getElementById('nav-database').style.display = '';
+  }
   // Auto-cargar dashboard
   const now = new Date();
   document.getElementById('dashMes').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -3116,7 +3173,7 @@ async function doLogout() {
 let _activePage = 'dashboard';
 const _chartInstances = {};
 
-const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', vendedores:'Vendedores', agenda:'Agenda', reportes:'Reportes', reparto:'Utilidades', config:'Configuración', logs:'Auditoría', calculadora:'Calculador de presupuesto' };
+const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', vendedores:'Vendedores', agenda:'Agenda', reportes:'Reportes', reparto:'Utilidades', config:'Configuración', logs:'Auditoría', database:'Base de datos', calculadora:'Calculador de presupuesto' };
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -3147,6 +3204,7 @@ function showPage(page) {
   if (page === 'reparto') loadRepartos();
   if (page === 'config') loadConfig();
   if (page === 'logs') loadLogs();
+  if (page === 'database') loadDatabase();
   // sync bottom nav
   document.querySelectorAll('.m-bottomnav button').forEach(b => b.classList.remove('active'));
   const mbn = document.getElementById('mbn-' + page);
@@ -7034,6 +7092,122 @@ async function loadLogs() {
     <td style="color:var(--t3)">${l.entidad}${l.entidad_id?' #'+l.entidad_id:''}</td>
     <td style="font-size:11.5px;color:var(--t3);max-width:200px;overflow:hidden;text-overflow:ellipsis">${l.detalle||'—'}</td>
   </tr>`).join('') : '<tr><td colspan="5" style="padding:32px;text-align:center;color:var(--t3)">Sin registros</td></tr>';
+}
+
+// ── DATABASE BROWSER ──────────────────────────────────────────────────
+let _dbCurrentTable = null;
+let _dbCurrentPage = 1;
+
+function _dbEsc(v) {
+  if (v === null || v === undefined) return '<span style="color:var(--text-faint);font-style:italic">null</span>';
+  const s = String(v);
+  const esc = s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (s.length > 80) return `<span title="${esc}">${esc.substring(0,80)}…</span>`;
+  return esc;
+}
+
+async function loadDatabase() {
+  const r = await apiGet('/api/database');
+  if (!r.ok) { showToast(r.error || 'Error cargando base de datos', 'err'); return; }
+  const chips = document.getElementById('dbTableChips');
+  chips.innerHTML = r.data.map(t => `
+    <button class="hbtn" id="dbt-${t.name}" onclick="selectDbTable('${t.name}')" style="gap:6px;font-family:var(--mono);font-size:12px">
+      ${t.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
+      <span style="background:var(--border);border-radius:5px;padding:1px 7px;font-size:11px;font-family:var(--sans)">${t.count}</span>
+    </button>
+  `).join('');
+}
+
+async function selectDbTable(name) {
+  _dbCurrentTable = name;
+  _dbCurrentPage = 1;
+  document.querySelectorAll('#dbTableChips .hbtn').forEach(b => { b.style.borderColor = ''; b.style.color = ''; });
+  const btn = document.getElementById('dbt-' + name);
+  if (btn) { btn.style.borderColor = 'var(--brand)'; btn.style.color = 'var(--brand)'; }
+  document.getElementById('dbTableCard').style.display = '';
+  document.getElementById('dbTableTitle').textContent = name;
+  document.getElementById('dbSearch').value = '';
+  await loadDbTable();
+}
+
+async function loadDbTable() {
+  if (!_dbCurrentTable) return;
+  const search = document.getElementById('dbSearch').value.trim();
+  const col = document.getElementById('dbSearchCol').value;
+  let url = `/api/database?table=${encodeURIComponent(_dbCurrentTable)}&page=${_dbCurrentPage}&limit=50`;
+  if (search && col) url += `&search=${encodeURIComponent(search)}&col=${encodeURIComponent(col)}`;
+
+  document.getElementById('dbTbody').innerHTML = '<tr><td colspan="20" style="padding:20px;text-align:center;color:var(--text-3)">Cargando…</td></tr>';
+
+  const r = await apiGet(url);
+  if (!r.ok) { showToast(r.error || 'Error', 'err'); return; }
+
+  document.getElementById('dbThead').innerHTML = '<tr>' + r.columns.map(c =>
+    `<th title="${c.type}" style="white-space:nowrap">${c.name.replace(/</g,'&lt;')}<span style="font-weight:400;color:var(--text-3);margin-left:4px;font-size:10px">${c.type||''}</span></th>`
+  ).join('') + '</tr>';
+
+  const sel = document.getElementById('dbSearchCol');
+  const prevCol = sel.value;
+  sel.innerHTML = r.columns.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+  if (prevCol && r.columns.find(c => c.name === prevCol)) sel.value = prevCol;
+
+  if (r.data.length === 0) {
+    document.getElementById('dbTbody').innerHTML = '<tr><td colspan="' + r.columns.length + '" style="padding:24px;text-align:center;color:var(--text-3)">Sin datos</td></tr>';
+  } else {
+    document.getElementById('dbTbody').innerHTML = r.data.map(row =>
+      '<tr>' + r.columns.map(c => `<td style="white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis">${_dbEsc(row[c.name])}</td>`).join('') + '</tr>'
+    ).join('');
+  }
+
+  document.getElementById('dbRowCount').textContent = `${r.total} fila(s) · página ${r.page}/${r.pages}`;
+
+  const pag = document.getElementById('dbPagination');
+  pag.innerHTML = '';
+  if (r.pages > 1) {
+    if (r.page > 1) {
+      const prev = document.createElement('button');
+      prev.className = 'hbtn'; prev.textContent = '← Anterior';
+      prev.onclick = () => { _dbCurrentPage = r.page - 1; loadDbTable(); };
+      pag.appendChild(prev);
+    }
+    const info = document.createElement('span');
+    info.style.cssText = 'font-size:13px;color:var(--text-2)';
+    info.textContent = `${r.page} / ${r.pages}`;
+    pag.appendChild(info);
+    if (r.page < r.pages) {
+      const next = document.createElement('button');
+      next.className = 'hbtn'; next.textContent = 'Siguiente →';
+      next.onclick = () => { _dbCurrentPage = r.page + 1; loadDbTable(); };
+      pag.appendChild(next);
+    }
+  }
+}
+
+async function runDbQuery() {
+  const sql = document.getElementById('dbSqlInput').value.trim();
+  if (!sql) return;
+  const status = document.getElementById('dbQueryStatus');
+  status.textContent = 'Ejecutando…';
+  status.style.color = 'var(--text-3)';
+  document.getElementById('dbQueryResult').style.display = 'none';
+
+  const r = await apiPost('/api/database', { sql });
+  if (!r.ok) {
+    status.textContent = '✗ ' + (r.error || 'Error');
+    status.style.color = 'var(--bad-fg)';
+    return;
+  }
+  status.textContent = `✓ ${r.rowCount} fila(s) · ${(r.columns||[]).length} columna(s)`;
+  status.style.color = 'var(--ok-fg)';
+
+  const cols = r.columns || [];
+  if (cols.length > 0) {
+    document.getElementById('dbQueryThead').innerHTML = '<tr>' + cols.map(c => `<th>${String(c).replace(/</g,'&lt;')}</th>`).join('') + '</tr>';
+    document.getElementById('dbQueryTbody').innerHTML = (r.data || []).map(row =>
+      '<tr>' + cols.map(c => `<td style="white-space:nowrap">${_dbEsc(row[c])}</td>`).join('') + '</tr>'
+    ).join('');
+    document.getElementById('dbQueryResult').style.display = '';
+  }
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────
