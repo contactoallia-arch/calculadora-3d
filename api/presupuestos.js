@@ -210,8 +210,12 @@ export default async function handler(req, res) {
     if (req.method === "PUT") {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
-      const { numero, pieza, cliente, cliente_id, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, vendedor_id } = req.body || {};
-      await db2.execute({ sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=?,moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,updated_at=datetime('now') WHERE id=?", args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, id] });
+      const { numero, pieza, cliente, cliente_id, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, vendedor_id, costos_internos, cliente_tipo, cliente_empresa, cliente_rut, alto, ancho, profundo, peso } = req.body || {};
+      // snap usa COALESCE para no borrarlo si el formulario no lo envía
+      await db2.execute({
+        sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=COALESCE(?,snap),moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,costos_internos=?,cliente_tipo=?,cliente_empresa=?,cliente_rut=?,alto=?,ancho=?,profundo=?,peso=?,updated_at=datetime('now') WHERE id=?",
+        args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, costos_internos||null, cliente_tipo||null, cliente_empresa||null, cliente_rut||null, alto||null, ancho||null, profundo||null, peso||null, id]
+      });
       return res.status(200).json({ ok: true });
     }
     if (req.method === "DELETE") {

@@ -2121,6 +2121,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       </div>
       <!-- Costos internos -->
       <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:6px">Costos (descuenta del precio para calcular utilidad real)</div>
+      <div id="editPresCostosNota" style="display:none;font-size:11.5px;color:var(--brand);background:var(--brand-soft);border:1px solid rgba(242,106,33,.25);border-radius:7px;padding:7px 11px;margin-bottom:8px">🧮 Insumos y costos importados de la calculadora · precios actualizados al catálogo actual</div>
       <div id="editPresCostosList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:7px"></div>
       <button type="button" onclick="agregarCostoPres()" style="width:100%;height:36px;border:1.5px dashed var(--border);border-radius:var(--r-sm);background:none;color:var(--text-3);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all var(--tr)" onmouseover="this.style.borderColor='var(--brand)';this.style.color='var(--brand)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">＋ Agregar costo</button>
     </div>
@@ -3809,9 +3810,29 @@ async function abrirEditPres(id) {
     document.getElementById('editPresPrecio').value = p.precio || '';
     document.getElementById('editPresMargen').value = p.margen || 0;
     resetCostosPres();
+    const _notaEl = document.getElementById('editPresCostosNota');
+    if (_notaEl) _notaEl.style.display = 'none';
     // Restaurar costos si estaban guardados
     if (p.costos_internos) {
       try { JSON.parse(p.costos_internos).forEach(c => agregarCostoPres(c)); } catch {}
+    } else if (p.snap) {
+      // Auto-importar insumos y costos desde la calculadora con precios actualizados
+      await _getInsumos();
+      const _ex = _tipoCambioUSD || 40;
+      const _snapIns = p.snap._insumos || (p.snap.articulos||[]).flatMap(a => a.insumos||[]).filter(i => i.id && i.qty > 0);
+      _snapIns.forEach(ins => {
+        const live = (_insumosAcCache||[]).find(x => Number(x.id) === Number(ins.id));
+        const precio = live ? parseFloat(live.precio)||0 : parseFloat(ins.precio)||0;
+        const moneda = live ? (live.moneda||'UYU') : (ins.moneda||'UYU');
+        const unidad = live ? (live.unidad||ins.unidad||'') : (ins.unidad||'');
+        const precioUYU = moneda === 'USD' ? precio * _ex : precio;
+        agregarCostoPres({d: ins.nombre||'', m: parseFloat((ins.qty * precioUYU).toFixed(2)), iid: Number(ins.id), iqty: ins.qty, iprecio: precioUYU, iunit: unidad, ideducted: true, ifromCalc: true});
+      });
+      if ((p.snap._elecC||0) > 0) agregarCostoPres({d: 'Electricidad', m: parseFloat((p.snap._elecC).toFixed(2))});
+      if ((p.snap._deprC||0) > 0) agregarCostoPres({d: 'Depreciación impresora', m: parseFloat((p.snap._deprC).toFixed(2))});
+      if ((p.snap._laborC||0) > 0) agregarCostoPres({d: 'Mano de obra', m: parseFloat((p.snap._laborC).toFixed(2))});
+      if (!_snapIns.length && (p.snap._matC||0) > 0) agregarCostoPres({d: 'Material (calculadora)', m: parseFloat((p.snap._matC).toFixed(2))});
+      if (_editPresCostosItems.length > 0 && _notaEl) _notaEl.style.display = '';
     }
     recalcEditPresUtilidad();
     document.getElementById('editPresMoneda').value = p.moneda || 'UYU';
@@ -3951,13 +3972,16 @@ function agregarCostoPres(opts) {
       row.dataset.insumoPrecio = opts.iprecio || '';
       row.dataset.insumoUnit = opts.iunit || '';
       if (opts.ideducted) row.dataset.insumoDeducted = '1';
+      if (opts.ifromCalc) row.dataset.fromCalc = '1';
       const wrap = row.querySelector('.cpres-qty-wrap');
       wrap.style.display = 'flex';
       row.querySelector('.cpres-insumo-unit').textContent = opts.iunit || '';
       row.querySelector('.cpres-insumo-qty').value = opts.iqty || '';
       const badge = row.querySelector('.cpres-insumo-badge');
       badge.style.display = 'block';
-      badge.textContent = (opts.ideducted ? '✅ Stock descontado · ' : '📦 Insumo vinculado (descuenta al producir) · ') + (opts.d||'');
+      badge.textContent = opts.ifromCalc
+        ? '🧮 Calculadora · precio actualizado · ' + (opts.d||'')
+        : (opts.ideducted ? '✅ Stock descontado · ' : '📦 Insumo vinculado (descuenta al producir) · ') + (opts.d||'');
     }
   } else {
     row.querySelector('.cpres-desc').focus();
@@ -4051,7 +4075,8 @@ async function guardarEditPres() {
         iqty:parseFloat(el.querySelector('.cpres-insumo-qty')?.value||0)||null,
         iprecio:el.dataset.insumoPrecio?parseFloat(el.dataset.insumoPrecio):null,
         iunit:el.dataset.insumoUnit||null,
-        ideducted:el.dataset.insumoDeducted==='1'};
+        ideducted:el.dataset.insumoDeducted==='1',
+        ...(el.dataset.fromCalc==='1'?{ifromCalc:true}:{})};
     })) : null,
     fecha: fechaISOtoUY(document.getElementById('editPresFecha').value) || new Date().toLocaleDateString('es-UY'),
     fecha_entrega: fechaISOtoUY(document.getElementById('editPresFechaEntrega').value) || null,
