@@ -106,6 +106,8 @@ export default async function handler(req, res) {
     )
   `);
 
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN telefono TEXT"); } catch {}
+
   // Token blacklist
   await db.execute(`
     CREATE TABLE IF NOT EXISTS token_blacklist (

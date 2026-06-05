@@ -2507,6 +2507,19 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   </div>
   <div class="pg-body">
     <div class="section-card">
+      <div class="section-card-ttl">Mi perfil</div>
+      <div class="frow">
+        <div class="fgrp"><label>Nombre</label><input id="profileNombre" placeholder="Tu nombre completo"></div>
+        <div class="fgrp"><label>Email</label><input id="profileEmail" type="email" placeholder="tu@email.com"></div>
+        <div class="fgrp"><label>Teléfono / Celular</label><input id="profileTel" type="tel" placeholder="+598 9x xxx xxx"></div>
+      </div>
+      <div class="frow">
+        <div class="fgrp"><label>Nueva contraseña <span style="font-weight:400;color:var(--text-3)">(dejar vacío para no cambiar)</span></label><input id="profilePass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+        <div class="fgrp"><label>Confirmar contraseña</label><input id="profilePass2" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+      </div>
+      <button class="btn btn--primary" onclick="saveUserProfile()">Guardar perfil</button>
+    </div>
+    <div class="section-card">
       <div class="section-card-ttl">Empresa</div>
       <div class="frow">
         <div class="fgrp"><label>Nombre empresa</label><input id="cfgEmpresa" placeholder="ArteLab UY"></div>
@@ -5428,6 +5441,18 @@ async function actualizarTipoCambio(btn) {
 // ── CONFIGURACIÓN ─────────────────────────────────────────────────────
 
 async function loadConfig() {
+  // Pre-cargar perfil propio (disponible para todos los roles)
+  if (_currentUser) {
+    const pd = await apiGet('/api/usuarios/' + _currentUser.id);
+    if (pd.ok) {
+      document.getElementById('profileNombre').value = pd.data.nombre || '';
+      document.getElementById('profileEmail').value  = pd.data.email  || '';
+      document.getElementById('profileTel').value    = pd.data.telefono || '';
+    }
+    document.getElementById('profilePass').value  = '';
+    document.getElementById('profilePass2').value = '';
+  }
+
   const [cfgD, usersD, fijosD] = await Promise.all([
     apiGet('/api/configuracion'),
     apiGet('/api/usuarios'),
@@ -5487,6 +5512,32 @@ async function saveConfig() {
   const d = await apiPut('/api/configuracion', body);
   if (d.ok) showToast('Configuración guardada', 'ok');
   else showToast(d.error || 'Error', 'err');
+}
+
+async function saveUserProfile() {
+  const nombre  = document.getElementById('profileNombre').value.trim();
+  const email   = document.getElementById('profileEmail').value.trim();
+  const tel     = document.getElementById('profileTel').value.trim();
+  const pass    = document.getElementById('profilePass').value;
+  const pass2   = document.getElementById('profilePass2').value;
+  if (!nombre || !email) { showToast('Nombre y email son obligatorios', 'err'); return; }
+  if (pass && pass !== pass2) { showToast('Las contraseñas no coinciden', 'err'); return; }
+  if (pass && pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'err'); return; }
+  const body = { nombre, email, telefono: tel || null };
+  if (pass) body.password = pass;
+  const d = await apiPut('/api/usuarios/' + _currentUser.id, body);
+  if (d.ok) {
+    showToast('Perfil actualizado', 'ok');
+    _currentUser.nombre = nombre;
+    _currentUser.email  = email;
+    localStorage.setItem('al-user', JSON.stringify(_currentUser));
+    document.getElementById('sidebarName').textContent = nombre;
+    document.getElementById('sidebarAv').textContent   = nombre[0].toUpperCase();
+    document.getElementById('profilePass').value  = '';
+    document.getElementById('profilePass2').value = '';
+  } else {
+    showToast(d.error || 'Error al guardar', 'err');
+  }
 }
 
 let _editingUserId = null;
