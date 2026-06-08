@@ -107,15 +107,28 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { categoria, descripcion, para_que, monto, moneda, tipo_cambio, fecha, tipo, presupuesto_id, recurrente, gasto_fijo_id, medio_pago } = req.body || {};
+    const { categoria, descripcion, para_que, monto, moneda, tipo_cambio, fecha, tipo, presupuesto_id, recurrente, gasto_fijo_id, medio_pago, origen, pagado_por } = req.body || {};
     if (!descripcion || !monto) return res.status(400).json({ ok: false, error: "Descripción y monto requeridos" });
+    const origenFinal = origen || "empresa";
     const r = await db.execute({
-      sql: "INSERT INTO gastos (categoria,descripcion,para_que,monto,moneda,tipo_cambio,fecha,tipo,presupuesto_id,recurrente,gasto_fijo_id,medio_pago,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      sql: "INSERT INTO gastos (categoria,descripcion,para_que,monto,moneda,tipo_cambio,fecha,tipo,presupuesto_id,recurrente,gasto_fijo_id,medio_pago,origen,pagado_por,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       args: [categoria||"otros", descripcion, para_que||null, monto, moneda||"UYU", tipo_cambio||null,
              fecha||new Date().toLocaleDateString("es-UY"), tipo||"manual",
-             presupuesto_id||null, recurrente?1:0, gasto_fijo_id||null, medio_pago||"efectivo", user.id]
+             presupuesto_id||null, recurrente?1:0, gasto_fijo_id||null, medio_pago||"efectivo",
+             origenFinal, pagado_por||null, user.id]
     });
     const newId = Number(r.lastInsertRowid);
+    // Si el gasto sale de Caja → crear egreso automáticamente
+    if (origenFinal === "caja") {
+      try {
+        await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
+        const fechaCaja = (fecha && fecha.includes('-')) ? fecha : new Date().toISOString().slice(0,10);
+        await db.execute({
+          sql: "INSERT INTO caja_movimientos (tipo,concepto,monto,fecha,ref_tipo,ref_id,created_by) VALUES ('egreso',?,?,?,?,?,?)",
+          args: [`Gasto: ${descripcion}`, Number(monto), fechaCaja, "gasto", newId, user.id]
+        });
+      } catch {}
+    }
     await logAction(db, user, "CREAR_GASTO", "gasto", newId);
     return res.status(200).json({ ok: true, data: { id: newId } });
   }

@@ -108,6 +108,10 @@ export default async function handler(req, res) {
 
   try { await db.execute("ALTER TABLE usuarios ADD COLUMN telefono TEXT"); } catch {}
 
+  // Gastos: origen del pago y quién pagó (para gastos personales)
+  try { await db.execute("ALTER TABLE gastos ADD COLUMN origen TEXT DEFAULT 'empresa'"); } catch {}
+  try { await db.execute("ALTER TABLE gastos ADD COLUMN pagado_por INTEGER"); } catch {}
+
   // Caja — movimientos de capital de giro
   await db.execute(`
     CREATE TABLE IF NOT EXISTS caja_movimientos (

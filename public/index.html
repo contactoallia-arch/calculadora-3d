@@ -1755,6 +1755,30 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       </div>
     </div>
 
+    <!-- Origen del gasto -->
+    <div style="margin:12px 0 10px">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);display:block;margin-bottom:6px">¿De dónde sale este gasto?</label>
+      <div style="display:flex;gap:6px">
+        <button id="gorBtn-empresa" type="button" class="btn btn--primary btn--sm" style="flex:1;justify-content:center" onclick="_setGastoOrigen('empresa')">🏢 Empresa</button>
+        <button id="gorBtn-caja" type="button" class="btn btn--ghost btn--sm" style="flex:1;justify-content:center" onclick="_setGastoOrigen('caja')">🏦 Caja</button>
+        <button id="gorBtn-personal" type="button" class="btn btn--ghost btn--sm" style="flex:1;justify-content:center" onclick="_setGastoOrigen('personal')">👤 Personal</button>
+      </div>
+      <input type="hidden" id="gastoOrigen" value="empresa">
+      <!-- Info caja -->
+      <div id="gastoCajaInfo" style="display:none;margin-top:8px;padding:8px 12px;background:var(--brand-soft);border-radius:var(--r-sm);font-size:12px;color:var(--brand);font-weight:600">
+        🏦 Este gasto se descontará automáticamente del saldo de Caja al guardar.
+      </div>
+      <!-- Panel personal -->
+      <div id="gastoPersonalPanel" style="display:none;margin-top:8px;padding:10px 12px;background:var(--surface-2);border-radius:var(--r-sm)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="fgrp" style="flex:1;min-width:160px;margin:0">
+            <label>¿Quién lo pagó? *</label>
+            <select id="gastoPagadoPor" style="width:100%"><option value="">Cargando…</option></select>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-3);max-width:220px;line-height:1.4">Se registrará como gasto personal pendiente de reintegro</div>
+        </div>
+      </div>
+    </div>
     <!-- Toggle insumos -->
     <div style="display:flex;align-items:center;gap:8px;margin:10px 0 8px">
       <label class="tsw"><input type="checkbox" id="gastoComoInsumo" onchange="toggleGastoInsumoMode()"><div class="ttr"><div class="tth"></div></div></label>
@@ -3137,6 +3161,20 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <h3 class="card-title">Movimientos de caja</h3>
       </div>
       <div id="cajaMovList"><div style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</div></div>
+    </div>
+
+    <!-- Gastos Personales -->
+    <div class="card" id="gpersonalCard" style="margin-top:12px;display:none">
+      <div class="ch" onclick="tog('gpersonalBody')" style="cursor:pointer">
+        <div class="ch-l">
+          <div class="c-icon" style="font-size:18px">👤</div>
+          <div><div class="ctit">Gastos Personales</div><div class="csub">Montos pagados por cada usuario — pendientes de reintegro</div></div>
+        </div>
+        <div class="ch-r"><span class="arr">▼</span></div>
+      </div>
+      <div class="cb col" id="body-gpersonalBody">
+        <div id="gpersonalList" style="display:flex;flex-direction:column;gap:5px;padding:8px 0"></div>
+      </div>
     </div>
   </div>
 
@@ -5292,6 +5330,8 @@ async function openGastoForm(presIdPresel) {
   document.getElementById('gastoComoInsumo').checked = false;
   document.getElementById('nuevoPanelProv').style.display = 'none';
   document.getElementById('btnToggleProv').textContent = '+ Nuevo';
+  // Reset origen
+  _setGastoOrigen('empresa');
   // Reset IVA
   _gastoIVAIncluido = true;
   const ivaBtn = document.getElementById('gastoIVABtn');
@@ -5301,6 +5341,16 @@ async function openGastoForm(presIdPresel) {
   addGastoItem();
   updateGastoTotal();
   openM('mGasto');
+  // Cargar usuarios para gasto personal
+  try {
+    const du = await apiGet('/api/usuarios');
+    const sel = document.getElementById('gastoPagadoPor');
+    if (sel && du.ok) {
+      sel.innerHTML = du.data.filter(u=>u.activo).map(u =>
+        `<option value="${u.id}"${u.id===_currentUser?.id?' selected':''}>${u.nombre}</option>`
+      ).join('');
+    }
+  } catch {}
   try {
     const d = await apiGet('/api/proveedores');
     const sel = document.getElementById('gastoProveedor');
@@ -5327,6 +5377,9 @@ async function saveGasto() {
   const moneda = document.getElementById('gastoMoneda').value;
   const presId = document.getElementById('gastoPresupuesto').value;
   const registrarInsumos = document.getElementById('gastoComoInsumo')?.checked;
+  const origen = document.getElementById('gastoOrigen')?.value || 'empresa';
+  const pagadoPor = origen === 'personal' ? (parseInt(document.getElementById('gastoPagadoPor').value)||null) : null;
+  if (origen === 'personal' && !pagadoPor) { showToast('Seleccioná quién pagó este gasto','err'); return; }
 
   // Crear proveedor nuevo si aplica
   let provId = document.getElementById('gastoProveedor').value;
@@ -5383,7 +5436,9 @@ async function saveGasto() {
         moneda, fecha,
         monto: montoFinal,
         proveedor_id: provId ? Number(provId) : null,
-        presupuesto_id: presId ? Number(presId) : null
+        presupuesto_id: presId ? Number(presId) : null,
+        origen,
+        pagado_por: pagadoPor
       };
       const d = await apiPost('/api/gastos', body);
       if (!d.ok) { errores++; showToast(d.error || 'Error al guardar gasto', 'err'); continue; }
@@ -5399,6 +5454,9 @@ async function saveGasto() {
   _gastoFiltroTipo = 'actual';
   ['actual','anterior','todo'].forEach(t => { const el=document.getElementById('gf-'+t); if(el) el.classList.toggle('on',t==='actual'); });
   loadGastos();
+  // Refrescar Caja y Estado de Cuenta si aplica
+  if (origen === 'caja')     { loadCaja(); loadEstadoCuentaData(); }
+  if (origen === 'personal') { loadEstadoCuentaData(); }
   } catch(fatal) { showToast('Error crítico: ' + fatal.message, 'err'); console.error('saveGasto fatal:', fatal); }
 }
 
@@ -9145,6 +9203,7 @@ async function loadEstadoCuentaData() {
     netoEl.textContent = fmt(neto);
     netoEl.style.color = neto >= 0 ? 'var(--ok-fg)' : 'var(--bad-fg,#dc2626)';
     renderECMov();
+    renderGastosPersonales(d.gastos_personales);
   } catch(e) { console.error(e); }
 }
 
@@ -9270,6 +9329,48 @@ async function eliminarMovCaja(id) {
     if (d.ok) { showToast('Movimiento eliminado','ok'); loadCaja(); loadEstadoCuentaData(); }
     else showToast(d.error||'Error','err');
   }, { title:'Eliminar movimiento' });
+}
+
+// ── GASTOS: origen (empresa / caja / personal) ─────────────────────
+function _setGastoOrigen(origen) {
+  document.getElementById('gastoOrigen').value = origen;
+  ['empresa','caja','personal'].forEach(o => {
+    const btn = document.getElementById('gorBtn-' + o);
+    if (!btn) return;
+    if (o === origen) {
+      btn.className = o === 'personal' ? 'btn btn--primary btn--sm' : 'btn btn--primary btn--sm';
+    } else {
+      btn.className = 'btn btn--ghost btn--sm';
+    }
+    btn.style.flex = '1';
+    btn.style.justifyContent = 'center';
+  });
+  // Danger color para personal (violeta) y caja (brand)
+  const gorP = document.getElementById('gorBtn-personal');
+  const gorC = document.getElementById('gorBtn-caja');
+  if (origen === 'personal' && gorP) gorP.className = 'btn btn--primary btn--sm';
+  if (origen === 'caja' && gorC)     gorC.className = 'btn btn--primary btn--sm';
+  document.getElementById('gastoCajaInfo').style.display     = origen === 'caja'     ? '' : 'none';
+  document.getElementById('gastoPersonalPanel').style.display = origen === 'personal' ? '' : 'none';
+}
+
+function renderGastosPersonales(data) {
+  const card = document.getElementById('gpersonalCard');
+  const list = document.getElementById('gpersonalList');
+  if (!card || !list) return;
+  if (!data || !data.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  list.innerHTML = data.map(u => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:var(--surface-2);border-radius:var(--r-sm)">
+      <div>
+        <span style="font-weight:700;font-size:13.5px">👤 ${u.usuario_nombre}</span>
+        <span style="font-size:11.5px;color:var(--text-3);margin-left:8px">${u.cantidad} gasto${u.cantidad!=1?'s':''}</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--mono);font-weight:800;font-size:15px;color:var(--bad-fg,#dc2626)">$ ${Math.round(u.total).toLocaleString('es-UY')}</div>
+        <div style="font-size:10.5px;color:var(--text-3)">pendiente de reintegro</div>
+      </div>
+    </div>`).join('');
 }
 
 // Helper: % rápido en reparto

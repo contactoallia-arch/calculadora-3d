@@ -469,17 +469,19 @@ export default async function handler(req, res) {
           return { clause: p.length ? ' AND '+p.join(' AND ') : '', args: a };
         };
         const fc = bf('co.fecha'), fg = bf('g.fecha'), fr = bf("COALESCE(r.executed_at,r.fecha)"), fk = bf('cm.fecha');
-        const [cobros, gastos, repartos, caja] = await Promise.all([
+        const [cobros, gastos, repartos, caja, gpRows] = await Promise.all([
           db.execute({sql:`SELECT co.id, co.monto, co.fecha, 'cobro' as tipo, COALESCE(p.pieza,'—') as descripcion, COALESCE(cl.nombre,p.cliente,'—') as ref FROM cobros co LEFT JOIN presupuestos p ON p.id=co.presupuesto_id LEFT JOIN clientes cl ON cl.id=co.cliente_id WHERE 1=1${fc.clause} ORDER BY co.fecha DESC, co.id DESC LIMIT 500`,args:fc.args}),
-          db.execute({sql:`SELECT g.id, g.monto, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref FROM gastos g WHERE 1=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
+          db.execute({sql:`SELECT g.id, g.monto, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref, g.origen FROM gastos g WHERE 1=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
           db.execute({sql:`SELECT r.id, r.monto, COALESCE(r.executed_at,r.fecha) as fecha, 'reparto' as tipo, r.descripcion, COALESCE(r.destinatario,'—') as ref FROM repartos r WHERE r.estado='ejecutado'${fr.clause} ORDER BY COALESCE(r.executed_at,r.fecha) DESC, r.id DESC LIMIT 500`,args:fr.args}),
-          db.execute({sql:`SELECT cm.id, cm.monto, cm.fecha, cm.tipo, cm.concepto as descripcion, '' as ref FROM caja_movimientos cm WHERE 1=1${fk.clause} ORDER BY cm.fecha DESC, cm.id DESC LIMIT 500`,args:fk.args})
+          db.execute({sql:`SELECT cm.id, cm.monto, cm.fecha, cm.tipo, cm.concepto as descripcion, '' as ref FROM caja_movimientos cm WHERE 1=1${fk.clause} ORDER BY cm.fecha DESC, cm.id DESC LIMIT 500`,args:fk.args}),
+          // Resumen de gastos personales por usuario (sin filtro de fecha — balance acumulado)
+          db.execute(`SELECT g.pagado_por as usuario_id, COALESCE(u.nombre,'Usuario #'||g.pagado_por) as usuario_nombre, COALESCE(SUM(g.monto),0) as total, COUNT(*) as cantidad FROM gastos g LEFT JOIN usuarios u ON u.id=g.pagado_por WHERE g.origen='personal' AND g.pagado_por IS NOT NULL GROUP BY g.pagado_por, u.nombre ORDER BY u.nombre`)
         ]);
         const totalCobrado  = cobros.rows.reduce((s,r)=>s+Number(r.monto),0);
         const totalGastado  = gastos.rows.reduce((s,r)=>s+Number(r.monto),0);
         const totalRepartido= repartos.rows.reduce((s,r)=>s+Number(r.monto),0);
         const saldoCaja     = caja.rows.reduce((s,r)=>s+(r.tipo==='ingreso'?Number(r.monto):-Number(r.monto)),0);
-        return res.status(200).json({ok:true, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows});
+        return res.status(200).json({ok:true, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows, gastos_personales:gpRows.rows});
       }
     }
 
