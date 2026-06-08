@@ -339,19 +339,30 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok:true, data:rep.rows, bolsa:{total_utilidad,ejecutado,pendiente,disponible:total_utilidad-ejecutado,disponible_libre:total_utilidad-ejecutado-pendiente,detalle} });
       }
       if (m === "POST") {
-        const { descripcion, destinatario, monto, fecha, notas } = req.body||{};
+        const { descripcion, destinatario, monto, fecha, notas, para_caja } = req.body||{};
         if (!descripcion||!monto) return res.status(400).json({ok:false,error:"Descripción y monto requeridos"});
-        const r = await db.execute({ sql:"INSERT INTO repartos (descripcion,destinatario,monto,fecha,notas,estado,created_by) VALUES (?,?,?,?,?,'pendiente',?)", args:[descripcion,destinatario||null,Number(monto),fecha||null,notas||null,user.id] });
+        const r = await db.execute({ sql:"INSERT INTO repartos (descripcion,destinatario,monto,fecha,notas,estado,para_caja,created_by) VALUES (?,?,?,?,?,'pendiente',?,?)", args:[descripcion,destinatario||null,Number(monto),fecha||null,notas||null,para_caja?1:0,user.id] });
         await logAction(db,user,"CREAR_REPARTO","reparto",Number(r.lastInsertRowid));
         return res.status(200).json({ok:true,data:{id:Number(r.lastInsertRowid)}});
       }
       if (m === "PUT" && id) {
         const { accion } = req.body||{};
-        const r = await db.execute({sql:"SELECT estado FROM repartos WHERE id=?",args:[id]});
+        const r = await db.execute({sql:"SELECT estado,monto,descripcion,para_caja FROM repartos WHERE id=?",args:[id]});
         if (!r.rows[0]) return res.status(404).json({ok:false,error:"No encontrado"});
         if (r.rows[0].estado==="ejecutado") return res.status(400).json({ok:false,error:"Ya fue ejecutado"});
         const nuevo = accion==="ejecutar"?"ejecutado":"cancelado";
-        await db.execute({sql:"UPDATE repartos SET estado=?,executed_at=? WHERE id=?",args:[nuevo,nuevo==="ejecutado"?new Date().toISOString().slice(0,10):null,id]});
+        const hoy = new Date().toISOString().slice(0,10);
+        await db.execute({sql:"UPDATE repartos SET estado=?,executed_at=? WHERE id=?",args:[nuevo,nuevo==="ejecutado"?hoy:null,id]});
+        // Si se ejecuta y es para_caja → crear movimiento de caja automáticamente
+        if (nuevo === "ejecutado" && r.rows[0].para_caja) {
+          try {
+            await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
+            await db.execute({
+              sql: "INSERT INTO caja_movimientos (tipo,concepto,monto,fecha,ref_tipo,ref_id,created_by) VALUES ('ingreso',?,?,?,?,?,?)",
+              args: [`Utilidades → Caja: ${r.rows[0].descripcion}`, Number(r.rows[0].monto), hoy, 'reparto', Number(id), user.id]
+            });
+          } catch {}
+        }
         await logAction(db,user,nuevo==="ejecutado"?"EJECUTAR_REPARTO":"CANCELAR_REPARTO","reparto",id);
         return res.status(200).json({ok:true});
       }
@@ -408,6 +419,67 @@ export default async function handler(req, res) {
         await db.execute({ sql: "UPDATE vendedores SET activo=0 WHERE id=?", args: [id] });
         await logAction(db, user, "ELIMINAR_VENDEDOR", "vendedor", id);
         return res.status(200).json({ ok: true });
+      }
+    }
+
+    // ───────────────────────── CAJA ─────────────────────────
+    if (recurso === "caja") {
+      await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL DEFAULT 'ingreso',
+        concepto TEXT NOT NULL,
+        monto REAL NOT NULL DEFAULT 0,
+        moneda TEXT DEFAULT 'UYU',
+        fecha TEXT NOT NULL,
+        ref_tipo TEXT, ref_id INTEGER, notas TEXT,
+        created_by INTEGER,
+        created_at TEXT DEFAULT (datetime('now'))
+      )`);
+      if (m === "GET") {
+        const r = await db.execute("SELECT * FROM caja_movimientos ORDER BY fecha DESC, id DESC LIMIT 300");
+        const saldo = r.rows.reduce((s,mv) => s + (mv.tipo==="ingreso" ? Number(mv.monto) : -Number(mv.monto)), 0);
+        return res.status(200).json({ ok:true, data:r.rows, saldo:Math.round(saldo*100)/100 });
+      }
+      if (m === "POST") {
+        const { tipo, concepto, monto, fecha, ref_tipo, ref_id, notas } = req.body||{};
+        if (!concepto||!monto||!fecha) return res.status(400).json({ok:false,error:"Concepto, monto y fecha requeridos"});
+        const r = await db.execute({
+          sql:"INSERT INTO caja_movimientos (tipo,concepto,monto,fecha,ref_tipo,ref_id,notas,created_by) VALUES (?,?,?,?,?,?,?,?)",
+          args:[tipo||"ingreso",concepto,Number(monto),fecha,ref_tipo||null,ref_id||null,notas||null,user.id]
+        });
+        await logAction(db,user,tipo==="egreso"?"CAJA_EGRESO":"CAJA_INGRESO","caja",Number(r.lastInsertRowid));
+        return res.status(200).json({ok:true,data:{id:Number(r.lastInsertRowid)}});
+      }
+      if (m === "DELETE" && id) {
+        await db.execute({sql:"DELETE FROM caja_movimientos WHERE id=?",args:[id]});
+        await logAction(db,user,"CAJA_ELIMINAR","caja",Number(id));
+        return res.status(200).json({ok:true});
+      }
+    }
+
+    // ───────────────────────── ESTADO DE CUENTA ─────────────────────────
+    if (recurso === "estado-cuenta") {
+      if (m === "GET") {
+        await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
+        const { desde, hasta } = req.query;
+        const bf = (col) => {
+          const p = []; const a = [];
+          if (desde) { p.push(`${col} >= ?`); a.push(desde); }
+          if (hasta) { p.push(`${col} <= ?`); a.push(hasta); }
+          return { clause: p.length ? ' AND '+p.join(' AND ') : '', args: a };
+        };
+        const fc = bf('co.fecha'), fg = bf('g.fecha'), fr = bf("COALESCE(r.executed_at,r.fecha)"), fk = bf('cm.fecha');
+        const [cobros, gastos, repartos, caja] = await Promise.all([
+          db.execute({sql:`SELECT co.id, co.monto, co.fecha, 'cobro' as tipo, COALESCE(p.pieza,'—') as descripcion, COALESCE(cl.nombre,p.cliente,'—') as ref FROM cobros co LEFT JOIN presupuestos p ON p.id=co.presupuesto_id LEFT JOIN clientes cl ON cl.id=co.cliente_id WHERE 1=1${fc.clause} ORDER BY co.fecha DESC, co.id DESC LIMIT 500`,args:fc.args}),
+          db.execute({sql:`SELECT g.id, g.monto, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref FROM gastos g WHERE 1=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
+          db.execute({sql:`SELECT r.id, r.monto, COALESCE(r.executed_at,r.fecha) as fecha, 'reparto' as tipo, r.descripcion, COALESCE(r.destinatario,'—') as ref FROM repartos r WHERE r.estado='ejecutado'${fr.clause} ORDER BY COALESCE(r.executed_at,r.fecha) DESC, r.id DESC LIMIT 500`,args:fr.args}),
+          db.execute({sql:`SELECT cm.id, cm.monto, cm.fecha, cm.tipo, cm.concepto as descripcion, '' as ref FROM caja_movimientos cm WHERE 1=1${fk.clause} ORDER BY cm.fecha DESC, cm.id DESC LIMIT 500`,args:fk.args})
+        ]);
+        const totalCobrado  = cobros.rows.reduce((s,r)=>s+Number(r.monto),0);
+        const totalGastado  = gastos.rows.reduce((s,r)=>s+Number(r.monto),0);
+        const totalRepartido= repartos.rows.reduce((s,r)=>s+Number(r.monto),0);
+        const saldoCaja     = caja.rows.reduce((s,r)=>s+(r.tipo==='ingreso'?Number(r.monto):-Number(r.monto)),0);
+        return res.status(200).json({ok:true, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows});
       }
     }
 

@@ -33,6 +33,9 @@
     { "source": "/api/vendedores/:id",      "destination": "/api/catalogo?recurso=vendedores&id=:id" },
     { "source": "/api/vendedores",          "destination": "/api/catalogo?recurso=vendedores" },
     { "source": "/api/tipo-cambio",         "destination": "/api/configuracion?action=tipo-cambio" },
-    { "source": "/api/database",             "destination": "/api/logs?recurso=database" }
+    { "source": "/api/database",             "destination": "/api/logs?recurso=database" },
+    { "source": "/api/caja/:id",             "destination": "/api/catalogo?recurso=caja&id=:id" },
+    { "source": "/api/caja",                 "destination": "/api/catalogo?recurso=caja" },
+    { "source": "/api/estado-cuenta",        "destination": "/api/catalogo?recurso=estado-cuenta" }
   ]
 }

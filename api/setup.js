@@ -108,6 +108,26 @@ export default async function handler(req, res) {
 
   try { await db.execute("ALTER TABLE usuarios ADD COLUMN telefono TEXT"); } catch {}
 
+  // Caja — movimientos de capital de giro
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS caja_movimientos (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo       TEXT NOT NULL DEFAULT 'ingreso',
+      concepto   TEXT NOT NULL,
+      monto      REAL NOT NULL DEFAULT 0,
+      moneda     TEXT DEFAULT 'UYU',
+      fecha      TEXT NOT NULL,
+      ref_tipo   TEXT,
+      ref_id     INTEGER,
+      notas      TEXT,
+      created_by INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Reparto: columna para_caja (indica que al ejecutar va a Caja)
+  try { await db.execute("ALTER TABLE repartos ADD COLUMN para_caja INTEGER DEFAULT 0"); } catch {}
+
   // Token blacklist
   await db.execute(`
     CREATE TABLE IF NOT EXISTS token_blacklist (

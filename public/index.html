@@ -681,6 +681,16 @@ table.dtbl td.b{color:var(--text);font-weight:700}
 .ag-teal{background:var(--teal-soft);border-color:var(--teal);color:var(--teal-fg)}
 i.ag-leg.ag-brand{background:var(--brand)}i.ag-leg.ag-ok{background:var(--ok)}
 i.ag-leg.ag-info{background:var(--info)}i.ag-leg.ag-vio{background:var(--vio)}i.ag-leg.ag-teal{background:var(--teal)}
+/* Estado de Cuenta tabs */
+.ec-tab-btn{padding:11px 20px;background:transparent;border:none;border-bottom:3px solid transparent;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-3);transition:all .15s;font-family:var(--fb)}
+.ec-tab-btn:hover{color:var(--text-1)}
+.ec-tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+.ec-tab-panel{padding:20px 26px 36px}
+.caja-mov-row{display:flex;align-items:center;gap:12px;padding:11px 18px;border-bottom:1px solid var(--border-2);transition:background var(--tr)}
+.caja-mov-row:hover{background:var(--surface-hover)}
+.caja-mov-row:last-child{border-bottom:none}
+.caja-badge-ing{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:var(--ok-soft);color:var(--ok-fg)}
+.caja-badge-egr{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;background:var(--bad-soft,#fee2e2);color:var(--bad-fg,#dc2626)}
 @media(max-width:880px){
   .agenda-grid{grid-template-columns:1fr;gap:8px}
   .agenda-col{min-height:0}
@@ -944,9 +954,9 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Reportes
     </button>
-    <button class="nav-item" id="nav-reparto" onclick="showPage('reparto')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 12h8"/></svg>
-      Utilidades
+    <button class="nav-item" id="nav-estado-cuenta" onclick="showPage('estado-cuenta')">
+      <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-3 3"/></svg>
+      Estado de Cuenta
     </button>
     <div class="nav-label">Sistema</div>
     <button class="nav-item" id="nav-config" onclick="showPage('config')">
@@ -3018,16 +3028,127 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
 <!-- ═══════════════════════════════════════════════════════════════════
      PAGE: REPARTO DE UTILIDADES
 ═══════════════════════════════════════════════════════════════════ -->
-<div id="page-reparto" class="page">
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE: ESTADO DE CUENTA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="page-estado-cuenta" class="page">
   <div class="pg-hdr">
-    <h2 class="pg-title">Utilidades</h2>
-    <button class="btn btn--primary" onclick="openRepartoForm()">
-      <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
-      Nueva orden
-    </button>
+    <div>
+      <h2 class="pg-title">Estado de Cuenta</h2>
+      <p class="pg-sub">Flujo financiero · Caja · Distribución de utilidades</p>
+    </div>
   </div>
-  <div class="pg-body">
-    <!-- KPIs de la bolsa -->
+
+  <!-- Tab bar -->
+  <div style="padding:0 26px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;gap:0;margin-bottom:-1px">
+      <button class="ec-tab-btn active" data-tab="cuenta" onclick="setECTab('cuenta')">📊 Estado de cuenta</button>
+      <button class="ec-tab-btn" data-tab="caja" onclick="setECTab('caja')">🏦 Caja</button>
+      <button class="ec-tab-btn" data-tab="utilidades" onclick="setECTab('utilidades')">💸 Utilidades</button>
+    </div>
+  </div>
+
+  <!-- ───── TAB: ESTADO DE CUENTA ───── -->
+  <div class="ec-tab-panel" data-tab="cuenta">
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:14px">
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">💵 Cobrado</div>
+        <div id="ecKpiCobrado" class="num" style="font-size:22px;font-weight:800;color:var(--ok-fg)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">💸 Gastado</div>
+        <div id="ecKpiGastado" class="num" style="font-size:22px;font-weight:800;color:var(--bad-fg,#dc2626)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">💰 Repartido</div>
+        <div id="ecKpiRepartido" class="num" style="font-size:22px;font-weight:800;color:var(--warn-fg,#d97706)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🏦 En Caja</div>
+        <div id="ecKpiCaja" class="num" style="font-size:22px;font-weight:800;color:var(--brand)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px;border:2px solid var(--brand)">
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📈 Resultado neto</div>
+        <div id="ecKpiNeto" class="num" style="font-size:22px;font-weight:800">—</div>
+      </div>
+    </div>
+    <!-- Filtro de período -->
+    <div class="card card-pad" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 16px">
+      <span style="font-size:12.5px;font-weight:600;color:var(--text-2);white-space:nowrap">Período:</span>
+      <input type="date" id="ecDesde" onchange="loadEstadoCuentaData()" style="height:32px;padding:0 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;background:var(--surface);color:var(--text-1)">
+      <span style="font-size:12px;color:var(--text-3)">–</span>
+      <input type="date" id="ecHasta" onchange="loadEstadoCuentaData()" style="height:32px;padding:0 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;background:var(--surface);color:var(--text-1)">
+      <button class="btn btn--ghost btn--sm" onclick="ecFiltroMes(0)">Este mes</button>
+      <button class="btn btn--ghost btn--sm" onclick="ecFiltroMes(-1)">Mes anterior</button>
+      <button class="btn btn--ghost btn--sm" onclick="document.getElementById('ecDesde').value='';document.getElementById('ecHasta').value='';loadEstadoCuentaData()">Todo</button>
+    </div>
+    <!-- Tabla movimientos -->
+    <div class="card" style="overflow:hidden">
+      <div class="card-head" style="padding:12px 18px;border-bottom:1px solid var(--border)">
+        <h3 class="card-title">Movimientos</h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="chip on" id="ec-mv-" onclick="setECFiltro('')">Todos</button>
+          <button class="chip" id="ec-mv-cobro" onclick="setECFiltro('cobro')">Cobros</button>
+          <button class="chip" id="ec-mv-gasto" onclick="setECFiltro('gasto')">Gastos</button>
+          <button class="chip" id="ec-mv-reparto" onclick="setECFiltro('reparto')">Repartos</button>
+          <button class="chip" id="ec-mv-caja" onclick="setECFiltro('caja')">Caja</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--surface-2)">
+            <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Fecha</th>
+            <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Tipo</th>
+            <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Descripción</th>
+            <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Ref</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Monto</th>
+          </tr></thead>
+          <tbody id="ecMovBody">
+            <tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ───── TAB: CAJA ───── -->
+  <div class="ec-tab-panel" data-tab="caja" style="display:none">
+    <!-- Balance -->
+    <div class="card card-pad" style="text-align:center;padding:32px 24px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:10px">🏦 Saldo en Caja</div>
+      <div id="cajaSaldo" class="num" style="font-size:48px;font-weight:900;color:var(--brand);line-height:1.1">—</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:8px">capital de giro disponible</div>
+    </div>
+    <!-- Botones -->
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      <button class="btn btn--primary" onclick="abrirMovCaja('ingreso')" style="flex:1;justify-content:center">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+        Ingresar
+      </button>
+      <button class="btn btn--danger" onclick="abrirMovCaja('egreso')" style="flex:1;justify-content:center">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M2 9h14"/></svg>
+        Retirar / Egresar
+      </button>
+    </div>
+    <!-- Lista movimientos -->
+    <div class="card" style="overflow:hidden">
+      <div class="card-head" style="padding:12px 18px;border-bottom:1px solid var(--border)">
+        <h3 class="card-title">Movimientos de caja</h3>
+      </div>
+      <div id="cajaMovList"><div style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</div></div>
+    </div>
+  </div>
+
+  <!-- ───── TAB: UTILIDADES ───── -->
+  <div class="ec-tab-panel" data-tab="utilidades" style="display:none">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn btn--primary" onclick="openRepartoForm()">
+        <svg class="icon" viewBox="0 0 18 18"><path d="M9 2v14M2 9h14"/></svg>
+        Nueva orden
+      </button>
+    </div>
+    <!-- KPIs bolsa -->
     <div class="kpi-row-3" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
       <div class="card card-pad" style="padding:16px 20px">
         <div style="font-size:11.5px;color:var(--text-3);font-weight:600;margin-bottom:6px">💰 Bolsa de utilidades</div>
@@ -3045,17 +3166,15 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div id="rKpiDisponibleSub" style="font-size:11.5px;color:var(--text-3);margin-top:3px">para repartir</div>
       </div>
     </div>
-
-    <!-- Pendientes comprometidos -->
+    <!-- Banner pendientes -->
     <div id="rPendienteBanner" style="display:none;margin-bottom:12px;padding:11px 16px;background:var(--warn-soft);border:1px solid var(--warn-fg);border-radius:var(--r-sm);font-size:13px;color:var(--warn-fg);font-weight:600">
       ⏳ <span id="rPendienteTxt"></span> comprometido en órdenes pendientes
     </div>
-
-    <!-- Tabla de repartos -->
+    <!-- Tabla repartos -->
     <div class="card" style="overflow:hidden">
       <div class="card-head" style="padding:14px 18px;border-bottom:1px solid var(--border)">
         <h3 class="card-title">Órdenes de utilidades</h3>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="chip on" id="rchip-" onclick="setRepartoChip('')">Todas</button>
           <button class="chip" id="rchip-pendiente" onclick="setRepartoChip('pendiente')">Pendientes</button>
           <button class="chip" id="rchip-ejecutado" onclick="setRepartoChip('ejecutado')">Ejecutadas</button>
@@ -3078,8 +3197,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </table>
       </div>
     </div>
-
-    <!-- Detalle bolsa (colapsable) -->
+    <!-- Detalle bolsa -->
     <div class="card" style="margin-top:12px">
       <div class="ch" onclick="tog('rBolsaDetalle')" style="cursor:pointer">
         <div class="ch-l">
@@ -3107,17 +3225,61 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="fgrp"><label>Fecha</label><input id="rFecha" type="date"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Monto *</label><input id="rMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp">
+        <label>Monto *</label>
+        <input id="rMonto" type="number" min="0" step="0.01" placeholder="0.00">
+        <!-- Quick % buttons -->
+        <div style="display:flex;gap:5px;margin-top:6px">
+          <span style="font-size:11.5px;color:var(--text-3);align-self:center;white-space:nowrap">% rápido:</span>
+          <button type="button" class="chip" onclick="_rPct(25)" style="font-size:11.5px">25%</button>
+          <button type="button" class="chip" onclick="_rPct(50)" style="font-size:11.5px">50%</button>
+          <button type="button" class="chip" onclick="_rPct(75)" style="font-size:11.5px">75%</button>
+          <button type="button" class="chip" onclick="_rPct(100)" style="font-size:11.5px">100%</button>
+        </div>
+      </div>
     </div>
     <!-- Saldo disponible -->
     <div id="rSaldoInfo" style="padding:10px 14px;background:var(--brand-soft);border:1px solid rgba(242,106,33,.25);border-radius:var(--r-sm);font-size:13px;margin-top:4px">
       <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Disponible para repartir</span><span id="rSaldoDisp" style="font-weight:700;color:var(--brand)">—</span></div>
     </div>
-    <div class="frow"><div class="fgrp"><label>Notas</label><textarea id="rNotas" style="height:56px" placeholder="Observaciones…"></textarea></div></div>
+    <!-- Opción: enviar a Caja -->
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface-2);border-radius:var(--r-sm);margin-top:10px;cursor:pointer" onclick="document.getElementById('rParaCaja').click()">
+      <input type="checkbox" id="rParaCaja" onclick="event.stopPropagation();_rParaCajaChange()" style="width:17px;height:17px;cursor:pointer;flex-shrink:0">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-1)">🏦 Enviar a Caja al ejecutar</div>
+        <div style="font-size:11.5px;color:var(--text-3);margin-top:1px">El monto irá a la Caja como capital de giro</div>
+      </div>
+    </div>
+    <div class="frow" style="margin-top:6px"><div class="fgrp"><label>Notas</label><textarea id="rNotas" style="height:48px" placeholder="Observaciones…"></textarea></div></div>
   </div>
   <div class="mf">
     <button class="bs2" onclick="closeM()">Cancelar</button>
     <button class="bp2" onclick="saveReparto()">Crear orden</button>
+  </div>
+</div>
+
+<!-- Modal: movimiento de caja -->
+<div class="modal" id="mCajaMov" style="max-width:420px">
+  <div class="mh"><div class="mt" id="mCajaMovTit">Nuevo ingreso a Caja</div><button class="mx" onclick="closeM()">✕</button></div>
+  <div class="mb">
+    <!-- Toggle tipo -->
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="cajaTipoIngBtn" type="button" class="btn btn--primary btn--sm" onclick="_setCajaTipo('ingreso')" style="flex:1;justify-content:center">+ Ingreso</button>
+      <button id="cajaTipoEgrBtn" type="button" class="btn btn--ghost btn--sm" onclick="_setCajaTipo('egreso')" style="flex:1;justify-content:center">− Egreso</button>
+    </div>
+    <input type="hidden" id="cajaTipo" value="ingreso">
+    <div class="frow">
+      <div class="fgrp"><label>Concepto *</label><input id="cajaConcepto" placeholder="Ej: Depósito inicial, retiro efectivo…"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Monto *</label><input id="cajaMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp"><label>Fecha</label><input id="cajaFecha" type="date"></div>
+    </div>
+    <div class="frow"><div class="fgrp"><label>Notas</label><textarea id="cajaNotas" style="height:48px" placeholder="Opcional…"></textarea></div></div>
+  </div>
+  <div class="mf">
+    <button class="bs2" onclick="closeM()">Cancelar</button>
+    <button class="bp2" onclick="guardarMovCaja()">Guardar</button>
   </div>
 </div>
 
@@ -3203,7 +3365,7 @@ async function doLogout() {
 let _activePage = 'dashboard';
 const _chartInstances = {};
 
-const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', vendedores:'Vendedores', agenda:'Agenda', reportes:'Reportes', reparto:'Utilidades', config:'Configuración', logs:'Auditoría', database:'Base de datos', calculadora:'Calculador de presupuesto' };
+const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', vendedores:'Vendedores', agenda:'Agenda', reportes:'Reportes', 'estado-cuenta':'Estado de Cuenta', config:'Configuración', logs:'Auditoría', database:'Base de datos', calculadora:'Calculador de presupuesto' };
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -3231,7 +3393,7 @@ function showPage(page) {
   if (page === 'vendedores') loadVendedores();
   if (page === 'calculadora') _cargarVendedoresCalc();
   if (page === 'reportes') loadReportes();
-  if (page === 'reparto') loadRepartos();
+  if (page === 'estado-cuenta') loadEstadoCuenta();
   if (page === 'config') loadConfig();
   if (page === 'logs') loadLogs();
   if (page === 'database') loadDatabase();
@@ -8927,6 +9089,202 @@ async function fetchRate(){
 }
 
 // ── REPARTO DE UTILIDADES ─────────────────────────────────────────────
+// ── ESTADO DE CUENTA ──────────────────────────────────────────────────
+let _ecFiltroTipo = '';
+let _ecData = null;
+
+async function loadEstadoCuenta() {
+  loadRepartos();
+  loadCaja();
+  loadEstadoCuentaData();
+}
+
+function setECTab(tab) {
+  document.querySelectorAll('.ec-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.ec-tab-panel').forEach(p => p.style.display = (p.dataset.tab === tab) ? '' : 'none');
+}
+
+function setECFiltro(tipo) {
+  _ecFiltroTipo = tipo;
+  document.querySelectorAll('[id^="ec-mv-"]').forEach(b => b.classList.toggle('on', b.id === 'ec-mv-' + tipo));
+  renderECMov();
+}
+
+function ecFiltroMes(offset) {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const desde = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
+  const ultimo = new Date(d.getFullYear(), d.getMonth()+1, 0);
+  const hasta = `${ultimo.getFullYear()}-${String(ultimo.getMonth()+1).padStart(2,'0')}-${String(ultimo.getDate()).padStart(2,'0')}`;
+  document.getElementById('ecDesde').value = desde;
+  document.getElementById('ecHasta').value = hasta;
+  loadEstadoCuentaData();
+}
+
+async function loadEstadoCuentaData() {
+  const desde = document.getElementById('ecDesde')?.value || '';
+  const hasta = document.getElementById('ecHasta')?.value || '';
+  let url = '/api/estado-cuenta';
+  const params = [];
+  if (desde) params.push('desde=' + desde);
+  if (hasta) params.push('hasta=' + hasta);
+  if (params.length) url += '?' + params.join('&');
+  try {
+    const d = await apiGet(url);
+    if (!d.ok) return;
+    _ecData = d;
+    const fmt = v => '$ ' + Math.round(v||0).toLocaleString('es-UY');
+    const r = d.resumen;
+    const neto = (r.totalCobrado||0) - (r.totalGastado||0) - (r.totalRepartido||0);
+    document.getElementById('ecKpiCobrado').textContent  = fmt(r.totalCobrado);
+    document.getElementById('ecKpiGastado').textContent  = fmt(r.totalGastado);
+    document.getElementById('ecKpiRepartido').textContent= fmt(r.totalRepartido);
+    document.getElementById('ecKpiCaja').textContent     = fmt(r.saldoCaja);
+    const netoEl = document.getElementById('ecKpiNeto');
+    netoEl.textContent = fmt(neto);
+    netoEl.style.color = neto >= 0 ? 'var(--ok-fg)' : 'var(--bad-fg,#dc2626)';
+    renderECMov();
+  } catch(e) { console.error(e); }
+}
+
+function renderECMov() {
+  if (!_ecData) return;
+  const tbody = document.getElementById('ecMovBody');
+  if (!tbody) return;
+  const EC_TIPOS = {
+    cobro:   { lbl:'Cobro',   bg:'var(--ok-soft)',   fg:'var(--ok-fg)',          signo:+1 },
+    gasto:   { lbl:'Gasto',   bg:'#fee2e2',          fg:'var(--bad-fg,#dc2626)', signo:-1 },
+    reparto: { lbl:'Reparto', bg:'var(--warn-soft)',  fg:'var(--warn-fg,#d97706)',signo:-1 },
+    ingreso: { lbl:'Caja ↑',  bg:'var(--brand-soft)','fg':'var(--brand)',        signo:+1 },
+    egreso:  { lbl:'Caja ↓',  bg:'var(--surface-2)',  fg:'var(--text-3)',        signo:-1 },
+  };
+  // Combinar todos los movimientos
+  const all = [];
+  (_ecData.cobros||[]).forEach(r   => all.push({ fecha:r.fecha, tipo:'cobro',   desc:r.descripcion, ref:r.ref||'—', monto:Number(r.monto) }));
+  (_ecData.gastos||[]).forEach(r   => all.push({ fecha:r.fecha, tipo:'gasto',   desc:r.descripcion, ref:r.ref||r.categoria||'—', monto:Number(r.monto) }));
+  (_ecData.repartos||[]).forEach(r => all.push({ fecha:r.fecha, tipo:'reparto', desc:r.descripcion, ref:r.ref||'—', monto:Number(r.monto) }));
+  (_ecData.caja||[]).forEach(r     => all.push({ fecha:r.fecha, tipo:r.tipo,    desc:r.descripcion, ref:'',          monto:Number(r.monto) }));
+  // Filtrar y ordenar
+  const filtered = _ecFiltroTipo
+    ? all.filter(m => _ecFiltroTipo === 'caja' ? (m.tipo==='ingreso'||m.tipo==='egreso') : m.tipo === _ecFiltroTipo)
+    : all;
+  filtered.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || 0);
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3)">No hay movimientos para el período seleccionado.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(m => {
+    const t = EC_TIPOS[m.tipo] || { lbl:m.tipo, bg:'var(--surface-2)', fg:'var(--text-3)', signo:1 };
+    const signo = t.signo;
+    const montoStr = (signo > 0 ? '+' : '−') + ' $ ' + Math.round(m.monto).toLocaleString('es-UY');
+    return `<tr style="border-bottom:1px solid var(--border-2)">
+      <td style="padding:10px 16px;font-size:12.5px;color:var(--text-3);white-space:nowrap">${m.fecha||'—'}</td>
+      <td style="padding:10px 16px"><span style="background:${t.bg};color:${t.fg};padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap">${t.lbl}</span></td>
+      <td style="padding:10px 16px;font-size:13px;font-weight:600">${m.desc||'—'}</td>
+      <td style="padding:10px 16px;font-size:12.5px;color:var(--text-2)">${m.ref||''}</td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-weight:700;color:${signo>0?'var(--ok-fg)':'var(--bad-fg,#dc2626)'};white-space:nowrap">${montoStr}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CAJA ──────────────────────────────────────────────────────────────
+let _cajaMovCache = [];
+let _cajaTipoActual = 'ingreso';
+
+async function loadCaja() {
+  try {
+    const d = await apiGet('/api/caja');
+    if (!d.ok) return;
+    _cajaMovCache = d.data || [];
+    const saldo = Number(d.saldo) || 0;
+    const el = document.getElementById('cajaSaldo');
+    if (el) {
+      el.textContent = '$ ' + Math.round(saldo).toLocaleString('es-UY');
+      el.style.color = saldo >= 0 ? 'var(--brand)' : 'var(--bad-fg,#dc2626)';
+    }
+    renderCajaMovList();
+  } catch(e) { console.error(e); }
+}
+
+function renderCajaMovList() {
+  const el = document.getElementById('cajaMovList');
+  if (!el) return;
+  if (!_cajaMovCache.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-faint)">No hay movimientos en Caja aún.</div>';
+    return;
+  }
+  el.innerHTML = _cajaMovCache.map(m => {
+    const esIng = m.tipo === 'ingreso';
+    const signo = esIng ? '+' : '−';
+    const color = esIng ? 'var(--ok-fg)' : 'var(--bad-fg,#dc2626)';
+    return `<div class="caja-mov-row">
+      <span class="${esIng?'caja-badge-ing':'caja-badge-egr'}">${esIng?'↑ Ingreso':'↓ Egreso'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.concepto}</div>
+        ${m.notas?`<div style="font-size:11.5px;color:var(--text-3)">${m.notas}</div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:var(--mono);font-weight:800;font-size:15px;color:${color}">${signo} $ ${Math.round(m.monto).toLocaleString('es-UY')}</div>
+        <div style="font-size:11.5px;color:var(--text-3)">${m.fecha||''}</div>
+      </div>
+      <button class="icon-btn" title="Eliminar" onclick="eliminarMovCaja(${m.id})" style="color:var(--bad-fg);flex-shrink:0"><svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 15 5"/><path d="M6 5V3h6v2"/><rect x="4" y="5" width="10" height="11" rx="1"/></svg></button>
+    </div>`;
+  }).join('');
+}
+
+function abrirMovCaja(tipo) {
+  _cajaTipoActual = tipo || 'ingreso';
+  _setCajaTipo(_cajaTipoActual);
+  document.getElementById('cajaConcepto').value = '';
+  document.getElementById('cajaMonto').value = '';
+  document.getElementById('cajaNotas').value = '';
+  document.getElementById('cajaFecha').value = new Date().toISOString().slice(0,10);
+  openM('mCajaMov');
+  setTimeout(() => document.getElementById('cajaConcepto').focus(), 120);
+}
+
+function _setCajaTipo(tipo) {
+  _cajaTipoActual = tipo;
+  document.getElementById('cajaTipo').value = tipo;
+  document.getElementById('mCajaMovTit').textContent = tipo === 'ingreso' ? 'Ingresar a Caja' : 'Retirar de Caja';
+  document.getElementById('cajaTipoIngBtn').className = tipo === 'ingreso' ? 'btn btn--primary btn--sm' : 'btn btn--ghost btn--sm';
+  document.getElementById('cajaTipoEgrBtn').className = tipo === 'egreso'  ? 'btn btn--danger btn--sm'  : 'btn btn--ghost btn--sm';
+}
+
+async function guardarMovCaja() {
+  const concepto = document.getElementById('cajaConcepto').value.trim();
+  const monto    = parseFloat(document.getElementById('cajaMonto').value);
+  const fecha    = document.getElementById('cajaFecha').value;
+  const notas    = document.getElementById('cajaNotas').value.trim() || null;
+  const tipo     = document.getElementById('cajaTipo').value || 'ingreso';
+  if (!concepto || isNaN(monto) || monto <= 0 || !fecha) { showToast('Concepto, monto y fecha requeridos','err'); return; }
+  const d = await apiPost('/api/caja', { tipo, concepto, monto, fecha, notas });
+  if (d.ok) { showToast(tipo==='ingreso'?'Ingreso registrado ✓':'Egreso registrado ✓','ok'); closeM(); loadCaja(); loadEstadoCuentaData(); }
+  else showToast(d.error||'Error','err');
+}
+
+async function eliminarMovCaja(id) {
+  showConfirm('¿Eliminar este movimiento de caja?', async () => {
+    const d = await apiDelete('/api/caja/' + id);
+    if (d.ok) { showToast('Movimiento eliminado','ok'); loadCaja(); loadEstadoCuentaData(); }
+    else showToast(d.error||'Error','err');
+  }, { title:'Eliminar movimiento' });
+}
+
+// Helper: % rápido en reparto
+function _rPct(pct) {
+  const disponible = _repartoBolsa.disponible_libre || _repartoBolsa.disponible || 0;
+  document.getElementById('rMonto').value = Math.round(disponible * (pct/100));
+}
+
+function _rParaCajaChange() {
+  const checked = document.getElementById('rParaCaja').checked;
+  const destEl  = document.getElementById('rDest');
+  if (checked && !destEl.value.trim()) destEl.value = 'Caja';
+  else if (!checked && destEl.value.trim() === 'Caja') destEl.value = '';
+}
+
+// ── REPARTOS ──────────────────────────────────────────────────────────
 let _repartoCache = [];
 let _repartoBolsa = {};
 let _repartoChip  = '';
@@ -8988,7 +9346,10 @@ function renderRepartoTabla() {
   }
   body.innerHTML = items.map(r => `
     <tr style="border-bottom:1px solid var(--border-2)">
-      <td style="padding:11px 16px;font-size:13.5px;font-weight:600">${r.descripcion}</td>
+      <td style="padding:11px 16px;font-size:13.5px;font-weight:600">
+        ${r.descripcion}
+        ${r.para_caja?`<span style="margin-left:7px;background:var(--brand-soft);color:var(--brand);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px">🏦 Caja</span>`:''}
+      </td>
       <td style="padding:11px 16px;font-size:13px;color:var(--text-2)">${r.destinatario||'—'}</td>
       <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--brand)">$ ${Math.round(r.monto).toLocaleString('es-UY')}</td>
       <td style="padding:11px 16px;font-size:12.5px;color:var(--text-3)">${r.fecha||r.executed_at||r.created_at?.slice(0,10)||'—'}</td>
@@ -9030,6 +9391,7 @@ function openRepartoForm() {
   document.getElementById('rMonto').value = '';
   document.getElementById('rNotas').value = '';
   document.getElementById('rFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('rParaCaja').checked = false;
   document.getElementById('rSaldoDisp').textContent = '$ ' + Math.round(_repartoBolsa.disponible_libre||_repartoBolsa.disponible||0).toLocaleString('es-UY');
   openM('mReparto');
   setTimeout(()=>document.getElementById('rDesc').focus(),120);
@@ -9039,17 +9401,32 @@ async function saveReparto() {
   const desc  = document.getElementById('rDesc').value.trim();
   const monto = parseFloat(document.getElementById('rMonto').value);
   if (!desc || isNaN(monto) || monto <= 0) { showToast('Descripción y monto requeridos','err'); return; }
-  const body = { descripcion: desc, destinatario: document.getElementById('rDest').value.trim()||null, monto, fecha: document.getElementById('rFecha').value||null, notas: document.getElementById('rNotas').value.trim()||null };
+  const paraCaja = document.getElementById('rParaCaja').checked;
+  const body = {
+    descripcion: desc,
+    destinatario: document.getElementById('rDest').value.trim()||null,
+    monto,
+    fecha: document.getElementById('rFecha').value||null,
+    notas: document.getElementById('rNotas').value.trim()||null,
+    para_caja: paraCaja ? 1 : 0
+  };
   const d = await apiPost('/api/repartos', body);
   if (d.ok) { showToast('Orden creada','ok'); closeM(); loadRepartos(); }
   else showToast(d.error||'Error','err');
 }
 
 async function ejecutarReparto(id) {
-  showConfirm('¿Ejecutar esta orden? Se descontará del saldo de utilidades disponible.', async () => {
+  // Verificar si esta orden va a Caja
+  const r = _repartoCache.find(x => Number(x.id) === Number(id));
+  const msg = r?.para_caja
+    ? '¿Ejecutar esta orden? El monto pasará a la Caja como capital de giro.'
+    : '¿Ejecutar esta orden? Se descontará del saldo de utilidades disponible.';
+  showConfirm(msg, async () => {
     const d = await apiPut('/api/repartos/'+id, { accion:'ejecutar' });
-    if (d.ok) { showToast('Orden ejecutada ✓','ok'); loadRepartos(); }
-    else showToast(d.error||'Error','err');
+    if (d.ok) {
+      showToast(r?.para_caja ? 'Ejecutado ✓ — monto ingresado a Caja' : 'Orden ejecutada ✓','ok');
+      loadRepartos(); loadCaja(); loadEstadoCuentaData();
+    } else showToast(d.error||'Error','err');
   }, { title:'Ejecutar utilidades', btnLabel:'Ejecutar', danger:false });
 }
 
