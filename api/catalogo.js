@@ -205,7 +205,8 @@ export default async function handler(req, res) {
       if (m === "GET") {
         const { solo_mios, completados, desde, hasta } = req.query;
         let sql = `SELECT a.*, u.nombre as asignado_nombre,
-          p.pieza as presupuesto_pieza, c.nombre as cliente_nombre
+          p.pieza as presupuesto_pieza, c.nombre as cliente_nombre,
+          0 as es_entrega_pres
           FROM agenda a
           LEFT JOIN usuarios u ON u.id=a.asignado_a
           LEFT JOIN presupuestos p ON p.id=a.presupuesto_id
@@ -217,7 +218,38 @@ export default async function handler(req, res) {
         if (hasta) { sql += " AND a.fecha <= ?"; args.push(hasta); }
         sql += " ORDER BY a.fecha ASC, a.hora ASC";
         const r = await db.execute({ sql, args });
-        return res.status(200).json({ ok: true, data: r.rows });
+
+        // Agregar eventos virtuales de presupuestos con fecha_entrega en el rango
+        // fecha_entrega se guarda como DD/MM/YYYY → convertir con substr para comparar
+        let virtuales = [];
+        if (desde && hasta) {
+          try {
+            const vr = await db.execute({
+              sql: `SELECT
+                p.id as presupuesto_id,
+                '#' || COALESCE(p.numero, p.id) || ' · ' || p.pieza as titulo,
+                COALESCE(c.nombre, p.cliente) as descripcion,
+                'entrega' as tipo,
+                substr(p.fecha_entrega,7,4)||'-'||substr(p.fecha_entrega,4,2)||'-'||substr(p.fecha_entrega,1,2) as fecha,
+                null as hora,
+                0 as completado,
+                1 as es_entrega_pres,
+                p.estado,
+                p.precio,
+                p.moneda
+              FROM presupuestos p
+              LEFT JOIN clientes c ON c.id = p.cliente_id
+              WHERE p.fecha_entrega IS NOT NULL
+                AND p.fecha_entrega != ''
+                AND length(p.fecha_entrega) = 10
+                AND p.estado NOT IN ('cancelado','rechazado')
+                AND substr(p.fecha_entrega,7,4)||'-'||substr(p.fecha_entrega,4,2)||'-'||substr(p.fecha_entrega,1,2) BETWEEN ? AND ?`,
+              args: [desde, hasta]
+            });
+            virtuales = vr.rows;
+          } catch {}
+        }
+        return res.status(200).json({ ok: true, data: [...r.rows, ...virtuales] });
       }
       if (m === "POST") {
         const { titulo, descripcion, tipo, fecha, hora, presupuesto_id, cliente_id, asignado_a, prioridad, notas } = req.body || {};
