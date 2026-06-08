@@ -2337,7 +2337,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </button>
   </div>
   <div style="padding:0 26px 32px">
-    <div id="vendedoresGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px"></div>
+    <div id="vendedoresGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>
     <div id="vendedoresEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text-3)">
       <svg style="width:48px;height:48px;opacity:.3;margin-bottom:12px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       <div style="font-weight:600;font-size:15px;margin-bottom:4px">Sin vendedores registrados</div>
@@ -7104,22 +7104,73 @@ function renderVendedores() {
   const lista = _vendedoresCache;
   if (!lista.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  grid.innerHTML = lista.map(v => `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+  grid.innerHTML = lista.map(v => {
+    const total    = Number(v.total_presupuestos) || 0;
+    const cerrados = Number(v.total_cerrados)     || 0;
+    const activos  = Number(v.total_activos)      || 0;
+    const facturado= Number(v.total_facturado)    || 0;
+    const cobrado  = Number(v.total_cobrado)      || 0;
+    const saldo    = facturado - cobrado;
+    const pctCierre= total > 0 ? Math.round((cerrados / total) * 100) : 0;
+    const fmtM = n => n >= 1000 ? '$' + (n/1000).toFixed(1).replace(/\.0$/,'') + 'k' : '$' + Math.round(n).toLocaleString('es-UY');
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <!-- Header -->
       <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-family:var(--display);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${_avIni(v.nombre)}</div>
+        <div style="width:42px;height:42px;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-family:var(--display);font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${_avIni(v.nombre)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:14.5px;line-height:1.2">${v.nombre}</div>
-          ${v.total_presupuestos>0?`<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">${v.total_presupuestos} presupuesto${v.total_presupuestos!==1?'s':''}</div>`:'<div style="font-size:11.5px;color:var(--text-faint);margin-top:2px">Sin presupuestos aún</div>'}
+          ${(v.email||v.telefono)?`<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">${[v.email,v.telefono].filter(Boolean).join(' · ')}</div>`:''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="icon-btn" title="Editar" onclick="abrirFormVendedor(${v.id})"><svg class="icon" viewBox="0 0 18 18"><path d="M13 2.5L15.5 5l-9 9L3 15l.5-3.5z"/></svg></button>
           <button class="icon-btn" title="Eliminar" onclick="eliminarVendedor(${v.id})" style="color:var(--bad-fg)"><svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 15 5"/><path d="M6 5V3h6v2"/><rect x="4" y="5" width="10" height="11" rx="1"/></svg></button>
         </div>
       </div>
-      ${(v.email||v.telefono)?`<div style="display:flex;gap:10px;flex-wrap:wrap">${v.email?`<span style="font-size:12px;color:var(--text-2)">${v.email}</span>`:''}${v.telefono?`<span style="font-size:12px;color:var(--text-2)">${v.telefono}</span>`:''}</div>`:''}
-      ${v.notas?`<div style="font-size:12px;color:var(--text-3);font-style:italic">${v.notas}</div>`:''}
-    </div>`).join('');
+      <!-- Stats presupuestos -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 12px;background:var(--surface-2,var(--bg));border-radius:8px">
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:800;color:var(--text-1);line-height:1">${total}</div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px">Total</div>
+        </div>
+        <div style="text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+          <div style="font-size:20px;font-weight:800;color:${activos>0?'var(--warn-fg,#d97706)':'var(--text-faint)'};line-height:1">${activos}</div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px">En curso</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:800;color:${cerrados>0?'var(--ok-fg,#16a34a)':'var(--text-faint)'};line-height:1">${cerrados}</div>
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.4px">Cerrados</div>
+        </div>
+      </div>
+      <!-- Stats monetarios -->
+      ${facturado>0?`
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11.5px;color:var(--text-3)">Facturado</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text-1)">${fmtM(facturado)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11.5px;color:var(--text-3)">Cobrado</span>
+          <span style="font-size:13px;font-weight:600;color:var(--ok-fg,#16a34a)">${fmtM(cobrado)}</span>
+        </div>
+        ${saldo>0.5?`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid var(--border)">
+          <span style="font-size:11.5px;color:var(--text-3)">Saldo pendiente</span>
+          <span style="font-size:13px;font-weight:700;color:var(--bad-fg,#dc2626)">${fmtM(saldo)}</span>
+        </div>`:``}
+        ${total>0?`<div style="margin-top:4px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:10.5px;color:var(--text-3)">Tasa de cierre</span>
+            <span style="font-size:10.5px;font-weight:700;color:var(--text-2)">${pctCierre}%</span>
+          </div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pctCierre}%;background:var(--brand);border-radius:2px;transition:width .4s"></div>
+          </div>
+        </div>`:``}
+      </div>`:`<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:4px 0">Sin actividad registrada</div>`}
+      ${v.notas?`<div style="font-size:12px;color:var(--text-3);font-style:italic;border-top:1px solid var(--border);padding-top:8px">${v.notas}</div>`:''}
+    </div>`;
+  }).join('');
 }
 
 function abrirFormVendedor(id) {

@@ -338,7 +338,17 @@ export default async function handler(req, res) {
       if (m === "GET") {
         const r = await db.execute(`
           SELECT v.*,
-            (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id) as total_presupuestos
+            (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id) as total_presupuestos,
+            (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id
+               AND p.estado IN ('entregado','cobrado')) as total_cerrados,
+            (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id
+               AND p.estado IN ('aprobado','produccion','listo')) as total_activos,
+            (SELECT COALESCE(SUM(p.precio),0) FROM presupuestos p WHERE p.vendedor_id=v.id
+               AND p.estado IN ('aprobado','produccion','listo','entregado','cobrado')) as total_facturado,
+            (SELECT COALESCE(SUM(co.monto),0) FROM cobros co
+               WHERE co.presupuesto_id IN (
+                 SELECT p.id FROM presupuestos p WHERE p.vendedor_id=v.id
+               )) as total_cobrado
           FROM vendedores v WHERE v.activo=1 ORDER BY v.nombre`);
         return res.status(200).json({ ok: true, data: r.rows });
       }
