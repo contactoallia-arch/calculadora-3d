@@ -450,6 +450,18 @@ export default async function handler(req, res) {
         await logAction(db,user,tipo==="egreso"?"CAJA_EGRESO":"CAJA_INGRESO","caja",Number(r.lastInsertRowid));
         return res.status(200).json({ok:true,data:{id:Number(r.lastInsertRowid)}});
       }
+      if (m === "PUT" && id) {
+        const { tipo, concepto, monto, fecha, notas } = req.body||{};
+        if (!concepto||!monto||!fecha) return res.status(400).json({ok:false,error:"Concepto, monto y fecha requeridos"});
+        const ex = await db.execute({sql:"SELECT id FROM caja_movimientos WHERE id=?",args:[id]});
+        if (!ex.rows[0]) return res.status(404).json({ok:false,error:"Movimiento no encontrado"});
+        await db.execute({
+          sql:"UPDATE caja_movimientos SET tipo=?,concepto=?,monto=?,fecha=?,notas=? WHERE id=?",
+          args:[tipo||"ingreso",concepto,Number(monto),fecha,notas||null,id]
+        });
+        await logAction(db,user,"CAJA_EDITAR","caja",Number(id));
+        return res.status(200).json({ok:true});
+      }
       if (m === "DELETE" && id) {
         await db.execute({sql:"DELETE FROM caja_movimientos WHERE id=?",args:[id]});
         await logAction(db,user,"CAJA_ELIMINAR","caja",Number(id));

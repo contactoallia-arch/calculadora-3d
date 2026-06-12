@@ -59,6 +59,30 @@ const FLUJO = {
   rechazado: TODOS_ESTADOS, cancelado: TODOS_ESTADOS
 };
 
+// Utilidad de un presupuesto: precio - costos internos, o margen% sobre precio (misma lógica que repartos)
+function calcUtilidadPres(pres) {
+  const precio = Number(pres.precio) || 0;
+  if (pres.costos_internos) {
+    try { const c = JSON.parse(pres.costos_internos); const totalCostos = c.reduce((s, x) => s + (Number(x.m) || 0), 0); return precio - totalCostos; } catch {}
+  }
+  const margen = Number(pres.margen) || 0;
+  if (margen > 0) return precio * (margen / 100);
+  return null;
+}
+
+// Elimina el ingreso automático a Caja de un presupuesto. Devuelve el monto retirado (0 si no había).
+async function quitarIngresoCajaAuto(db, presId) {
+  try {
+    const r = await db.execute({ sql: "SELECT id, monto FROM caja_movimientos WHERE ref_tipo='presupuesto' AND ref_id=? AND tipo='ingreso'", args: [presId] });
+    let total = 0;
+    for (const mv of r.rows) {
+      await db.execute({ sql: "DELETE FROM caja_movimientos WHERE id=?", args: [mv.id] });
+      total += Number(mv.monto) || 0;
+    }
+    return total;
+  } catch { return 0; }
+}
+
 async function resolveCliente(db, body) {
   const nombre = (body.cliente_nombre || body.cliente || "").trim();
   if (!nombre || nombre === "—") return null;
@@ -132,7 +156,7 @@ export default async function handler(req, res) {
     const user = await requireAuth(req, res, db, ["admin", "operador"]);
     if (!user) return;
     const { estado_nuevo, nota } = req.body || {};
-    const r = await db.execute({ sql: "SELECT estado,pieza,snap,precio,margen,cliente_id,moneda,costos_internos FROM presupuestos WHERE id=?", args: [id] });
+    const r = await db.execute({ sql: "SELECT estado,pieza,numero,snap,precio,margen,cliente_id,moneda,costos_internos FROM presupuestos WHERE id=?", args: [id] });
     const pres = r.rows[0];
     if (!pres) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
     const estado_actual = pres.estado || "borrador";
@@ -143,6 +167,7 @@ export default async function handler(req, res) {
     await db.execute({ sql: "UPDATE presupuestos SET estado=?,updated_at=datetime('now'),updated_by=? WHERE id=?", args: [estado_nuevo, user.id, id] });
     await db.execute({ sql: "INSERT INTO presupuesto_estados (presupuesto_id,estado_anterior,estado_nuevo,nota,usuario_id,usuario_nombre) VALUES (?,?,?,?,?,?)", args: [id, estado_actual, estado_nuevo, nota||null, user.id, user.nombre] });
     // Auto-cobro al marcar como cobrado (si queda saldo pendiente)
+    let cajaIngreso = 0, cajaRetirado = 0;
     if (estado_nuevo === "cobrado") {
       try {
         const cobrRes = await db.execute({ sql: "SELECT COALESCE(SUM(monto),0) as total FROM cobros WHERE presupuesto_id=? AND nota!='[auto] Estado → cobrado'", args: [id] });
@@ -156,12 +181,35 @@ export default async function handler(req, res) {
           });
         }
       } catch {}
+      // % de utilidades → Caja (configurable; 0/vacío = desactivado). El % vigente solo afecta cobros futuros.
+      try {
+        const cfgR = await db.execute("SELECT valor FROM configuracion WHERE clave='caja_pct_utilidad'");
+        const pct = parseFloat(cfgR.rows[0]?.valor) || 0;
+        if (pct > 0) {
+          const utilidad = calcUtilidadPres(pres);
+          if (utilidad !== null && utilidad > 0) {
+            // Evitar duplicado si ya existe un ingreso auto de este presupuesto
+            const ya = await db.execute({ sql: "SELECT id FROM caja_movimientos WHERE ref_tipo='presupuesto' AND ref_id=? AND tipo='ingreso' LIMIT 1", args: [id] });
+            if (!ya.rows[0]) {
+              const monto = Math.round(utilidad * (pct / 100) * 100) / 100;
+              const num = String(pres.numero || id).padStart(4, "0");
+              const fecha = new Date().toISOString().slice(0, 10);
+              await db.execute({
+                sql: "INSERT INTO caja_movimientos (tipo,concepto,monto,fecha,ref_tipo,ref_id,notas,created_by) VALUES ('ingreso',?,?,?,'presupuesto',?,?,?)",
+                args: [`Utilidades #${num}: ${pres.pieza || "—"}`, monto, fecha, Number(id), `${pct}% de utilidad $${Math.round(utilidad)} (auto al cobrar)`, user.id]
+              });
+              cajaIngreso = monto;
+            }
+          }
+        }
+      } catch {}
     }
-    // Al revertir desde cobrado: eliminar el cobro auto-generado
+    // Al revertir desde cobrado: eliminar el cobro auto-generado y el ingreso automático a Caja
     if (estado_actual === "cobrado" && estado_nuevo !== "cobrado") {
       try {
         await db.execute({ sql: "DELETE FROM cobros WHERE presupuesto_id=? AND nota='[auto] Estado → cobrado'", args: [id] });
       } catch {}
+      cajaRetirado = await quitarIngresoCajaAuto(db, id);
     }
 
     // Registrar gastos y descontar insumos al pasar a producción o listo (lo que ocurra primero)
@@ -236,7 +284,7 @@ export default async function handler(req, res) {
     }
 
     await logAction(db, user, "CAMBIAR_ESTADO", "presupuesto", id, { estado_actual, estado_nuevo, nota });
-    return res.status(200).json({ ok: true, data: { estado: estado_nuevo } });
+    return res.status(200).json({ ok: true, data: { estado: estado_nuevo, caja_ingreso: cajaIngreso || undefined, caja_retirado: cajaRetirado || undefined } });
   }
 
   // /api/presupuestos/:id
@@ -323,10 +371,12 @@ export default async function handler(req, res) {
       const metaR = await db2.execute({ sql: "SELECT pieza, numero FROM presupuestos WHERE id=?", args: [id] });
       const meta = metaR.rows[0];
       if (meta) await restaurarStockInsumos(db2, id, meta.pieza, meta.numero, user.id);
+      // Quitar el ingreso automático a Caja (si lo tenía por estar cobrado)
+      const cajaRetirado = await quitarIngresoCajaAuto(db2, id);
       await db2.execute({ sql: "DELETE FROM presupuestos WHERE id=?", args: [id] });
       await db2.execute({ sql: "DELETE FROM presupuesto_estados WHERE presupuesto_id=?", args: [id] });
       await db2.execute({ sql: "DELETE FROM cobros WHERE presupuesto_id=?", args: [id] });
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, data: { caja_retirado: cajaRetirado || undefined } });
     }
     return res.status(405).json({ ok: false, error: "Método no permitido" });
   }
@@ -394,6 +444,7 @@ export default async function handler(req, res) {
 
   if (req.method === "DELETE") {
     await db.execute("DELETE FROM presupuestos");
+    try { await db.execute("DELETE FROM caja_movimientos WHERE ref_tipo='presupuesto'"); } catch {}
     return res.status(200).json({ ok: true });
   }
 

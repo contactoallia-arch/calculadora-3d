@@ -2576,6 +2576,14 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
         <div class="fgrp"><label>Margen por defecto (%)</label><input id="cfgMargen" type="number" placeholder="50"></div>
       </div>
+      <div class="frow">
+        <div class="fgrp">
+          <label>% de utilidades → Caja (al cobrar)</label>
+          <input id="cfgCajaPct" type="number" min="0" max="100" step="1" placeholder="0 = desactivado">
+          <div style="font-size:10.5px;color:var(--text-3);margin-top:3px">Al marcar un presupuesto como <b>Cobrado</b>, ese % de su utilidad ingresa automáticamente a la Caja. Si lo cambiás, solo afecta a los próximos cobros (no modifica traspasos ya hechos).</div>
+        </div>
+        <div class="fgrp"></div>
+      </div>
       <button class="btn btn--primary" onclick="saveConfig()">Guardar configuración</button>
     </div>
     <div class="section-card" id="cfgUsuariosCard">
@@ -4045,10 +4053,18 @@ function aplicarEstadoSlideover() {
   cerrarPresSlideover();
 }
 
+// Toasts de los movimientos automáticos de Caja que devuelve el cambio de estado
+function _notifCajaEstado(d) {
+  const fmtM = v => '$ ' + Math.round(v).toLocaleString('es-UY');
+  if (d.data?.caja_ingreso)  showToast(`💰 ${fmtM(d.data.caja_ingreso)} de utilidades ingresaron a Caja`, 'ok');
+  if (d.data?.caja_retirado) showToast(`⚠ Se retiró de Caja ${fmtM(d.data.caja_retirado)} (ingreso automático del presupuesto revertido)`, 'err');
+}
+
 async function cambiarEstado(presId, nuevoEstado, nota, reloadPage) {
   const d = await apiPut(`/api/presupuestos/${presId}/estado`, { estado_nuevo: nuevoEstado, nota });
   if (d.ok) {
     showToast('Estado actualizado: ' + nuevoEstado, 'ok');
+    _notifCajaEstado(d);
     if (reloadPage === 'presupuestos') loadPresupuestos();
     if (reloadPage === 'dashboard') loadDashboard();
   } else {
@@ -4234,6 +4250,7 @@ async function cambiarEstadoModal(id, nuevoEstado) {
   const d = await apiPut(`/api/presupuestos/${numId}/estado`, { estado_nuevo: nuevoEstado });
   if (d.ok) {
     showToast('Estado → ' + (LABELS_EST[nuevoEstado]||nuevoEstado), 'ok');
+    _notifCajaEstado(d);
     await loadPresupuestos();
     const p = _presCache.find(x => Number(x.id) === numId);
     if (p) { renderEstadoEditPres(p); cargarHistorialPres(numId); }
@@ -4496,11 +4513,19 @@ async function duplicarDesdeCalculadora() {
 }
 
 async function eliminarPresupuesto(id) {
-  showConfirm('¿Eliminar este presupuesto? Esta acción no se puede deshacer.',()=>_doEliminarPresupuesto(id),{title:'Eliminar presupuesto'});
+  const p = _presCache.find(x => Number(x.id) === Number(id));
+  const msg = p?.estado === 'cobrado'
+    ? '¿Eliminar este presupuesto? Está COBRADO: también se eliminarán sus cobros y el ingreso automático de utilidades a la Caja. Esta acción no se puede deshacer.'
+    : '¿Eliminar este presupuesto? Esta acción no se puede deshacer.';
+  showConfirm(msg,()=>_doEliminarPresupuesto(id),{title:'Eliminar presupuesto'});
 }
 async function _doEliminarPresupuesto(id) {
   const d = await apiDelete('/api/presupuestos/' + id);
-  if (d.ok) { showToast('Presupuesto eliminado', 'ok'); loadPresupuestos(); }
+  if (d.ok) {
+    showToast('Presupuesto eliminado', 'ok');
+    if (d.data?.caja_retirado) showToast(`⚠ Se retiró de Caja $ ${Math.round(d.data.caja_retirado).toLocaleString('es-UY')} (ingreso automático)`, 'err');
+    loadPresupuestos();
+  }
   else showToast(d.error || 'Error', 'err');
 }
 
@@ -5734,6 +5759,7 @@ async function loadConfig() {
     const cfgTCFecha = document.getElementById('cfgTCFecha');
     if (cfgTCFecha) cfgTCFecha.textContent = c.tc_fecha ? `· ${c.tc_fecha}` : '';
     document.getElementById('cfgMargen').value = c.margen_default || '';
+    document.getElementById('cfgCajaPct').value = c.caja_pct_utilidad || '';
   }
 
   if (usersD.ok) {
@@ -5759,11 +5785,14 @@ async function loadConfig() {
 }
 
 async function saveConfig() {
+  const pctCaja = parseFloat(document.getElementById('cfgCajaPct').value);
+  if (!isNaN(pctCaja) && (pctCaja < 0 || pctCaja > 100)) { showToast('El % de utilidades → Caja debe estar entre 0 y 100', 'err'); return; }
   const body = {
     nombre_empresa: document.getElementById('cfgEmpresa').value,
     whatsapp_numero: document.getElementById('cfgWA').value,
     tipo_cambio_usd_uyu: document.getElementById('cfgTC').value,
-    margen_default: document.getElementById('cfgMargen').value
+    margen_default: document.getElementById('cfgMargen').value,
+    caja_pct_utilidad: document.getElementById('cfgCajaPct').value || '0'
   };
   const d = await apiPut('/api/configuracion', body);
   if (d.ok) showToast('Configuración guardada', 'ok');
@@ -9342,22 +9371,27 @@ function renderCajaMovList() {
     const esIng = m.tipo === 'ingreso';
     const signo = esIng ? '+' : '−';
     const color = esIng ? 'var(--ok-fg)' : 'var(--bad-fg,#dc2626)';
+    const autoBadge = m.ref_tipo==='presupuesto' ? `<span title="Generado automáticamente al cobrar el presupuesto" style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--brand-soft);color:var(--brand);border-radius:5px;padding:2px 6px;flex-shrink:0">auto</span>` : '';
     return `<div class="caja-mov-row">
       <span class="${esIng?'caja-badge-ing':'caja-badge-egr'}">${esIng?'↑ Ingreso':'↓ Egreso'}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.concepto}</div>
+        <div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.concepto}</div>${autoBadge}</div>
         ${m.notas?`<div style="font-size:11.5px;color:var(--text-3)">${m.notas}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-family:var(--mono);font-weight:800;font-size:15px;color:${color}">${signo} $ ${Math.round(m.monto).toLocaleString('es-UY')}</div>
         <div style="font-size:11.5px;color:var(--text-3)">${m.fecha||''}</div>
       </div>
+      <button class="icon-btn" title="Editar" onclick="editarMovCaja(${m.id})" style="flex-shrink:0"><svg class="icon" viewBox="0 0 18 18"><path d="M13 2l3 3-9.5 9.5L3 16l1.5-3.5z"/></svg></button>
       <button class="icon-btn" title="Eliminar" onclick="eliminarMovCaja(${m.id})" style="color:var(--bad-fg);flex-shrink:0"><svg class="icon" viewBox="0 0 18 18"><polyline points="3 5 15 5"/><path d="M6 5V3h6v2"/><rect x="4" y="5" width="10" height="11" rx="1"/></svg></button>
     </div>`;
   }).join('');
 }
 
+let _cajaEditId = null;
+
 function abrirMovCaja(tipo) {
+  _cajaEditId = null;
   _cajaTipoActual = tipo || 'ingreso';
   _setCajaTipo(_cajaTipoActual);
   document.getElementById('cajaConcepto').value = '';
@@ -9368,10 +9402,24 @@ function abrirMovCaja(tipo) {
   setTimeout(() => document.getElementById('cajaConcepto').focus(), 120);
 }
 
+function editarMovCaja(id) {
+  const m = _cajaMovCache.find(x => Number(x.id) === Number(id));
+  if (!m) { showToast('Movimiento no encontrado','err'); return; }
+  _cajaEditId = m.id;
+  _setCajaTipo(m.tipo === 'egreso' ? 'egreso' : 'ingreso');
+  document.getElementById('mCajaMovTit').textContent = 'Editar movimiento de Caja';
+  document.getElementById('cajaConcepto').value = m.concepto || '';
+  document.getElementById('cajaMonto').value = m.monto != null ? m.monto : '';
+  document.getElementById('cajaNotas').value = m.notas || '';
+  document.getElementById('cajaFecha').value = (m.fecha||'').slice(0,10) || new Date().toISOString().slice(0,10);
+  openM('mCajaMov');
+  setTimeout(() => document.getElementById('cajaMonto').focus(), 120);
+}
+
 function _setCajaTipo(tipo) {
   _cajaTipoActual = tipo;
   document.getElementById('cajaTipo').value = tipo;
-  document.getElementById('mCajaMovTit').textContent = tipo === 'ingreso' ? 'Ingresar a Caja' : 'Retirar de Caja';
+  document.getElementById('mCajaMovTit').textContent = _cajaEditId != null ? 'Editar movimiento de Caja' : (tipo === 'ingreso' ? 'Ingresar a Caja' : 'Retirar de Caja');
   document.getElementById('cajaTipoIngBtn').className = tipo === 'ingreso' ? 'btn btn--primary btn--sm' : 'btn btn--ghost btn--sm';
   document.getElementById('cajaTipoEgrBtn').className = tipo === 'egreso'  ? 'btn btn--danger btn--sm'  : 'btn btn--ghost btn--sm';
 }
@@ -9383,8 +9431,10 @@ async function guardarMovCaja() {
   const notas    = document.getElementById('cajaNotas').value.trim() || null;
   const tipo     = document.getElementById('cajaTipo').value || 'ingreso';
   if (!concepto || isNaN(monto) || monto <= 0 || !fecha) { showToast('Concepto, monto y fecha requeridos','err'); return; }
-  const d = await apiPost('/api/caja', { tipo, concepto, monto, fecha, notas });
-  if (d.ok) { showToast(tipo==='ingreso'?'Ingreso registrado ✓':'Egreso registrado ✓','ok'); closeM(); loadCaja(); loadEstadoCuentaData(); }
+  const d = _cajaEditId != null
+    ? await apiPut('/api/caja/' + _cajaEditId, { tipo, concepto, monto, fecha, notas })
+    : await apiPost('/api/caja', { tipo, concepto, monto, fecha, notas });
+  if (d.ok) { showToast(_cajaEditId!=null?'Movimiento actualizado ✓':(tipo==='ingreso'?'Ingreso registrado ✓':'Egreso registrado ✓'),'ok'); _cajaEditId=null; closeM(); loadCaja(); loadEstadoCuentaData(); }
   else showToast(d.error||'Error','err');
 }
 
