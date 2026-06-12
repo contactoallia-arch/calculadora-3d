@@ -7584,16 +7584,16 @@ async function runDbQuery() {
 // ── DATA ──────────────────────────────────────────────────────────────
 const DEF={PLA:800,PETG:1000,ABS:900,TPU:1400,ASA:1200,Nylon:1800,Resina:1600,Personalizado:800};
 const PR={
-  A1:    {PLA:95, PETG:200,ABS:150,maint:350,hint:'Boquilla ~200 · lubricante ~80 · film PEI ~70'},
-  A1Mini:{PLA:80, PETG:75, ABS:75, maint:220,hint:'Boquilla ~130 · lubricante ~50 · film PEI ~40'},
-  P1P:   {PLA:110,PETG:170,ABS:160,maint:450,hint:'Boquilla ~260 · lubricante ~90 · film PEI ~100'},
-  P1S:   {PLA:105,PETG:140,ABS:135,maint:580,hint:'Boquilla ~330 · lubricante ~120 · film PEI ~130'},
-  P2S:   {PLA:200,PETG:200,ABS:200,maint:580,hint:'Boquilla ~330 · lubricante ~120 · film PEI ~130'},
-  X1C:   {PLA:105,PETG:150,ABS:135,maint:650,hint:'Boquilla ~380 · lubricante ~140 · film PEI ~130'},
-  X1E:   {PLA:185,PETG:185,ABS:260,maint:750,hint:'Boquilla ~450 · lubricante ~160 · film PEI ~140'},
-  H2C:   {PLA:200,PETG:193,ABS:294,maint:950,hint:'Boquilla ~550 · lubricante ~200 · film PEI ~200'},
-  H2D:   {PLA:197,PETG:150,ABS:395,maint:950,hint:'Boquilla ~550 · lubricante ~200 · film PEI ~200'},
-  H2S:   {PLA:200,PETG:180,ABS:330,maint:950,hint:'Boquilla ~550 · lubricante ~200 · film PEI ~200'},
+  A1:    {PLA:95, PETG:200,ABS:150,maint:350,cost:20000, life:5000,hint:'Boquilla ~200 · lubricante ~80 · film PEI ~70'},
+  A1Mini:{PLA:80, PETG:75, ABS:75, maint:220,cost:13000, life:5000,hint:'Boquilla ~130 · lubricante ~50 · film PEI ~40'},
+  P1P:   {PLA:110,PETG:170,ABS:160,maint:450,cost:26000, life:5000,hint:'Boquilla ~260 · lubricante ~90 · film PEI ~100'},
+  P1S:   {PLA:105,PETG:140,ABS:135,maint:580,cost:32000, life:5000,hint:'Boquilla ~330 · lubricante ~120 · film PEI ~130'},
+  P2S:   {PLA:200,PETG:200,ABS:200,maint:580,cost:38000, life:5000,hint:'Boquilla ~330 · lubricante ~120 · film PEI ~130'},
+  X1C:   {PLA:105,PETG:150,ABS:135,maint:650,cost:60000, life:6000,hint:'Boquilla ~380 · lubricante ~140 · film PEI ~130'},
+  X1E:   {PLA:185,PETG:185,ABS:260,maint:750,cost:110000,life:6000,hint:'Boquilla ~450 · lubricante ~160 · film PEI ~140'},
+  H2C:   {PLA:200,PETG:193,ABS:294,maint:950,cost:130000,life:6000,hint:'Boquilla ~550 · lubricante ~200 · film PEI ~200'},
+  H2D:   {PLA:197,PETG:150,ABS:395,maint:950,cost:110000,life:6000,hint:'Boquilla ~550 · lubricante ~200 · film PEI ~200'},
+  H2S:   {PLA:200,PETG:180,ABS:330,maint:950,cost:90000, life:6000,hint:'Boquilla ~550 · lubricante ~200 · film PEI ~200'},
   manual:{PLA:100,PETG:100,ABS:100,maint:300,hint:'Ingresá los datos manualmente'}
 };
 
@@ -7617,7 +7617,7 @@ const ART_DEF={
   matType:'PLA', spoolPrice:800, ivaOnSpool:false, grams:50, waste:5,
   kwhRate:10.35, printerModel:'A1', watts:95, matPill:'PLA',
   tDays:0, tHours:3, tMins:30,
-  printerCost:80000, printerLife:5000, maintenance:350, pieces:20,
+  printerCost:20000, printerLife:5000, maintenance:350, hoursMonth:120, pieces:20,
   hourly:200, laborH:0.5, overhead:5000, failBuf:10,
   packaging:0, margin:50, spoolCur:'UYU', pkgCur:'UYU',
   sec:{material:true,elec:true,printer:true,labor:true,time:true,extras:false,insumos:false}
@@ -7912,12 +7912,12 @@ function articuloHTML(aid){
     </div>
     <div id="body-printer-${aid}" style="${BB}">
       <div class="two">
-        <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost-${aid}" value="80000" min="0" step="100"></div>
+        <div class="f"><label class="fl">Costo impresora (UYU)</label><input type="number" id="printerCost-${aid}" value="20000" min="0" step="100"></div>
         <div class="f"><label class="fl">Vida útil (horas)</label><input type="number" id="printerLife-${aid}" value="5000" min="100" step="100"></div>
       </div>
       <div class="two">
         <div class="f"><label class="fl">Mantenimiento mensual</label><input type="number" id="maintenance-${aid}" value="350" min="0" step="10"></div>
-        <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces-${aid}" value="20" min="1" step="1"></div>
+        <div class="f"><label class="fl">Horas impresión / mes</label><input type="number" id="hoursMonth-${aid}" value="120" min="1" step="1"></div>
       </div>
     </div>
   </div>
@@ -7941,7 +7941,11 @@ function articuloHTML(aid){
       </div>
       <div class="two">
         <div class="f"><label class="fl">Gastos fijos mensuales</label><input type="number" id="overhead-${aid}" value="5000" min="0" step="100"></div>
+        <div class="f"><label class="fl">Piezas por mes</label><input type="number" id="pieces-${aid}" value="20" min="1" step="1"></div>
+      </div>
+      <div class="two">
         <div class="f"><label class="fl">Buffer fallas (%)</label><input type="number" id="failBuf-${aid}" value="10" min="0" max="50" step="1"></div>
+        <div class="f"></div>
       </div>
     </div>
   </div>
@@ -8203,6 +8207,9 @@ function artSetPrinter(aid,m){
   const a=_art(aid); const p=PR[m]||PR.A1;
   document.getElementById('watts-'+aid).value=p[a?a.matPill:'PLA']||p.PLA;
   document.getElementById('maintenance-'+aid).value=p.maint;
+  // Costo y vida útil según modelo (en "Otra / Manual" se dejan como están)
+  if(p.cost){const pc=document.getElementById('printerCost-'+aid);if(pc)pc.value=p.cost;}
+  if(p.life){const pl=document.getElementById('printerLife-'+aid);if(pl)pl.value=p.life;}
   renderArt(aid); recalcTotal();
 }
 function artStep(aid,field,d){
@@ -8344,7 +8351,8 @@ function computeArt(aid){
   // Impresora
   let deprC=0,maintC=0;
   if(a.sec.printer){ const pc=gn('printerCost',aid), pl=gn('printerLife',aid)||5000; deprC=(pc/pl)*totalH;
-    const mn=gn('maintenance',aid), ps=gn('pieces',aid)||1; maintC=mn/ps; }
+    // Mantenimiento repartido por hora de impresión: una pieza de 18h desgasta más que un llavero de 30min
+    const mn=gn('maintenance',aid), hm=gn('hoursMonth',aid)||120; maintC=(mn/hm)*totalH; }
   // Mano de obra
   let laborC=0,ovhC=0,fail=0;
   if(a.sec.labor){ laborC=gn('hourly',aid)*gn('laborH',aid);
@@ -8985,7 +8993,7 @@ function _buildBootstrapSnap(item){
     matType:mat,spoolPrice:'0',grams:'0',waste:'3',
     kwhRate:'0',printerModel:'',watts:'0',
     tDays:'0',tHours:'0',tMins:'0',
-    printerCost:'0',printerLife:'1000',maintenance:'0',pieces:'1',
+    printerCost:'0',printerLife:'1000',maintenance:'0',hoursMonth:'120',pieces:'1',
     hourly:'0',laborH:'0',overhead:'0',failBuf:'5',packaging:'0',
     sec:{material:false,elec:false,printer:false,labor:false,time:false,extras:false},
     margin:Number(item.margin||item.margen||50),
@@ -9075,7 +9083,7 @@ function captureForm(){
       matType:gv('matType',id), spoolPrice:gv('spoolPrice',id), grams:gv('grams',id), waste:gv('waste',id),
       kwhRate:gv('kwhRate',id), printerModel:gv('printerModel',id), watts:gv('watts',id),
       tDays:gv('tDays',id),tHours:gv('tHours',id),tMins:gv('tMins',id),
-      printerCost:gv('printerCost',id),printerLife:gv('printerLife',id),maintenance:gv('maintenance',id),pieces:gv('pieces',id),
+      printerCost:gv('printerCost',id),printerLife:gv('printerLife',id),maintenance:gv('maintenance',id),hoursMonth:gv('hoursMonth',id),pieces:gv('pieces',id),
       hourly:gv('hourly',id),laborH:gv('laborH',id),overhead:gv('overhead',id),failBuf:gv('failBuf',id),
       packaging:gv('packaging',id),
       sec:{...a.sec}, margin:a.margin, spoolCur:a.spoolCur, pkgCur:a.pkgCur, ivaOnSpool:a.ivaOnSpool, matPill:a.matPill, overridePrice:a.overridePrice||null,
@@ -9103,7 +9111,7 @@ function restoreArticulo(aid,d){
   a.multEnabled=d.multEnabled!==undefined?!!d.multEnabled:!!d.qtyEnabled;
   a.multQty=d.multQty!==undefined?(parseInt(d.multQty)||1):(parseInt(d.qty)||1);
   updateMultUI(aid);
-  ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
+  ['alto','ancho','profundo','peso','matType','spoolPrice','grams','waste','kwhRate','printerModel','watts','tDays','tHours','tMins','printerCost','printerLife','maintenance','hoursMonth','pieces','hourly','laborH','overhead','failBuf','packaging'].forEach(k=>setv(k,d[k]));
   a.margin=d.margin!==undefined?d.margin:50; a.spoolCur=d.spoolCur||'UYU'; a.pkgCur=d.pkgCur||'UYU'; a.ivaOnSpool=!!d.ivaOnSpool; a.matPill=d.matPill||'PLA';
   if(d.overridePrice!=null){a.overridePrice=d.overridePrice;const b=document.getElementById('artOverrideBadge-'+aid);if(b)b.style.display='';} else a.overridePrice=null;
   if(d.sec)a.sec={material:true,elec:true,printer:true,labor:true,time:true,extras:false,...d.sec};
