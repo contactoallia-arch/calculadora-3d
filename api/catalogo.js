@@ -336,7 +336,13 @@ export default async function handler(req, res) {
         }); // mostramos TODOS los cobrados aunque no tengan utilidad definida
         const ejecutado = rep.rows.filter(r=>r.estado==="ejecutado").reduce((s,r)=>s+Number(r.monto),0);
         const pendiente = rep.rows.filter(r=>r.estado==="pendiente").reduce((s,r)=>s+Number(r.monto),0);
-        return res.status(200).json({ ok:true, data:rep.rows, bolsa:{total_utilidad,ejecutado,pendiente,disponible:total_utilidad-ejecutado,disponible_libre:total_utilidad-ejecutado-pendiente,detalle} });
+        // Usuarios activos con datos bancarios — para autocompletar destinatario y armar la orden de transferencia
+        let destinatarios = [];
+        try {
+          const u = await db.execute("SELECT nombre,banco,cuenta_numero,cuenta_sucursal,cuenta_moneda,cuenta_tipo FROM usuarios WHERE activo=1 ORDER BY nombre");
+          destinatarios = u.rows;
+        } catch {}
+        return res.status(200).json({ ok:true, data:rep.rows, destinatarios, bolsa:{total_utilidad,ejecutado,pendiente,disponible:total_utilidad-ejecutado,disponible_libre:total_utilidad-ejecutado-pendiente,detalle} });
       }
       if (m === "POST") {
         const { descripcion, destinatario, monto, fecha, notas, para_caja } = req.body||{};

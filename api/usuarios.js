@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       if (!isAdmin && !isSelf) return res.status(403).json({ ok: false, error: "Sin permiso" });
-      const r = await db.execute({ sql: "SELECT id,nombre,email,telefono,rol,activo,created_at,last_login FROM usuarios WHERE id=?", args: [id] });
+      const r = await db.execute({ sql: "SELECT id,nombre,email,telefono,rol,activo,created_at,last_login,banco,cuenta_numero,cuenta_sucursal,cuenta_moneda,cuenta_tipo FROM usuarios WHERE id=?", args: [id] });
       if (!r.rows[0]) return res.status(404).json({ ok: false, error: "No encontrado" });
       return res.status(200).json({ ok: true, data: r.rows[0] });
     }
@@ -28,18 +28,26 @@ export default async function handler(req, res) {
     if (req.method === "PUT") {
       if (!isAdmin && !isSelf) return res.status(403).json({ ok: false, error: "Sin permiso" });
 
-      const { nombre, email, telefono, rol, activo, password } = req.body || {};
+      const body = req.body || {};
+      const { nombre, email, telefono, rol, activo, password } = body;
 
-      // Usuarios no-admin solo pueden editar su propio nombre, email, telefono y contraseña
+      // Usuarios no-admin solo pueden editar su propio nombre, email, telefono, datos bancarios y contraseña
       const newRol    = isAdmin ? (rol    ?? user.rol) : user.rol;
       const newActivo = isAdmin ? (activo !== undefined ? activo : 1) : 1;
 
-      let sql  = "UPDATE usuarios SET nombre=?,email=?,telefono=?,rol=?,activo=? WHERE id=?";
-      let args = [nombre, email?.toLowerCase().trim(), telefono||null, newRol, newActivo, id];
+      // Datos bancarios: solo se sobrescriben si vienen en el body (el form de admin no los envía)
+      const curR = await db.execute({ sql: "SELECT banco,cuenta_numero,cuenta_sucursal,cuenta_moneda,cuenta_tipo FROM usuarios WHERE id=?", args: [id] });
+      const cur = curR.rows[0] || {};
+      const bk = (k, def) => (body[k] !== undefined ? (body[k] || null) : (cur[k] ?? def ?? null));
+      const banco = bk("banco"), cuentaNum = bk("cuenta_numero"), cuentaSuc = bk("cuenta_sucursal");
+      const cuentaMon = bk("cuenta_moneda", "UYU"), cuentaTipo = bk("cuenta_tipo", "caja_ahorro");
+
+      let sql  = "UPDATE usuarios SET nombre=?,email=?,telefono=?,rol=?,activo=?,banco=?,cuenta_numero=?,cuenta_sucursal=?,cuenta_moneda=?,cuenta_tipo=? WHERE id=?";
+      let args = [nombre, email?.toLowerCase().trim(), telefono||null, newRol, newActivo, banco, cuentaNum, cuentaSuc, cuentaMon, cuentaTipo, id];
       if (password) {
         const hash = await bcrypt.hash(password, 10);
-        sql  = "UPDATE usuarios SET nombre=?,email=?,telefono=?,rol=?,activo=?,password_hash=? WHERE id=?";
-        args = [nombre, email?.toLowerCase().trim(), telefono||null, newRol, newActivo, hash, id];
+        sql  = "UPDATE usuarios SET nombre=?,email=?,telefono=?,rol=?,activo=?,banco=?,cuenta_numero=?,cuenta_sucursal=?,cuenta_moneda=?,cuenta_tipo=?,password_hash=? WHERE id=?";
+        args = [nombre, email?.toLowerCase().trim(), telefono||null, newRol, newActivo, banco, cuentaNum, cuentaSuc, cuentaMon, cuentaTipo, hash, id];
       }
       await db.execute({ sql, args });
       await logAction(db, user, isSelf ? "EDITAR_PERFIL" : "EDITAR_USUARIO", "usuario", id);

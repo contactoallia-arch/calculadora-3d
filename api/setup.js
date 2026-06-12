@@ -108,6 +108,13 @@ export default async function handler(req, res) {
 
   try { await db.execute("ALTER TABLE usuarios ADD COLUMN telefono TEXT"); } catch {}
 
+  // Datos bancarios del usuario (para recibir transferencias de utilidades)
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN banco TEXT"); } catch {}
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN cuenta_numero TEXT"); } catch {}
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN cuenta_sucursal TEXT"); } catch {}
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN cuenta_moneda TEXT DEFAULT 'UYU'"); } catch {}
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN cuenta_tipo TEXT DEFAULT 'caja_ahorro'"); } catch {}
+
   // Gastos: origen del pago y quién pagó (para gastos personales)
   try { await db.execute("ALTER TABLE gastos ADD COLUMN origen TEXT DEFAULT 'empresa'"); } catch {}
   try { await db.execute("ALTER TABLE gastos ADD COLUMN pagado_por INTEGER"); } catch {}

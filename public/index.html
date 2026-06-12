@@ -2557,6 +2557,21 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="fgrp"><label>Nueva contraseña <span style="font-weight:400;color:var(--text-3)">(dejar vacío para no cambiar)</span></label><input id="profilePass" type="password" placeholder="••••••••" autocomplete="new-password"></div>
         <div class="fgrp"><label>Confirmar contraseña</label><input id="profilePass2" type="password" placeholder="••••••••" autocomplete="new-password"></div>
       </div>
+      <div style="font-size:12px;font-weight:700;color:var(--text-2);margin:14px 0 8px;padding-top:12px;border-top:1px solid var(--bd)">🏦 Datos bancarios <span style="font-weight:400;color:var(--text-3)">(para recibir transferencias de utilidades)</span></div>
+      <div class="frow">
+        <div class="fgrp"><label>Banco</label><input id="profileBanco" placeholder="Ej: BROU, Itaú, Santander…"></div>
+        <div class="fgrp"><label>Número de cuenta</label><input id="profileCuentaNum" placeholder="Ej: 001234567-00001"></div>
+        <div class="fgrp"><label>Sucursal</label><input id="profileCuentaSuc" placeholder="Ej: 19 — Maldonado"></div>
+      </div>
+      <div class="frow">
+        <div class="fgrp"><label>Moneda</label>
+          <select id="profileCuentaMon"><option value="UYU">$ Pesos uruguayos</option><option value="USD">U$S Dólares</option></select>
+        </div>
+        <div class="fgrp"><label>Tipo de cuenta</label>
+          <select id="profileCuentaTipo"><option value="caja_ahorro">Caja de ahorro</option><option value="cuenta_corriente">Cuenta corriente</option></select>
+        </div>
+        <div class="fgrp"></div>
+      </div>
       <button class="btn btn--primary" onclick="saveUserProfile()">Guardar perfil</button>
     </div>
     <div class="section-card">
@@ -3267,7 +3282,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       <div class="fgrp" style="flex:2"><label>Descripción *</label><input id="rDesc" placeholder="Ej: Utilidades enero 2026, retiro personal…"></div>
     </div>
     <div class="frow">
-      <div class="fgrp"><label>Destinatario</label><input id="rDest" placeholder="Nombre de quien recibe"></div>
+      <div class="fgrp"><label>Destinatario</label><input id="rDest" list="rDestList" placeholder="Nombre de quien recibe"><datalist id="rDestList"></datalist></div>
       <div class="fgrp"><label>Fecha</label><input id="rFecha" type="date"></div>
     </div>
     <div class="frow">
@@ -5740,6 +5755,11 @@ async function loadConfig() {
       document.getElementById('profileNombre').value = pd.data.nombre || '';
       document.getElementById('profileEmail').value  = pd.data.email  || '';
       document.getElementById('profileTel').value    = pd.data.telefono || '';
+      document.getElementById('profileBanco').value      = pd.data.banco || '';
+      document.getElementById('profileCuentaNum').value  = pd.data.cuenta_numero || '';
+      document.getElementById('profileCuentaSuc').value  = pd.data.cuenta_sucursal || '';
+      document.getElementById('profileCuentaMon').value  = pd.data.cuenta_moneda || 'UYU';
+      document.getElementById('profileCuentaTipo').value = pd.data.cuenta_tipo || 'caja_ahorro';
     }
     document.getElementById('profilePass').value  = '';
     document.getElementById('profilePass2').value = '';
@@ -5808,7 +5828,13 @@ async function saveUserProfile() {
   if (!nombre || !email) { showToast('Nombre y email son obligatorios', 'err'); return; }
   if (pass && pass !== pass2) { showToast('Las contraseñas no coinciden', 'err'); return; }
   if (pass && pass.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres', 'err'); return; }
-  const body = { nombre, email, telefono: tel || null };
+  const body = { nombre, email, telefono: tel || null,
+    banco: document.getElementById('profileBanco').value.trim() || null,
+    cuenta_numero: document.getElementById('profileCuentaNum').value.trim() || null,
+    cuenta_sucursal: document.getElementById('profileCuentaSuc').value.trim() || null,
+    cuenta_moneda: document.getElementById('profileCuentaMon').value,
+    cuenta_tipo: document.getElementById('profileCuentaTipo').value
+  };
   if (pass) body.password = pass;
   const d = await apiPut('/api/usuarios/' + _currentUser.id, body);
   if (d.ok) {
@@ -9505,10 +9531,14 @@ function _rParaCajaChange() {
 let _repartoCache = [];
 let _repartoBolsa = {};
 let _repartoChip  = '';
+let _repartoDestinatarios = [];
 
 async function loadRepartos() {
   try {
     const d = await apiGet('/api/repartos');
+    _repartoDestinatarios = d.destinatarios || [];
+    const dl = document.getElementById('rDestList');
+    if (dl) dl.innerHTML = _repartoDestinatarios.map(u=>`<option value="${u.nombre}">`).join('');
     if (!d.ok) throw new Error(d.error);
     _repartoCache = d.data || [];
     _repartoBolsa = d.bolsa || {};
@@ -9577,6 +9607,7 @@ function renderRepartoTabla() {
             <button onclick="ejecutarReparto(${r.id})" class="btn btn--primary btn--sm">✓ Ejecutar</button>
             <button onclick="cancelarReparto(${r.id})" class="btn btn--ghost btn--sm">Cancelar</button>
           `:''}
+          ${!r.para_caja&&r.estado!=='cancelado'?`<button onclick="imprimirOrdenTransferencia(${r.id})" class="btn btn--ghost btn--sm" title="Imprimir orden de transferencia">🖨</button>`:''}
           ${r.estado!=='ejecutado'?`<button onclick="eliminarReparto(${r.id})" class="btn btn--danger btn--sm">🗑</button>`:''}
         </div>
       </td>
@@ -9637,14 +9668,91 @@ async function ejecutarReparto(id) {
   const r = _repartoCache.find(x => Number(x.id) === Number(id));
   const msg = r?.para_caja
     ? '¿Ejecutar esta orden? El monto pasará a la Caja como capital de giro.'
-    : '¿Ejecutar esta orden? Se descontará del saldo de utilidades disponible.';
+    : '¿Ejecutar esta orden? Se descontará del saldo de utilidades disponible y se abrirá la orden de transferencia para imprimir.';
   showConfirm(msg, async () => {
     const d = await apiPut('/api/repartos/'+id, { accion:'ejecutar' });
     if (d.ok) {
       showToast(r?.para_caja ? 'Ejecutado ✓ — monto ingresado a Caja' : 'Orden ejecutada ✓','ok');
-      loadRepartos(); loadCaja(); loadEstadoCuentaData();
+      await loadRepartos(); loadCaja(); loadEstadoCuentaData();
+      // Abrir la orden de transferencia con los datos bancarios del destinatario
+      if (r && !r.para_caja) imprimirOrdenTransferencia(id);
     } else showToast(d.error||'Error','err');
   }, { title:'Ejecutar utilidades', btnLabel:'Ejecutar', danger:false });
+}
+
+// ── ORDEN DE TRANSFERENCIA (PDF imprimible) ───────────────────────────
+const _TIPO_CUENTA_LBL = { caja_ahorro:'Caja de ahorro', cuenta_corriente:'Cuenta corriente' };
+
+function imprimirOrdenTransferencia(id) {
+  const r = _repartoCache.find(x => Number(x.id) === Number(id));
+  if (!r) { showToast('Orden no encontrada','err'); return; }
+  const dest = r.destinatario || '—';
+  const u = _repartoDestinatarios.find(x => nrm(x.nombre) === nrm(dest));
+  const tieneBanco = u && (u.banco || u.cuenta_numero);
+  const monto = '$ ' + Math.round(Number(r.monto)||0).toLocaleString('es-UY');
+  const fecha = (r.executed_at || r.fecha || new Date().toISOString().slice(0,10)).split('-').reverse().join('/');
+  const num = String(r.id).padStart(4,'0');
+  const estadoLbl = r.estado === 'ejecutado' ? '✅ Ejecutada' : '⏳ Pendiente de transferencia';
+  const row = (l,v) => `<tr><td style="padding:9px 14px;color:#57544E;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;width:170px;border-top:1px solid #E7E0D6">${l}</td><td style="padding:9px 14px;font-size:14px;font-weight:700;color:#211F1C;border-top:1px solid #E7E0D6">${v}</td></tr>`;
+  const bancoHtml = tieneBanco ? `
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#57544E;margin:26px 0 8px">Datos bancarios del destinatario</div>
+    <table style="width:100%;border-collapse:collapse;background:#F6F3EE;border:1px solid #E7E0D6;border-radius:8px">
+      ${row('Banco', u.banco || '—')}
+      ${row('Número de cuenta', u.cuenta_numero || '—')}
+      ${row('Sucursal', u.cuenta_sucursal || '—')}
+      ${row('Tipo de cuenta', _TIPO_CUENTA_LBL[u.cuenta_tipo] || u.cuenta_tipo || '—')}
+      ${row('Moneda', u.cuenta_moneda === 'USD' ? 'U$S Dólares' : '$ Pesos uruguayos')}
+    </table>`
+  : `<div style="margin:26px 0 8px;padding:14px;background:#FBEFD9;border:1px solid #E8C97A;border-radius:8px;font-size:12.5px;color:#8a6d1d">
+      ⚠ <b>${dest}</b> no tiene datos bancarios cargados. Pedile que los complete en <b>Configuración → Mi perfil → Datos bancarios</b>.
+    </div>`;
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Orden de transferencia #${num} — ArteLab</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;background:#d7d2c8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+body{padding:24px}
+.pg{width:210mm;min-height:148mm;margin:0 auto;padding:16mm;background:#ECE9E3;box-shadow:0 20px 60px rgba(33,31,28,.22)}
+@media print{@page{size:A4;margin:0}html,body{padding:0;background:#ECE9E3}.pg{width:210mm;margin:0;box-shadow:none;padding:16mm}}
+</style></head><body><div class="pg">
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #211F1C;padding-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="${location.origin}/logo-artelab.png" style="height:44px" onerror="this.style.display='none'">
+      <div>
+        <div style="font-size:19px;font-weight:900;color:#211F1C">ArteLab UY</div>
+        <div style="font-size:11px;color:#57544E">Impresión 3D · Uruguay</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:15px;font-weight:900;color:#211F1C">ORDEN DE TRANSFERENCIA</div>
+      <div style="font-size:12px;color:#57544E">#${num} · ${fecha}</div>
+      <div style="font-size:11.5px;font-weight:700;margin-top:3px">${estadoLbl}</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:18px;margin-top:24px;align-items:stretch">
+    <div style="flex:1;background:#F6F3EE;border:1px solid #E7E0D6;border-radius:8px;padding:16px">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#57544E">Transferir a</div>
+      <div style="font-size:22px;font-weight:900;color:#211F1C;margin-top:4px">${dest}</div>
+      <div style="font-size:12px;color:#57544E;margin-top:2px">${r.descripcion||''}</div>
+    </div>
+    <div style="flex:1;background:#211F1C;border-radius:8px;padding:16px;color:#ECE9E3">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.7">Monto a transferir</div>
+      <div style="font-size:30px;font-weight:900;margin-top:4px">${monto}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:2px">Reparto de utilidades</div>
+    </div>
+  </div>
+  ${bancoHtml}
+  ${r.notas?`<div style="margin-top:18px;font-size:12px;color:#57544E"><b>Notas:</b> ${r.notas}</div>`:''}
+  <div style="display:flex;gap:40px;margin-top:54px">
+    <div style="flex:1;border-top:1.5px solid #211F1C;padding-top:6px;font-size:11px;color:#57544E;text-align:center">Autorizado por</div>
+    <div style="flex:1;border-top:1.5px solid #211F1C;padding-top:6px;font-size:11px;color:#57544E;text-align:center">Recibido conforme</div>
+  </div>
+  <div style="margin-top:30px;font-size:10px;color:#8B877E;text-align:center">Documento interno — Distribución de utilidades · ArteLab UY · ${new Date().toLocaleDateString('es-UY')}</div>
+</div></body></html>`;
+  const w = window.open('','_blank','width=900,height=750');
+  if (!w) { showToast('Permitir ventanas emergentes para imprimir','err'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(() => { try { w.print(); } catch(e){} }, 350);
 }
 
 async function cancelarReparto(id) {
