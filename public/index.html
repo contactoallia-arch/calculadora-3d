@@ -9599,7 +9599,11 @@ async function loadEstadoCuentaData() {
   if (params.length) url += '?' + params.join('&');
   try {
     const d = await apiGet(url);
-    if (!d.ok) return;
+    if (!d.ok) {
+      const tb = document.getElementById('ecMovBody');
+      if (tb) tb.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--bad-fg,#dc2626)">Error al cargar: ${d.error||'desconocido'}</td></tr>`;
+      return;
+    }
     _ecData = d;
     const fmt = v => '$ ' + Math.round(v||0).toLocaleString('es-UY');
     const r = d.resumen;
@@ -9613,7 +9617,11 @@ async function loadEstadoCuentaData() {
     netoEl.style.color = neto >= 0 ? 'var(--ok-fg)' : 'var(--bad-fg,#dc2626)';
     renderECMov();
     renderGastosPersonales(d.gastos_personales);
-  } catch(e) { console.error(e); }
+  } catch(e) {
+    console.error(e);
+    const tb = document.getElementById('ecMovBody');
+    if (tb) tb.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--bad-fg,#dc2626)">Error al cargar: ${e.message}</td></tr>`;
+  }
 }
 
 // Normaliza una fecha (dd/mm/aaaa o aaaa-mm-dd) a clave ordenable aaaammdd

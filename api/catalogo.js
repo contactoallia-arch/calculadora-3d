@@ -529,6 +529,15 @@ export default async function handler(req, res) {
     if (recurso === "estado-cuenta") {
       if (m === "GET") {
         await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
+        // Garantizar columnas que usa la consulta (por si la base es vieja y no corrió setup)
+        for (const stmt of [
+          "ALTER TABLE cobros ADD COLUMN moneda TEXT DEFAULT 'UYU'",
+          "ALTER TABLE cobros ADD COLUMN tipo_cambio REAL",
+          "ALTER TABLE gastos ADD COLUMN moneda TEXT DEFAULT 'UYU'",
+          "ALTER TABLE gastos ADD COLUMN tipo_cambio REAL",
+          "ALTER TABLE gastos ADD COLUMN aprobado INTEGER DEFAULT 1",
+          "ALTER TABLE caja_movimientos ADD COLUMN moneda TEXT DEFAULT 'UYU'"
+        ]) { try { await db.execute(stmt); } catch {} }
         const { desde, hasta } = req.query;
         const bf = (col) => {
           const p = []; const a = [];
