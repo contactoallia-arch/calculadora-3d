@@ -2616,7 +2616,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
       </div>
       <button class="btn btn--primary" onclick="saveUserProfile()">Guardar perfil</button>
     </div>
-    <div class="section-card">
+    <div class="section-card" id="cfgEmpresaCard">
       <div class="section-card-ttl">Empresa</div>
       <div class="frow">
         <div class="fgrp"><label>Nombre empresa</label><input id="cfgEmpresa" placeholder="ArteLab UY"></div>
@@ -2667,10 +2667,17 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     <div class="frow">
       <div class="fgrp"><label>Contraseña</label><input id="userPass" type="password" placeholder="••••••••"></div>
       <div class="fgrp"><label>Rol</label>
-        <select id="userRol">
+        <select id="userRol" onchange="_onUserRolChange()">
           <option value="operador">Operador</option>
           <option value="admin">Admin</option>
+          <option value="vendedor">Vendedor</option>
         </select>
+      </div>
+    </div>
+    <div class="frow" id="userVendedorRow" style="display:none">
+      <div class="fgrp"><label>Ficha de vendedor a vincular</label>
+        <select id="userVendedorId"></select>
+        <div style="font-size:10.5px;color:var(--text-3);margin-top:3px">Sus presupuestos, comisión y estado de cuenta se calculan sobre esta ficha.</div>
       </div>
     </div>
   </div>
@@ -3128,8 +3135,11 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
   </div>
 
+  <!-- Vista del vendedor (scoped a lo suyo) -->
+  <div id="ecVendedorView" style="display:none;padding:22px 26px"></div>
+
   <!-- Tab bar -->
-  <div style="padding:0 26px;border-bottom:1px solid var(--border)">
+  <div id="ecTabBar" style="padding:0 26px;border-bottom:1px solid var(--border)">
     <div style="display:flex;gap:0;margin-bottom:-1px">
       <button class="ec-tab-btn active" data-tab="cuenta" onclick="setECTab('cuenta')">📊 Estado de cuenta</button>
       <button class="ec-tab-btn" data-tab="caja" onclick="setECTab('caja')">🏦 Caja</button>
@@ -3445,13 +3455,23 @@ function initSidebar() {
     document.getElementById('nav-logs').style.display = '';
     document.getElementById('nav-database').style.display = '';
   }
+  // ── Vendedor: nav restringido ──
+  const esVendedor = u.rol === 'vendedor';
+  if (esVendedor) {
+    // Ocultar todo lo que no le corresponde
+    ['nav-dashboard','nav-cobros','nav-insumos','nav-productos','nav-proveedores','nav-vendedores','nav-reportes','nav-logs','nav-database']
+      .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    // Ocultar etiquetas de sección que quedan vacías
+    document.querySelectorAll('.nav-label').forEach(l => { if ((l.textContent||'').trim() === 'Principal') l.style.display = 'none'; });
+  }
   // Auto-cargar dashboard
   const now = new Date();
   document.getElementById('dashMes').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   // Inicializar calendario al mes actual
   const _now = new Date();
   _calYear = _now.getFullYear(); _calMonth = _now.getMonth();
-  loadDashboard();
+  if (esVendedor) { showPage('calculadora'); }
+  else { loadDashboard(); }
   cargarInsumosEnCalculadora();
   // Notificaciones: cargar al inicio y cada 60 segundos
   cargarNotificaciones();
@@ -3471,7 +3491,10 @@ const _chartInstances = {};
 
 const PAGE_TITLES = { dashboard:'Dashboard', presupuestos:'Presupuestos', clientes:'Clientes', cobros:'Cobros', gastos:'Gastos', insumos:'Insumos', productos:'Productos', proveedores:'Proveedores', vendedores:'Vendedores', agenda:'Agenda', reportes:'Reportes', 'estado-cuenta':'Estado de Cuenta', config:'Configuración', logs:'Auditoría', database:'Base de datos', calculadora:'Calculador de presupuesto' };
 
+const VENDEDOR_PAGES = ['calculadora','presupuestos','clientes','gastos','agenda','estado-cuenta','config'];
 function showPage(page) {
+  // Guard: el vendedor solo accede a sus páginas permitidas
+  if (_currentUser?.rol === 'vendedor' && !VENDEDOR_PAGES.includes(page)) page = 'calculadora';
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const pg = document.getElementById('page-' + page);
@@ -5160,16 +5183,21 @@ async function loadGastos() {
     const montoCell = isUSD
       ? `<div style="font-weight:700;color:var(--bad-fg)">−<span style="font-size:10px;font-weight:700;color:var(--info-fg);background:var(--info-soft);padding:1px 4px;border-radius:3px;margin-right:2px">U$S</span>${fmtMoney(g.monto)}</div><div style="font-size:10.5px;color:var(--text-3)">≈ $ ${fmtMoney(Math.round(g.monto*tc))}</div>`
       : `<span style="font-weight:700;color:var(--bad-fg)">−$ ${fmtMoney(g.monto)}</span>`;
-    return `<tr>
+    const pend = Number(g.aprobado) === 0;
+    const esAdmin = _currentUser?.rol === 'admin';
+    const pendBadge = pend ? `<span class="badge" style="background:var(--warn-soft);color:var(--warn-fg,#d97706);border:1px solid transparent;margin-left:6px">⏳ Pendiente${g.creado_por_nombre&&esAdmin?' · '+g.creado_por_nombre:''}</span>` : '';
+    const acciones = pend && esAdmin
+      ? `<button class="icon-btn" style="width:28px;height:28px;color:var(--ok-fg)" onclick="aprobarGasto(${g.id})" title="Aprobar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"/></svg></button>
+         <button class="icon-btn" style="width:28px;height:28px;color:var(--bad-fg)" onclick="rechazarGasto(${g.id})" title="Rechazar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`
+      : `<button class="icon-btn" style="width:28px;height:28px" onclick="editarGasto(${g.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+         <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarGasto(${g.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button>`;
+    return `<tr${pend?' style="background:var(--warn-soft,#fffbeb)"':''}>
       <td class="mono" style="color:var(--text-3);font-size:12px">${g.fecha}</td>
       <td><span class="badge" style="background:var(--surface-2);color:${color};border:1px solid var(--border)"><span class="bdot" style="background:${color}"></span>${g.categoria}</span></td>
-      <td class="hide-m" style="color:var(--text-2);font-size:13px">${g.descripcion}${g.para_que?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${g.para_que}</div>`:''}${g.presupuesto_id?`<div style="font-size:11px;color:var(--info-fg);margin-top:2px">📋 Presup. #${String(g.pres_numero||g.presupuesto_id).padStart(4,'0')}${g.pres_pieza?' · '+g.pres_pieza:''}</div>`:''}</td>
+      <td class="hide-m" style="color:var(--text-2);font-size:13px">${g.descripcion}${pendBadge}${g.para_que?`<div style="font-size:11px;color:var(--text-3);margin-top:2px">${g.para_que}</div>`:''}${g.presupuesto_id?`<div style="font-size:11px;color:var(--info-fg);margin-top:2px">📋 Presup. #${String(g.pres_numero||g.presupuesto_id).padStart(4,'0')}${g.pres_pieza?' · '+g.pres_pieza:''}</div>`:''}</td>
       <td>${tipoCell}</td>
       <td class="num">${montoCell}</td>
-      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">
-        <button class="icon-btn" style="width:28px;height:28px" onclick="editarGasto(${g.id})" title="Editar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-        <button class="icon-btn" style="width:28px;height:28px" onclick="eliminarGasto(${g.id})" title="Eliminar"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--bad-fg)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg></button>
-      </td>
+      <td style="display:flex;gap:4px;align-items:center;justify-content:flex-end">${acciones}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="6" style="padding:36px;text-align:center;color:var(--text-3)">Sin gastos en este período</td></tr>';
 
@@ -5639,6 +5667,22 @@ async function _doEliminarGasto(id) {
   if (d.ok) { showToast('Gasto eliminado', 'ok'); loadGastos(); }
   else showToast(d.error || 'Error', 'err');
 }
+async function aprobarGasto(id) {
+  const g = _gastosCache.find(x=>Number(x.id)===Number(id));
+  const extra = g?.origen === 'caja' ? ' Saldrá de la Caja como egreso.' : '';
+  showConfirm('¿Aprobar este gasto?'+extra, async () => {
+    const d = await apiPut('/api/gastos/'+id, { accion:'aprobar' });
+    if (d.ok) { showToast('Gasto aprobado ✓','ok'); loadGastos(); loadCaja?.(); loadEstadoCuentaData?.(); }
+    else showToast(d.error||'Error','err');
+  }, { title:'Aprobar gasto', btnLabel:'Aprobar', danger:false });
+}
+async function rechazarGasto(id) {
+  showConfirm('¿Rechazar y eliminar este gasto pendiente?', async () => {
+    const d = await apiPut('/api/gastos/'+id, { accion:'rechazar' });
+    if (d.ok) { showToast('Gasto rechazado','ok'); loadGastos(); }
+    else showToast(d.error||'Error','err');
+  }, { title:'Rechazar gasto', btnLabel:'Rechazar' });
+}
 
 async function generarGastosFijos() {
   const d = await apiPost('/api/gastos-fijos/generar-mes', {});
@@ -5807,6 +5851,13 @@ async function loadConfig() {
     document.getElementById('profilePass2').value = '';
   }
 
+  // Vendedor: solo edita su perfil — ocultar Empresa y Usuarios
+  if (_currentUser?.rol === 'vendedor') {
+    const ec = document.getElementById('cfgEmpresaCard'); if (ec) ec.style.display = 'none';
+    const uc = document.getElementById('cfgUsuariosCard'); if (uc) uc.style.display = 'none';
+    return;
+  }
+
   const [cfgD, usersD] = await Promise.all([
     apiGet('/api/configuracion'),
     apiGet('/api/usuarios')
@@ -5895,6 +5946,20 @@ async function saveUserProfile() {
 
 let _editingUserId = null;
 let _usersCache = [];
+function _onUserRolChange() {
+  const esVend = document.getElementById('userRol').value === 'vendedor';
+  document.getElementById('userVendedorRow').style.display = esVend ? '' : 'none';
+}
+async function _cargarVendedoresEnUserForm(selectedId) {
+  const sel = document.getElementById('userVendedorId');
+  if (!sel) return;
+  try {
+    const d = await apiGet('/api/vendedores');
+    const lista = d.data || [];
+    sel.innerHTML = '<option value="">— Elegí un vendedor —</option>' +
+      lista.map(v => `<option value="${v.id}"${Number(v.id)===Number(selectedId)?' selected':''}>${v.nombre}</option>`).join('');
+  } catch { sel.innerHTML = '<option value="">(no se pudieron cargar)</option>'; }
+}
 function openUserForm(id) {
   _editingUserId = id || null;
   const tit = document.getElementById('mUserTit');
@@ -5908,6 +5973,7 @@ function openUserForm(id) {
     document.getElementById('userPass').value = '';
     passInput.placeholder = 'Dejar vacío para no cambiar';
     document.getElementById('userRol').value = u.rol || 'operador';
+    _cargarVendedoresEnUserForm(u.vendedor_id);
   } else {
     tit.textContent = 'Nuevo usuario';
     document.getElementById('userNombre').value = '';
@@ -5915,13 +5981,21 @@ function openUserForm(id) {
     document.getElementById('userPass').value = '';
     passInput.placeholder = '••••••••';
     document.getElementById('userRol').value = 'operador';
+    _cargarVendedoresEnUserForm(null);
   }
+  _onUserRolChange();
   openM('mUser');
 }
 async function saveUser() {
-  const body = { nombre: document.getElementById('userNombre').value.trim(), email: document.getElementById('userEmail').value.trim(), password: document.getElementById('userPass').value, rol: document.getElementById('userRol').value };
+  const rol = document.getElementById('userRol').value;
+  const body = { nombre: document.getElementById('userNombre').value.trim(), email: document.getElementById('userEmail').value.trim(), password: document.getElementById('userPass').value, rol };
   if (!body.nombre || !body.email) { showToast('Nombre y email requeridos','err'); return; }
   if (!_editingUserId && !body.password) { showToast('La contraseña es requerida para un usuario nuevo','err'); return; }
+  if (rol === 'vendedor') {
+    const vid = document.getElementById('userVendedorId').value;
+    if (!vid) { showToast('Elegí la ficha de vendedor a vincular','err'); return; }
+    body.vendedor_id = Number(vid);
+  }
   const d = _editingUserId ? await apiPut('/api/usuarios/'+_editingUserId, body) : await apiPost('/api/usuarios', body);
   if (d.ok) { showToast('Usuario guardado','ok'); closeM(); loadConfig(); }
   else showToast(d.error||'Error','err');
@@ -7409,11 +7483,16 @@ let _vendedoresCache = [];
 
 async function _cargarVendedoresCalc() {
   try {
+    const sel = document.getElementById('calcVendedor');
+    if (!sel) return;
+    // Vendedor: el presupuesto siempre es suyo — ocultar el selector
+    if (_currentUser?.rol === 'vendedor') {
+      const fld = sel.closest('.f'); if (fld) fld.style.display = 'none';
+      return;
+    }
     const d = await apiGet('/api/vendedores');
     if (!d.ok) return;
     _vendedoresCache = d.data || [];
-    const sel = document.getElementById('calcVendedor');
-    if (!sel) return;
     const cur = sel.value;
     sel.innerHTML = '<option value="">— Sin vendedor —</option>' +
       _vendedoresCache.map(v => `<option value="${v.id}">${v.nombre}</option>`).join('');
@@ -9429,9 +9508,73 @@ let _ecFiltroTipo = '';
 let _ecData = null;
 
 async function loadEstadoCuenta() {
+  // Vendedor: vista propia (lo que vendió / generó / tiene por cobrar)
+  if (_currentUser?.rol === 'vendedor') { loadEstadoCuentaVendedor(); return; }
   loadRepartos();
   loadCaja();
   loadEstadoCuentaData();
+}
+
+async function loadEstadoCuentaVendedor() {
+  // Ocultar la UI de admin, mostrar la del vendedor
+  document.getElementById('ecTabBar').style.display = 'none';
+  document.querySelectorAll('#page-estado-cuenta .ec-tab-panel').forEach(p => p.style.display = 'none');
+  const cont = document.getElementById('ecVendedorView');
+  cont.style.display = '';
+  cont.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-3)">Cargando…</div>';
+  const fmtM = n => '$ ' + Math.round(n).toLocaleString('es-UY');
+  try {
+    const [vd, pd] = await Promise.all([apiGet('/api/vendedores'), apiGet('/api/presupuestos')]);
+    // Mi ficha de vendedor
+    const yo = (vd.data || []).find(v => Number(v.id) === Number(_currentUser.vendedor_id));
+    const pres = pd.data || [];
+    const cobrados = pres.filter(p => p.estado === 'cobrado');
+    const enCurso  = pres.filter(p => ['aprobado','produccion','listo','entregado'].includes(p.estado));
+    const totalVendido = pres.filter(p => ['aprobado','produccion','listo','entregado','cobrado'].includes(p.estado)).reduce((s,p)=>s+Number(p.precio||0),0);
+    const totalCobrado = cobrados.reduce((s,p)=>s+Number(p.precio||0),0);
+    const utilCobrada = yo ? Number(yo.base_utilidad||0) : 0;
+    const comDeveng = yo ? Number(yo.comision_devengada||0) : 0;
+    const comPagada = yo ? Number(yo.comision_pagada||0) : 0;
+    const comSaldo  = yo ? Number(yo.comision_saldo||0) : 0;
+    const pct = yo ? Number(yo.comision_pct||0) : 0;
+    const kpi = (lbl, val, color) => `<div class="card card-pad" style="padding:14px 18px"><div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${lbl}</div><div class="num" style="font-size:22px;font-weight:800;${color?`color:${color}`:''}">${val}</div></div>`;
+    const filas = pres.slice(0,80).map(p => {
+      const est = p.estado||'—';
+      const color = est==='cobrado'?'var(--ok-fg)':(['rechazado','cancelado'].includes(est)?'var(--text-faint)':'var(--warn-fg,#d97706)');
+      return `<tr style="border-bottom:1px solid var(--border-2)">
+        <td style="padding:9px 14px;font-size:13px;font-weight:600">${p.pieza||'—'}</td>
+        <td style="padding:9px 14px;font-size:12.5px;color:var(--text-2)">${p.cliente_nombre||p.cliente||'—'}</td>
+        <td style="padding:9px 14px;text-align:right;font-family:var(--mono);font-weight:700">${fmtM(Number(p.precio||0))}</td>
+        <td style="padding:9px 14px;font-size:12px;color:${color};font-weight:600;text-transform:capitalize">${est}</td>
+      </tr>`;
+    }).join('');
+    cont.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:18px">
+        ${kpi('🧾 Vendido (total)', fmtM(totalVendido))}
+        ${kpi('💵 Cobrado', fmtM(totalCobrado), 'var(--ok-fg)')}
+        ${kpi('📈 Utilidad generada', fmtM(utilCobrada))}
+        ${kpi(`💰 Mi comisión (${pct}%)`, fmtM(comDeveng), 'var(--brand)')}
+        ${kpi('✅ Comisión pagada', fmtM(comPagada), 'var(--ok-fg)')}
+        ${kpi('⏳ Por cobrar', fmtM(comSaldo), comSaldo>0.5?'var(--bad-fg,#dc2626)':'var(--text-faint)')}
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:14px;line-height:1.5">
+        Tu comisión es el <b>${pct}%</b> de la utilidad de los presupuestos <b>cobrados</b> que te pertenecen. El saldo "Por cobrar" es lo que la empresa te debe pagar.
+      </div>
+      <div class="card" style="overflow:hidden">
+        <div style="padding:13px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13.5px">Mis presupuestos (${pres.length})</div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--surface-2,var(--bg))">
+            <th style="padding:9px 14px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)">Pieza</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)">Cliente</th>
+            <th style="padding:9px 14px;text-align:right;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)">Precio</th>
+            <th style="padding:9px 14px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)">Estado</th>
+          </tr></thead>
+          <tbody>${filas || '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-3)">Aún no creaste presupuestos.</td></tr>'}</tbody>
+        </table></div>
+      </div>`;
+  } catch(e) {
+    cont.innerHTML = `<div style="text-align:center;padding:40px;color:var(--bad-fg)">Error al cargar: ${e.message}</div>`;
+  }
 }
 
 function setECTab(tab) {

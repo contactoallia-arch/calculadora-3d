@@ -1,6 +1,20 @@
 import { getDB } from "./_lib/db.js";
 import { requireAuth, logAction } from "./_lib/auth.js";
 
+// Utilidad de un presupuesto: precio − costos internos, o margen% sobre precio. null si no hay datos.
+function utilidadDePres(p) {
+  const precio = Number(p.precio) || 0;
+  if (p.costos_internos) {
+    try { const c = JSON.parse(p.costos_internos); const tot = c.reduce((s, x) => s + (Number(x.m) || 0), 0); return precio - tot; } catch {}
+  }
+  if (p.snap) {
+    try { const s = JSON.parse(p.snap); if (s._totalCost != null) return precio - Number(s._totalCost); } catch {}
+  }
+  const margen = Number(p.margen) || 0;
+  if (margen > 0) return precio * (margen / 100);
+  return null;
+}
+
 // Router consolidado: insumos, productos, proveedores, agenda, notificaciones
 // Se accede vía /api/<recurso> (rewrites en vercel.json → /api/catalogo?recurso=<recurso>)
 export default async function handler(req, res) {
@@ -388,6 +402,8 @@ export default async function handler(req, res) {
 
     // ───────────────────────── VENDEDORES ─────────────────────────
     if (recurso === "vendedores") {
+      // Un vendedor solo puede leer su propia ficha; no puede crear/editar/eliminar
+      if (user.rol === "vendedor" && m !== "GET") return res.status(403).json({ ok: false, error: "Sin permiso" });
       if (m === "GET") {
         // Asegurar columnas nuevas (idempotente — por si setup no corrió aún)
         for (const c of ["comision_pct REAL DEFAULT 0","banco TEXT","cuenta_numero TEXT","cuenta_sucursal TEXT","cuenta_moneda TEXT DEFAULT 'UYU'","cuenta_tipo TEXT DEFAULT 'caja_ahorro'"]) {
@@ -408,19 +424,26 @@ export default async function handler(req, res) {
                WHERE co.presupuesto_id IN (
                  SELECT p.id FROM presupuestos p WHERE p.vendedor_id=v.id
                )) as total_cobrado,
-            (SELECT COALESCE(SUM(p.precio),0) FROM presupuestos p WHERE p.vendedor_id=v.id
-               AND p.estado='cobrado') as base_comision,
             (SELECT COALESCE(SUM(cm.monto),0) FROM caja_movimientos cm
                WHERE cm.ref_tipo='vendedor' AND cm.ref_id=v.id AND cm.tipo='egreso') as pagado_caja,
             (SELECT COALESCE(SUM(rr.monto),0) FROM repartos rr
                WHERE rr.vendedor_id=v.id AND rr.estado='ejecutado') as pagado_utilidades
-          FROM vendedores v WHERE v.activo=1 ORDER BY v.nombre`);
-        // Comisión devengada = base (precio cobrado) × % comisión; saldo = devengada − pagado
+          FROM vendedores v WHERE v.activo=1${user.rol === "vendedor" ? " AND v.id=" + Number(user.vendedor_id || -1) : ""} ORDER BY v.nombre`);
+        // Base de comisión = UTILIDAD de los presupuestos cobrados del vendedor (no el precio)
+        const presCob = await db.execute("SELECT vendedor_id, precio, margen, costos_internos, snap FROM presupuestos WHERE estado='cobrado' AND vendedor_id IS NOT NULL");
+        const utilPorVend = {};
+        for (const p of presCob.rows) {
+          const u = utilidadDePres(p);
+          if (u === null) continue;
+          utilPorVend[p.vendedor_id] = (utilPorVend[p.vendedor_id] || 0) + u;
+        }
+        // Comisión devengada = utilidad cobrada × % comisión; saldo = devengada − pagado
         const data = r.rows.map(v => {
           const pct = Number(v.comision_pct) || 0;
-          const comision_devengada = Math.round((Number(v.base_comision) || 0) * pct / 100 * 100) / 100;
+          const baseUtil = utilPorVend[v.id] || 0;
+          const comision_devengada = Math.round(baseUtil * pct / 100 * 100) / 100;
           const comision_pagada = (Number(v.pagado_caja) || 0) + (Number(v.pagado_utilidades) || 0);
-          return { ...v, comision_devengada, comision_pagada, comision_saldo: Math.round((comision_devengada - comision_pagada) * 100) / 100 };
+          return { ...v, base_utilidad: Math.round(baseUtil*100)/100, comision_devengada, comision_pagada, comision_saldo: Math.round((comision_devengada - comision_pagada) * 100) / 100 };
         });
         return res.status(200).json({ ok: true, data });
       }
@@ -512,7 +535,7 @@ export default async function handler(req, res) {
         const fc = bf('co.fecha'), fg = bf('g.fecha'), fr = bf("COALESCE(r.executed_at,r.fecha)"), fk = bf('cm.fecha');
         const [cobros, gastos, repartos, caja, gpRows] = await Promise.all([
           db.execute({sql:`SELECT co.id, co.monto, co.fecha, 'cobro' as tipo, COALESCE(p.pieza,'—') as descripcion, COALESCE(cl.nombre,p.cliente,'—') as ref FROM cobros co LEFT JOIN presupuestos p ON p.id=co.presupuesto_id LEFT JOIN clientes cl ON cl.id=co.cliente_id WHERE 1=1${fc.clause} ORDER BY co.fecha DESC, co.id DESC LIMIT 500`,args:fc.args}),
-          db.execute({sql:`SELECT g.id, g.monto, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref, g.origen FROM gastos g WHERE 1=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
+          db.execute({sql:`SELECT g.id, g.monto, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref, g.origen FROM gastos g WHERE COALESCE(g.aprobado,1)=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
           db.execute({sql:`SELECT r.id, r.monto, COALESCE(r.executed_at,r.fecha) as fecha, 'reparto' as tipo, r.descripcion, COALESCE(r.destinatario,'—') as ref FROM repartos r WHERE r.estado='ejecutado'${fr.clause} ORDER BY COALESCE(r.executed_at,r.fecha) DESC, r.id DESC LIMIT 500`,args:fr.args}),
           db.execute({sql:`SELECT cm.id, cm.monto, cm.fecha, cm.tipo, cm.concepto as descripcion, '' as ref FROM caja_movimientos cm WHERE 1=1${fk.clause} ORDER BY cm.fecha DESC, cm.id DESC LIMIT 500`,args:fk.args}),
           // Resumen de gastos personales por usuario (sin filtro de fecha — balance acumulado)

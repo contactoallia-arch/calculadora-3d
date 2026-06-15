@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     const token = signToken({ id: user.id, email: user.email, rol: user.rol });
     await db.execute({ sql: "UPDATE usuarios SET last_login=datetime('now') WHERE id=?", args: [user.id] });
     await logAction(db, user, "LOGIN_OK", "usuario", user.id, null, req.headers["x-forwarded-for"]);
-    return res.status(200).json({ ok: true, token, user: { id: Number(user.id), nombre: user.nombre, email: user.email, rol: user.rol } });
+    return res.status(200).json({ ok: true, token, user: { id: Number(user.id), nombre: user.nombre, email: user.email, rol: user.rol, vendedor_id: user.vendedor_id || null } });
   }
 
   if (action === "logout") {

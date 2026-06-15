@@ -12,14 +12,22 @@ export default async function handler(req, res) {
 
   const id = req.query.id;
 
+  // Vendedor: solo accede a clientes que él creó
+  const esVend = user.rol === "vendedor";
+
   if (id) {
     if (req.method === "GET") {
       const r = await db.execute({ sql: "SELECT * FROM clientes WHERE id=?", args: [id] });
       if (!r.rows[0]) return res.status(404).json({ ok: false, error: "No encontrado" });
+      if (esVend && Number(r.rows[0].created_by) !== Number(user.id)) return res.status(403).json({ ok: false, error: "Sin permiso" });
       const presups = await db.execute({ sql: "SELECT id,COALESCE(numero,id) as numero,pieza,estado,precio,moneda,fecha FROM presupuestos WHERE cliente_id=? ORDER BY id DESC", args: [id] });
       return res.status(200).json({ ok: true, data: { ...r.rows[0], presupuestos: presups.rows } });
     }
     if (req.method === "PUT") {
+      if (esVend) {
+        const own = await db.execute({ sql: "SELECT created_by FROM clientes WHERE id=?", args: [id] });
+        if (!own.rows[0] || Number(own.rows[0].created_by) !== Number(user.id)) return res.status(403).json({ ok: false, error: "Sin permiso" });
+      }
       const { nombre, email, telefono, notas, activo, tipo, empresa, rut, direccion } = req.body || {};
       await db.execute({ sql: "UPDATE clientes SET nombre=?,email=?,telefono=?,notas=?,activo=?,tipo=?,empresa=?,rut=?,direccion=? WHERE id=?", args: [nombre, email||null, telefono||null, notas||null, activo!==undefined?activo:1, tipo||"persona", empresa||null, rut||null, direccion||null, id] });
       await logAction(db, user, "EDITAR_CLIENTE", "cliente", id);
@@ -59,7 +67,7 @@ export default async function handler(req, res) {
           )
         ) as total_cobrado
       FROM clientes c
-      WHERE c.activo=1
+      WHERE c.activo=1${esVend ? " AND c.created_by=" + Number(user.id) : ""}
       ORDER BY c.nombre
     `);
     return res.status(200).json({ ok: true, data: r.rows });

@@ -126,6 +126,14 @@ export default async function handler(req, res) {
   // Repartos: vínculo opcional a vendedor (para pagos de comisión desde utilidades)
   try { await db.execute("ALTER TABLE repartos ADD COLUMN vendedor_id INTEGER"); } catch {}
 
+  // Login de vendedores: vincula una cuenta de usuario (rol='vendedor') con su ficha de vendedor
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN vendedor_id INTEGER"); } catch {}
+
+  // Gastos: flujo de aprobación (los que carga un vendedor quedan pendientes)
+  try { await db.execute("ALTER TABLE gastos ADD COLUMN aprobado INTEGER DEFAULT 1"); } catch {}
+  try { await db.execute("ALTER TABLE gastos ADD COLUMN aprobado_por INTEGER"); } catch {}
+  try { await db.execute("ALTER TABLE gastos ADD COLUMN aprobado_at TEXT"); } catch {}
+
   // Gastos: origen del pago y quién pagó (para gastos personales)
   try { await db.execute("ALTER TABLE gastos ADD COLUMN origen TEXT DEFAULT 'empresa'"); } catch {}
   try { await db.execute("ALTER TABLE gastos ADD COLUMN pagado_por INTEGER"); } catch {}

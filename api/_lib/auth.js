@@ -32,7 +32,14 @@ export async function requireAuth(req, res, db, roles = null) {
     res.status(401).json({ ok: false, error: "Sesión cerrada" });
     return null;
   }
-  const ur = await db.execute({ sql: "SELECT id, nombre, email, rol, activo FROM usuarios WHERE id=?", args: [payload.id] });
+  // Resiliente: si la columna vendedor_id aún no existe (setup no corrió tras deploy), usar fallback
+  let ur;
+  try {
+    ur = await db.execute({ sql: "SELECT id, nombre, email, rol, activo, vendedor_id FROM usuarios WHERE id=?", args: [payload.id] });
+  } catch {
+    try { await db.execute("ALTER TABLE usuarios ADD COLUMN vendedor_id INTEGER"); } catch {}
+    ur = await db.execute({ sql: "SELECT id, nombre, email, rol, activo FROM usuarios WHERE id=?", args: [payload.id] });
+  }
   const user = ur.rows[0];
   if (!user || !user.activo) {
     res.status(401).json({ ok: false, error: "Usuario inactivo o no encontrado" });

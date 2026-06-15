@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     }
     const [ingrR, gastR, presR] = await Promise.all([
       db.execute({ sql: `SELECT moneda, COALESCE(SUM(monto),0) as total FROM cobros WHERE ${condFecha} GROUP BY moneda`, args: args1 }),
-      db.execute({ sql: `SELECT categoria, COALESCE(SUM(monto),0) as total FROM gastos WHERE ${condFecha} GROUP BY categoria ORDER BY total DESC`, args: args2 }),
+      db.execute({ sql: `SELECT categoria, COALESCE(SUM(monto),0) as total FROM gastos WHERE COALESCE(aprobado,1)=1 AND ${condFecha} GROUP BY categoria ORDER BY total DESC`, args: args2 }),
       db.execute({ sql: `SELECT estado, COUNT(*) as cnt, COALESCE(SUM(precio),0) as total FROM presupuestos WHERE ${condFecha} GROUP BY estado`, args: args1 })
     ]);
     return res.status(200).json({ ok: true, data: { ingresos: ingrR.rows, gastosPorCategoria: gastR.rows, presupuestosPorEstado: presR.rows } });

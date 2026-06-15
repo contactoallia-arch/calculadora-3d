@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       args: [mesPattern, mesPatternISO]
     }),
     db.execute({
-      sql: `SELECT COALESCE(SUM(monto),0) as total FROM gastos WHERE fecha LIKE ? OR fecha LIKE ?`,
+      sql: `SELECT COALESCE(SUM(monto),0) as total FROM gastos WHERE COALESCE(aprobado,1)=1 AND (fecha LIKE ? OR fecha LIKE ?)`,
       args: [mesPattern, mesPatternISO]
     }),
     db.execute("SELECT COUNT(*) as cnt FROM presupuestos WHERE estado IN ('produccion','listo')"),
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
   // Gastos por categoría (mes)
   const gastosCatR = await db.execute({
     sql: `SELECT categoria, COALESCE(SUM(monto),0) as total FROM gastos
-          WHERE fecha LIKE ? OR fecha LIKE ? GROUP BY categoria ORDER BY total DESC`,
+          WHERE COALESCE(aprobado,1)=1 AND (fecha LIKE ? OR fecha LIKE ?) GROUP BY categoria ORDER BY total DESC`,
     args: [mesPattern, mesPatternISO]
   });
 
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     const [fR, cR, gR] = await Promise.all([
       db.execute({ sql: `SELECT COALESCE(SUM(precio),0) as t FROM presupuestos WHERE estado IN ('entregado','cobrado') AND (fecha LIKE ? OR fecha LIKE ?)`, args: [pat, patISO] }),
       db.execute({ sql: `SELECT COALESCE(SUM(monto),0) as t FROM cobros WHERE fecha LIKE ? OR fecha LIKE ?`, args: [pat, patISO] }),
-      db.execute({ sql: `SELECT COALESCE(SUM(monto),0) as t FROM gastos WHERE fecha LIKE ? OR fecha LIKE ?`, args: [pat, patISO] })
+      db.execute({ sql: `SELECT COALESCE(SUM(monto),0) as t FROM gastos WHERE COALESCE(aprobado,1)=1 AND (fecha LIKE ? OR fecha LIKE ?)`, args: [pat, patISO] })
     ]);
     serie.push({ mes: `${mm2}/${my}`, facturado: Number(fR.rows[0]?.t||0), cobrado: Number(cR.rows[0]?.t||0), gastos: Number(gR.rows[0]?.t||0) });
   }

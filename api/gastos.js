@@ -63,8 +63,38 @@ export default async function handler(req, res) {
   }
 
   if (id) {
-    const user2 = await requireAuth(req, res, db, ["admin", "operador"]);
+    const user2 = await requireAuth(req, res, db, ["admin", "operador", "vendedor"]);
     if (!user2) return;
+    // Aprobar / rechazar un gasto pendiente (solo admin)
+    if (req.method === "PUT" && (req.body?.accion === "aprobar" || req.body?.accion === "rechazar")) {
+      if (user2.rol !== "admin") return res.status(403).json({ ok: false, error: "Solo un administrador puede aprobar gastos" });
+      const g = await db.execute({ sql: "SELECT * FROM gastos WHERE id=?", args: [id] });
+      const gasto = g.rows[0];
+      if (!gasto) return res.status(404).json({ ok: false, error: "Gasto no encontrado" });
+      if (req.body.accion === "rechazar") {
+        await db.execute({ sql: "DELETE FROM gastos WHERE id=?", args: [id] });
+        await logAction(db, user2, "RECHAZAR_GASTO", "gasto", id);
+        return res.status(200).json({ ok: true, data: { rechazado: true } });
+      }
+      await db.execute({ sql: "UPDATE gastos SET aprobado=1,aprobado_por=?,aprobado_at=datetime('now') WHERE id=?", args: [user2.id, id] });
+      // Si el gasto sale de Caja → recién ahora impacta la Caja
+      if (gasto.origen === "caja") {
+        try {
+          await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
+          const fechaCaja = (gasto.fecha && gasto.fecha.includes('-')) ? gasto.fecha : new Date().toISOString().slice(0,10);
+          await db.execute({ sql: "INSERT INTO caja_movimientos (tipo,concepto,monto,fecha,ref_tipo,ref_id,created_by) VALUES ('egreso',?,?,?,?,?,?)", args: [`Gasto: ${gasto.descripcion}`, Number(gasto.monto), fechaCaja, "gasto", Number(id), user2.id] });
+        } catch {}
+      }
+      await logAction(db, user2, "APROBAR_GASTO", "gasto", id);
+      return res.status(200).json({ ok: true });
+    }
+    // Edición / borrado: vendedor solo puede tocar sus propios gastos aún pendientes
+    if (user2.rol === "vendedor") {
+      const own = await db.execute({ sql: "SELECT created_by, aprobado FROM gastos WHERE id=?", args: [id] });
+      const g = own.rows[0];
+      if (!g || Number(g.created_by) !== Number(user2.id)) return res.status(403).json({ ok: false, error: "Sin permiso" });
+      if (Number(g.aprobado) === 1) return res.status(403).json({ ok: false, error: "El gasto ya fue aprobado y no se puede modificar" });
+    }
     if (req.method === "PUT") {
       const { categoria, descripcion, para_que, monto, moneda, fecha, tipo_cambio, medio_pago } = req.body || {};
       await db.execute({ sql: "UPDATE gastos SET categoria=?,descripcion=?,para_que=?,monto=?,moneda=?,tipo_cambio=?,fecha=?,medio_pago=? WHERE id=?", args: [categoria||"otros", descripcion, para_que||null, monto, moneda||"UYU", tipo_cambio||null, fecha, medio_pago||"efectivo", id] });
@@ -85,12 +115,17 @@ export default async function handler(req, res) {
       if (!r.rows[0]) return res.status(404).json({ ok: false, error: "No encontrado" });
       return res.status(200).json({ ok: true, data: r.rows[0] });
     }
-    const { mes, categoria, tipo, presupuesto_id, desde, hasta } = req.query || {};
-    let sql = `SELECT g.*, COALESCE(p.numero,p.id) as pres_numero, p.pieza as pres_pieza
+    const { mes, categoria, tipo, presupuesto_id, desde, hasta, pendientes } = req.query || {};
+    let sql = `SELECT g.*, COALESCE(p.numero,p.id) as pres_numero, p.pieza as pres_pieza, u.nombre as creado_por_nombre
                FROM gastos g
                LEFT JOIN presupuestos p ON p.id=g.presupuesto_id
+               LEFT JOIN usuarios u ON u.id=g.created_by
                WHERE 1=1`;
     const args = [];
+    // Vendedor: solo ve sus propios gastos
+    if (user.rol === "vendedor") { sql += " AND g.created_by=?"; args.push(user.id); }
+    // Admin puede pedir solo los pendientes de aprobación
+    if (pendientes) { sql += " AND COALESCE(g.aprobado,1)=0"; }
     if (mes) {
       const [anio, mm] = mes.split("-");
       sql += " AND (g.fecha LIKE ? OR g.fecha LIKE ? OR g.fecha LIKE ?)";
@@ -109,15 +144,19 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { categoria, descripcion, para_que, monto, moneda, tipo_cambio, fecha, tipo, presupuesto_id, recurrente, gasto_fijo_id, medio_pago, origen, pagado_por } = req.body || {};
     if (!descripcion || !monto) return res.status(400).json({ ok: false, error: "Descripción y monto requeridos" });
-    const origenFinal = origen || "empresa";
+    // Vendedor: el gasto queda PENDIENTE de aprobación y nunca toca la Caja hasta que un admin lo apruebe
+    const esVend = user.rol === "vendedor";
+    const origenFinal = esVend ? "personal" : (origen || "empresa");
+    const aprobado = esVend ? 0 : 1;
     const r = await db.execute({
-      sql: "INSERT INTO gastos (categoria,descripcion,para_que,monto,moneda,tipo_cambio,fecha,tipo,presupuesto_id,recurrente,gasto_fijo_id,medio_pago,origen,pagado_por,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      sql: "INSERT INTO gastos (categoria,descripcion,para_que,monto,moneda,tipo_cambio,fecha,tipo,presupuesto_id,recurrente,gasto_fijo_id,medio_pago,origen,pagado_por,created_by,aprobado) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       args: [categoria||"otros", descripcion, para_que||null, monto, moneda||"UYU", tipo_cambio||null,
              fecha||new Date().toLocaleDateString("es-UY"), tipo||"manual",
              presupuesto_id||null, recurrente?1:0, gasto_fijo_id||null, medio_pago||"efectivo",
-             origenFinal, pagado_por||null, user.id]
+             origenFinal, esVend ? user.id : (pagado_por||null), user.id, aprobado]
     });
     const newId = Number(r.lastInsertRowid);
+    if (esVend) { await logAction(db, user, "CREAR_GASTO_PENDIENTE", "gasto", newId); return res.status(200).json({ ok: true, data: { id: newId, pendiente: true } }); }
     // Si el gasto sale de Caja → crear egreso automáticamente
     if (origenFinal === "caja") {
       try {

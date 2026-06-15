@@ -2,6 +2,12 @@ import { getDB } from "./_lib/db.js";
 import { getToken, verifyToken, requireAuth, logAction } from "./_lib/auth.js";
 
 const TODOS_ESTADOS = ["sin_enviar","enviado","aprobado","produccion","listo","entregado","cobrado","rechazado","cancelado"];
+
+// Un vendedor solo puede tocar presupuestos asignados a su propia ficha
+function vendedorPuede(user, pres) {
+  if (!user || user.rol !== "vendedor") return true;
+  return Number(pres?.vendedor_id) === Number(user.vendedor_id);
+}
 const ESTADOS_PRODUCCION = ["produccion","listo","entregado","cobrado"];
 
 // Restaura el stock descontado de un presupuesto y resetea los flags para poder volver a descontar
@@ -89,7 +95,7 @@ async function resolveCliente(db, body) {
   const r = await db.execute({ sql: "SELECT id FROM clientes WHERE LOWER(nombre)=LOWER(?) OR (empresa IS NOT NULL AND LOWER(empresa)=LOWER(?))", args: [nombre, nombre] });
   if (r.rows[0]) return Number(r.rows[0].id);
   const tipo = body.cliente_tipo || "persona";
-  const ins = await db.execute({ sql: "INSERT INTO clientes (nombre,email,telefono,tipo,empresa,rut,direccion) VALUES (?,?,?,?,?,?,?)", args: [nombre, body.cliente_email||null, body.cliente_tel||null, tipo, body.cliente_empresa||null, body.cliente_rut||null, body.cliente_dir||null] });
+  const ins = await db.execute({ sql: "INSERT INTO clientes (nombre,email,telefono,tipo,empresa,rut,direccion,created_by) VALUES (?,?,?,?,?,?,?,?)", args: [nombre, body.cliente_email||null, body.cliente_tel||null, tipo, body.cliente_empresa||null, body.cliente_rut||null, body.cliente_dir||null, user?.id||null] });
   return Number(ins.lastInsertRowid);
 }
 
@@ -153,12 +159,13 @@ export default async function handler(req, res) {
   // /api/presupuestos/:id/estado
   if (id && action === "estado") {
     if (req.method !== "PUT") return res.status(405).json({ ok: false, error: "Método no permitido" });
-    const user = await requireAuth(req, res, db, ["admin", "operador"]);
+    const user = await requireAuth(req, res, db, ["admin", "operador", "vendedor"]);
     if (!user) return;
     const { estado_nuevo, nota } = req.body || {};
-    const r = await db.execute({ sql: "SELECT estado,pieza,numero,snap,precio,margen,cliente_id,moneda,costos_internos FROM presupuestos WHERE id=?", args: [id] });
+    const r = await db.execute({ sql: "SELECT estado,pieza,numero,snap,precio,margen,cliente_id,moneda,costos_internos,vendedor_id FROM presupuestos WHERE id=?", args: [id] });
     const pres = r.rows[0];
     if (!pres) return res.status(404).json({ ok: false, error: "Presupuesto no encontrado" });
+    if (!vendedorPuede(user, pres)) return res.status(403).json({ ok: false, error: "Sin permiso sobre este presupuesto" });
     const estado_actual = pres.estado || "borrador";
     const permitidos = FLUJO[estado_actual] || [];
     if (!permitidos.includes(estado_nuevo)) {
@@ -303,6 +310,10 @@ export default async function handler(req, res) {
     if (req.method === "PUT") {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
+      if (user.rol === "vendedor") {
+        const own = await db2.execute({ sql: "SELECT vendedor_id FROM presupuestos WHERE id=?", args: [id] });
+        if (!vendedorPuede(user, own.rows[0])) return res.status(403).json({ ok: false, error: "Sin permiso sobre este presupuesto" });
+      }
       const { numero, pieza, cliente, cliente_id, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, vendedor_id, costos_internos, cliente_tipo, cliente_empresa, cliente_rut, alto, ancho, profundo, peso } = req.body || {};
 
       // ── Delta de stock al editar en estados post-producción (listo/entregado/cobrado) ──
@@ -368,8 +379,9 @@ export default async function handler(req, res) {
       const user = await requireAuth(req, res, db2);
       if (!user) return;
       // Restaurar stock si tenía insumos descontados
-      const metaR = await db2.execute({ sql: "SELECT pieza, numero FROM presupuestos WHERE id=?", args: [id] });
+      const metaR = await db2.execute({ sql: "SELECT pieza, numero, vendedor_id FROM presupuestos WHERE id=?", args: [id] });
       const meta = metaR.rows[0];
+      if (meta && !vendedorPuede(user, meta)) return res.status(403).json({ ok: false, error: "Sin permiso sobre este presupuesto" });
       if (meta) await restaurarStockInsumos(db2, id, meta.pieza, meta.numero, user.id);
       // Quitar el ingreso automático a Caja (si lo tenía por estar cobrado)
       const cajaRetirado = await quitarIngresoCajaAuto(db2, id);
@@ -383,6 +395,8 @@ export default async function handler(req, res) {
 
   // /api/presupuestos
   if (req.method === "GET") {
+    const user = await requireAuth(req, res, db);
+    if (!user) return;
     const { estado, mes, cliente_id, search } = req.query || {};
     let sql = `SELECT p.id, COALESCE(p.numero,p.id) as numero, p.pieza, p.cliente, p.cliente_id,
       p.mat, p.qty, p.precio, p.margen, p.fecha, p.fecha_entrega,
@@ -395,6 +409,8 @@ export default async function handler(req, res) {
       LEFT JOIN vendedores v ON v.id=p.vendedor_id
       WHERE 1=1`;
     const args = [];
+    // Vendedor: solo ve sus propios presupuestos
+    if (user.rol === "vendedor") { sql += " AND p.vendedor_id=?"; args.push(user.vendedor_id || -1); }
     if (estado) { sql += " AND p.estado=?"; args.push(estado); }
     if (mes) { sql += " AND p.fecha LIKE ?"; args.push(`%${mes}%`); }
     if (cliente_id) { sql += " AND p.cliente_id=?"; args.push(cliente_id); }
@@ -420,14 +436,18 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
+    const user = await requireAuth(req, res, db);
+    if (!user) return;
     const body = req.body || {};
-    const { pieza, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, estado, vendedor_id } = body;
+    const { pieza, mat, qty, precio, margen, fecha, snap, moneda, tipo_cambio, fecha_entrega, notas, estado } = body;
     if (!precio || precio <= 0) return res.status(400).json({ ok: false, error: "Precio inválido" });
-    const clienteId = await resolveCliente(db, body);
+    // Vendedor: el presupuesto se asigna siempre a su propia ficha (no puede crear para otro)
+    const vendedor_id = user.rol === "vendedor" ? (user.vendedor_id || null) : (body.vendedor_id || null);
+    const clienteId = await resolveCliente(db, body, user);
     const clienteNombre = (body.cliente_nombre || body.cliente || "—").trim();
     const maxRes = await db.execute("SELECT MAX(COALESCE(numero,id)) as mx FROM presupuestos");
     const nextNum = (Number(maxRes.rows[0]?.mx) || 0) + 1;
-    const result = await db.execute({ sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,fecha_entrega,notas,vendedor_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args: [nextNum, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, estado||"borrador", moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null] });
+    const result = await db.execute({ sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,fecha_entrega,notas,vendedor_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args: [nextNum, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, estado||"borrador", moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id, user.id] });
     const newId = Number(result.lastInsertRowid);
     return res.status(200).json({ ok: true, data: { id: newId, numero: nextNum, cliente_id: clienteId } });
   }
