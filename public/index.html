@@ -2633,14 +2633,6 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         </div>
         <div class="fgrp"><label>Margen por defecto (%)</label><input id="cfgMargen" type="number" placeholder="50"></div>
       </div>
-      <div class="frow">
-        <div class="fgrp">
-          <label>% de utilidades → Caja (al cobrar)</label>
-          <input id="cfgCajaPct" type="number" min="0" max="100" step="1" placeholder="0 = desactivado">
-          <div style="font-size:10.5px;color:var(--text-3);margin-top:3px">Al marcar un presupuesto como <b>Cobrado</b>, ese % de su utilidad ingresa automáticamente a la Caja. Si lo cambiás, solo afecta a los próximos cobros (no modifica traspasos ya hechos).</div>
-        </div>
-        <div class="fgrp"></div>
-      </div>
       <button class="btn btn--primary" onclick="saveConfig()">Guardar configuración</button>
     </div>
     <div class="section-card" id="cfgUsuariosCard">
@@ -5874,7 +5866,6 @@ async function loadConfig() {
     const cfgTCFecha = document.getElementById('cfgTCFecha');
     if (cfgTCFecha) cfgTCFecha.textContent = c.tc_fecha ? `· ${c.tc_fecha}` : '';
     document.getElementById('cfgMargen').value = c.margen_default || '';
-    document.getElementById('cfgCajaPct').value = c.caja_pct_utilidad || '';
   }
 
   if (usersD.ok) {
@@ -5900,14 +5891,11 @@ async function loadConfig() {
 }
 
 async function saveConfig() {
-  const pctCaja = parseFloat(document.getElementById('cfgCajaPct').value);
-  if (!isNaN(pctCaja) && (pctCaja < 0 || pctCaja > 100)) { showToast('El % de utilidades → Caja debe estar entre 0 y 100', 'err'); return; }
   const body = {
     nombre_empresa: document.getElementById('cfgEmpresa').value,
     whatsapp_numero: document.getElementById('cfgWA').value,
     tipo_cambio_usd_uyu: document.getElementById('cfgTC').value,
-    margen_default: document.getElementById('cfgMargen').value,
-    caja_pct_utilidad: document.getElementById('cfgCajaPct').value || '0'
+    margen_default: document.getElementById('cfgMargen').value
   };
   const d = await apiPut('/api/configuracion', body);
   if (d.ok) showToast('Configuración guardada', 'ok');

@@ -65,18 +65,7 @@ const FLUJO = {
   rechazado: TODOS_ESTADOS, cancelado: TODOS_ESTADOS
 };
 
-// Utilidad de un presupuesto: precio - costos internos, o margen% sobre precio (misma lógica que repartos)
-function calcUtilidadPres(pres) {
-  const precio = Number(pres.precio) || 0;
-  if (pres.costos_internos) {
-    try { const c = JSON.parse(pres.costos_internos); const totalCostos = c.reduce((s, x) => s + (Number(x.m) || 0), 0); return precio - totalCostos; } catch {}
-  }
-  const margen = Number(pres.margen) || 0;
-  if (margen > 0) return precio * (margen / 100);
-  return null;
-}
-
-// Elimina el ingreso automático a Caja de un presupuesto. Devuelve el monto retirado (0 si no había).
+// Elimina el ingreso automático a Caja de un presupuesto (datos viejos). Devuelve el monto retirado (0 si no había).
 async function quitarIngresoCajaAuto(db, presId) {
   try {
     const r = await db.execute({ sql: "SELECT id, monto FROM caja_movimientos WHERE ref_tipo='presupuesto' AND ref_id=? AND tipo='ingreso'", args: [presId] });
@@ -188,28 +177,8 @@ export default async function handler(req, res) {
           });
         }
       } catch {}
-      // % de utilidades → Caja (configurable; 0/vacío = desactivado). El % vigente solo afecta cobros futuros.
-      try {
-        const cfgR = await db.execute("SELECT valor FROM configuracion WHERE clave='caja_pct_utilidad'");
-        const pct = parseFloat(cfgR.rows[0]?.valor) || 0;
-        if (pct > 0) {
-          const utilidad = calcUtilidadPres(pres);
-          if (utilidad !== null && utilidad > 0) {
-            // Evitar duplicado si ya existe un ingreso auto de este presupuesto
-            const ya = await db.execute({ sql: "SELECT id FROM caja_movimientos WHERE ref_tipo='presupuesto' AND ref_id=? AND tipo='ingreso' LIMIT 1", args: [id] });
-            if (!ya.rows[0]) {
-              const monto = Math.round(utilidad * (pct / 100) * 100) / 100;
-              const num = String(pres.numero || id).padStart(4, "0");
-              const fecha = new Date().toISOString().slice(0, 10);
-              await db.execute({
-                sql: "INSERT INTO caja_movimientos (tipo,concepto,monto,fecha,ref_tipo,ref_id,notas,created_by) VALUES ('ingreso',?,?,?,'presupuesto',?,?,?)",
-                args: [`Utilidades #${num}: ${pres.pieza || "—"}`, monto, fecha, Number(id), `${pct}% de utilidad $${Math.round(utilidad)} (auto al cobrar)`, user.id]
-              });
-              cajaIngreso = monto;
-            }
-          }
-        }
-      } catch {}
+      // La comisión del vendedor (% sobre la utilidad cobrada) se calcula dinámicamente
+      // por vendedor en /api/vendedores — no se hace ningún traspaso automático a Caja acá.
     }
     // Al revertir desde cobrado: eliminar el cobro auto-generado y el ingreso automático a Caja
     if (estado_actual === "cobrado" && estado_nuevo !== "cobrado") {
