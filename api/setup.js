@@ -129,6 +129,10 @@ export default async function handler(req, res) {
   // Login de vendedores: vincula una cuenta de usuario (rol='vendedor') con su ficha de vendedor
   try { await db.execute("ALTER TABLE usuarios ADD COLUMN vendedor_id INTEGER"); } catch {}
 
+  // Snapshot del % de comisión al momento de crear el presupuesto (editar el % del
+  // vendedor solo afecta a los nuevos; los ya asignados conservan su valor)
+  try { await db.execute("ALTER TABLE presupuestos ADD COLUMN comision_pct REAL"); } catch {}
+
   // Gastos: flujo de aprobación (los que carga un vendedor quedan pendientes)
   try { await db.execute("ALTER TABLE gastos ADD COLUMN aprobado INTEGER DEFAULT 1"); } catch {}
   try { await db.execute("ALTER TABLE gastos ADD COLUMN aprobado_por INTEGER"); } catch {}

@@ -368,9 +368,22 @@ export default async function handler(req, res) {
         }
       } catch {}
 
+      // Re-snapshot del % de comisión SOLO si cambió el vendedor asignado
+      // (editar otros campos no debe alterar la comisión ya fijada)
+      let comisionUpd = "comision_pct=COALESCE(comision_pct, comision_pct)"; // no-op por defecto
+      try {
+        const prevR = await db2.execute({ sql: "SELECT vendedor_id, comision_pct FROM presupuestos WHERE id=?", args: [id] });
+        const prev = prevR.rows[0];
+        const nuevoVend = vendedor_id || null;
+        if (Number(prev?.vendedor_id || 0) !== Number(nuevoVend || 0)) {
+          let pct = null;
+          if (nuevoVend) { const vr = await db2.execute({ sql: "SELECT comision_pct FROM vendedores WHERE id=?", args: [nuevoVend] }); pct = vr.rows[0]?.comision_pct ?? null; }
+          comisionUpd = `comision_pct=${pct == null ? "NULL" : Number(pct)}`;
+        }
+      } catch {}
       // snap usa COALESCE para no borrarlo si el formulario no lo envía
       await db2.execute({
-        sql: "UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=COALESCE(?,snap),moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,costos_internos=?,cliente_tipo=?,cliente_empresa=?,cliente_rut=?,alto=?,ancho=?,profundo=?,peso=?,updated_at=datetime('now') WHERE id=?",
+        sql: `UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=COALESCE(?,snap),moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,${comisionUpd},costos_internos=?,cliente_tipo=?,cliente_empresa=?,cliente_rut=?,alto=?,ancho=?,profundo=?,peso=?,updated_at=datetime('now') WHERE id=?`,
         args: [numero, pieza||"Sin nombre", cliente||"—", cliente_id||null, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id||null, costos_internos_final, cliente_tipo||null, cliente_empresa||null, cliente_rut||null, alto||null, ancho||null, profundo||null, peso||null, id]
       });
       return res.status(200).json({ ok: true });
@@ -443,11 +456,16 @@ export default async function handler(req, res) {
     if (!precio || precio <= 0) return res.status(400).json({ ok: false, error: "Precio inválido" });
     // Vendedor: el presupuesto se asigna siempre a su propia ficha (no puede crear para otro)
     const vendedor_id = user.rol === "vendedor" ? (user.vendedor_id || null) : (body.vendedor_id || null);
+    // Snapshot del % de comisión vigente del vendedor (editarlo luego no afecta a este presupuesto)
+    let comisionPct = null;
+    if (vendedor_id) {
+      try { const vr = await db.execute({ sql: "SELECT comision_pct FROM vendedores WHERE id=?", args: [vendedor_id] }); comisionPct = vr.rows[0]?.comision_pct ?? null; } catch {}
+    }
     const clienteId = await resolveCliente(db, body, user);
     const clienteNombre = (body.cliente_nombre || body.cliente || "—").trim();
     const maxRes = await db.execute("SELECT MAX(COALESCE(numero,id)) as mx FROM presupuestos");
     const nextNum = (Number(maxRes.rows[0]?.mx) || 0) + 1;
-    const result = await db.execute({ sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,fecha_entrega,notas,vendedor_id,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args: [nextNum, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, estado||"borrador", moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id, user.id] });
+    const result = await db.execute({ sql: "INSERT INTO presupuestos (numero,pieza,cliente,cliente_id,mat,qty,precio,margen,fecha,snap,estado,moneda,tipo_cambio,fecha_entrega,notas,vendedor_id,comision_pct,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", args: [nextNum, pieza||"Sin nombre", clienteNombre, clienteId, mat||"", qty||1, precio, margen||0, fecha||new Date().toLocaleDateString("es-UY"), snap?JSON.stringify(snap):null, estado||"borrador", moneda||"UYU", tipo_cambio||null, fecha_entrega||null, notas||null, vendedor_id, comisionPct, user.id] });
     const newId = Number(result.lastInsertRowid);
     return res.status(200).json({ ok: true, data: { id: newId, numero: nextNum, cliente_id: clienteId } });
   }

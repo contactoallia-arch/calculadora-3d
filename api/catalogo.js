@@ -429,19 +429,23 @@ export default async function handler(req, res) {
             (SELECT COALESCE(SUM(rr.monto),0) FROM repartos rr
                WHERE rr.vendedor_id=v.id AND rr.estado='ejecutado') as pagado_utilidades
           FROM vendedores v WHERE v.activo=1${user.rol === "vendedor" ? " AND v.id=" + Number(user.vendedor_id || -1) : ""} ORDER BY v.nombre`);
-        // Base de comisión = UTILIDAD de los presupuestos cobrados del vendedor (no el precio)
-        const presCob = await db.execute("SELECT vendedor_id, precio, margen, costos_internos, snap FROM presupuestos WHERE estado='cobrado' AND vendedor_id IS NOT NULL");
-        const utilPorVend = {};
+        // Comisión por presupuesto cobrado: utilidad × % SNAPSHOT del presupuesto
+        // (fallback al % actual del vendedor para presupuestos viejos sin snapshot)
+        try { await db.execute("ALTER TABLE presupuestos ADD COLUMN comision_pct REAL"); } catch {}
+        const presCob = await db.execute("SELECT vendedor_id, precio, margen, costos_internos, snap, comision_pct FROM presupuestos WHERE estado='cobrado' AND vendedor_id IS NOT NULL");
+        const pctVend = {}; r.rows.forEach(v => { pctVend[v.id] = Number(v.comision_pct) || 0; });
+        const utilPorVend = {}, comPorVend = {};
         for (const p of presCob.rows) {
           const u = utilidadDePres(p);
           if (u === null) continue;
+          const pct = (p.comision_pct == null ? pctVend[p.vendedor_id] : Number(p.comision_pct)) || 0;
           utilPorVend[p.vendedor_id] = (utilPorVend[p.vendedor_id] || 0) + u;
+          comPorVend[p.vendedor_id]  = (comPorVend[p.vendedor_id]  || 0) + u * pct / 100;
         }
-        // Comisión devengada = utilidad cobrada × % comisión; saldo = devengada − pagado
+        // saldo = devengada − pagado
         const data = r.rows.map(v => {
-          const pct = Number(v.comision_pct) || 0;
           const baseUtil = utilPorVend[v.id] || 0;
-          const comision_devengada = Math.round(baseUtil * pct / 100 * 100) / 100;
+          const comision_devengada = Math.round((comPorVend[v.id] || 0) * 100) / 100;
           const comision_pagada = (Number(v.pagado_caja) || 0) + (Number(v.pagado_utilidades) || 0);
           return { ...v, base_utilidad: Math.round(baseUtil*100)/100, comision_devengada, comision_pagada, comision_saldo: Math.round((comision_devengada - comision_pagada) * 100) / 100 };
         });
@@ -533,19 +537,33 @@ export default async function handler(req, res) {
           return { clause: p.length ? ' AND '+p.join(' AND ') : '', args: a };
         };
         const fc = bf('co.fecha'), fg = bf('g.fecha'), fr = bf("COALESCE(r.executed_at,r.fecha)"), fk = bf('cm.fecha');
-        const [cobros, gastos, repartos, caja, gpRows] = await Promise.all([
-          db.execute({sql:`SELECT co.id, co.monto, co.fecha, 'cobro' as tipo, COALESCE(p.pieza,'—') as descripcion, COALESCE(cl.nombre,p.cliente,'—') as ref FROM cobros co LEFT JOIN presupuestos p ON p.id=co.presupuesto_id LEFT JOIN clientes cl ON cl.id=co.cliente_id WHERE 1=1${fc.clause} ORDER BY co.fecha DESC, co.id DESC LIMIT 500`,args:fc.args}),
-          db.execute({sql:`SELECT g.id, g.monto, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref, g.origen FROM gastos g WHERE COALESCE(g.aprobado,1)=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
-          db.execute({sql:`SELECT r.id, r.monto, COALESCE(r.executed_at,r.fecha) as fecha, 'reparto' as tipo, r.descripcion, COALESCE(r.destinatario,'—') as ref FROM repartos r WHERE r.estado='ejecutado'${fr.clause} ORDER BY COALESCE(r.executed_at,r.fecha) DESC, r.id DESC LIMIT 500`,args:fr.args}),
-          db.execute({sql:`SELECT cm.id, cm.monto, cm.fecha, cm.tipo, cm.concepto as descripcion, '' as ref FROM caja_movimientos cm WHERE 1=1${fk.clause} ORDER BY cm.fecha DESC, cm.id DESC LIMIT 500`,args:fk.args}),
+        const [cobros, gastos, repartos, caja, gpRows, cfgTC] = await Promise.all([
+          db.execute({sql:`SELECT co.id, co.monto, co.moneda, co.tipo_cambio, co.fecha, 'cobro' as tipo, COALESCE(p.pieza,'—') as descripcion, COALESCE(cl.nombre,p.cliente,'—') as ref FROM cobros co LEFT JOIN presupuestos p ON p.id=co.presupuesto_id LEFT JOIN clientes cl ON cl.id=co.cliente_id WHERE 1=1${fc.clause} ORDER BY co.fecha DESC, co.id DESC LIMIT 500`,args:fc.args}),
+          db.execute({sql:`SELECT g.id, g.monto, g.moneda, g.tipo_cambio, g.fecha, 'gasto' as tipo, g.descripcion, g.categoria as ref, g.origen FROM gastos g WHERE COALESCE(g.aprobado,1)=1${fg.clause} ORDER BY g.fecha DESC, g.id DESC LIMIT 500`,args:fg.args}),
+          db.execute({sql:`SELECT r.id, r.monto, 'UYU' as moneda, NULL as tipo_cambio, COALESCE(r.executed_at,r.fecha) as fecha, 'reparto' as tipo, r.descripcion, COALESCE(r.destinatario,'—') as ref FROM repartos r WHERE r.estado='ejecutado'${fr.clause} ORDER BY COALESCE(r.executed_at,r.fecha) DESC, r.id DESC LIMIT 500`,args:fr.args}),
+          db.execute({sql:`SELECT cm.id, cm.monto, COALESCE(cm.moneda,'UYU') as moneda, NULL as tipo_cambio, cm.fecha, cm.tipo, cm.concepto as descripcion, '' as ref FROM caja_movimientos cm WHERE 1=1${fk.clause} ORDER BY cm.fecha DESC, cm.id DESC LIMIT 500`,args:fk.args}),
           // Resumen de gastos personales por usuario (sin filtro de fecha — balance acumulado)
-          db.execute(`SELECT g.pagado_por as usuario_id, COALESCE(u.nombre,'Usuario #'||g.pagado_por) as usuario_nombre, COALESCE(SUM(g.monto),0) as total, COUNT(*) as cantidad FROM gastos g LEFT JOIN usuarios u ON u.id=g.pagado_por WHERE g.origen='personal' AND g.pagado_por IS NOT NULL GROUP BY g.pagado_por, u.nombre ORDER BY u.nombre`)
+          db.execute(`SELECT g.pagado_por as usuario_id, COALESCE(u.nombre,'Usuario #'||g.pagado_por) as usuario_nombre, COALESCE(SUM(g.monto),0) as total, COUNT(*) as cantidad FROM gastos g LEFT JOIN usuarios u ON u.id=g.pagado_por WHERE g.origen='personal' AND g.pagado_por IS NOT NULL GROUP BY g.pagado_por, u.nombre ORDER BY u.nombre`),
+          db.execute("SELECT valor FROM configuracion WHERE clave='tipo_cambio_usd_uyu'")
         ]);
-        const totalCobrado  = cobros.rows.reduce((s,r)=>s+Number(r.monto),0);
-        const totalGastado  = gastos.rows.reduce((s,r)=>s+Number(r.monto),0);
-        const totalRepartido= repartos.rows.reduce((s,r)=>s+Number(r.monto),0);
-        const saldoCaja     = caja.rows.reduce((s,r)=>s+(r.tipo==='ingreso'?Number(r.monto):-Number(r.monto)),0);
-        return res.status(200).json({ok:true, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows, gastos_personales:gpRows.rows});
+        // Tipo de cambio actual (config) como fallback cuando el movimiento no guardó el suyo
+        const tcActual = parseFloat(cfgTC.rows[0]?.valor) || 0;
+        // Convierte un movimiento a UYU: usa el tipo_cambio guardado, o el actual de config
+        const aUYU = (r) => {
+          const m = Number(r.monto) || 0;
+          if ((r.moneda || 'UYU') !== 'USD') return m;
+          const tc = Number(r.tipo_cambio) || tcActual || 0;
+          return m * tc;
+        };
+        // Adjuntar el equivalente en pesos a cada fila (para mostrar y para el saldo)
+        for (const set of [cobros.rows, gastos.rows, repartos.rows, caja.rows]) {
+          for (const r of set) r.monto_uyu = Math.round(aUYU(r) * 100) / 100;
+        }
+        const totalCobrado  = cobros.rows.reduce((s,r)=>s+r.monto_uyu,0);
+        const totalGastado  = gastos.rows.reduce((s,r)=>s+r.monto_uyu,0);
+        const totalRepartido= repartos.rows.reduce((s,r)=>s+r.monto_uyu,0);
+        const saldoCaja     = caja.rows.reduce((s,r)=>s+(r.tipo==='ingreso'?r.monto_uyu:-r.monto_uyu),0);
+        return res.status(200).json({ok:true, tipo_cambio:tcActual, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows, gastos_personales:gpRows.rows});
       }
     }
 

@@ -3202,10 +3202,12 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
             <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Descripción</th>
             <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Ref</th>
             <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Monto</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Saldo</th>
           </tr></thead>
           <tbody id="ecMovBody">
-            <tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</td></tr>
+            <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</td></tr>
           </tbody>
+          <tfoot id="ecMovFoot"></tfoot>
         </table>
       </div>
     </div>
@@ -9626,9 +9628,17 @@ async function loadEstadoCuentaData() {
   } catch(e) { console.error(e); }
 }
 
+// Normaliza una fecha (dd/mm/aaaa o aaaa-mm-dd) a clave ordenable aaaammdd
+function _ecFechaKey(f) {
+  if (!f) return '00000000';
+  if (f.includes('-')) return f.slice(0,10).replace(/-/g,'');
+  const p = f.split('/'); if (p.length===3) return p[2]+p[1].padStart(2,'0')+p[0].padStart(2,'0');
+  return f;
+}
 function renderECMov() {
   if (!_ecData) return;
   const tbody = document.getElementById('ecMovBody');
+  const tfoot = document.getElementById('ecMovFoot');
   if (!tbody) return;
   const EC_TIPOS = {
     cobro:   { lbl:'Cobro',   bg:'var(--ok-soft)',   fg:'var(--ok-fg)',          signo:+1 },
@@ -9637,33 +9647,57 @@ function renderECMov() {
     ingreso: { lbl:'Caja ↑',  bg:'var(--brand-soft)','fg':'var(--brand)',        signo:+1 },
     egreso:  { lbl:'Caja ↓',  bg:'var(--surface-2)',  fg:'var(--text-3)',        signo:-1 },
   };
-  // Combinar todos los movimientos
+  const fmtP = v => '$ ' + Math.round(v).toLocaleString('es-UY');
+  // mUYU = equivalente en pesos (del backend); moneda/montoNativo para mostrar la moneda original
+  const mk = (r, tipo, desc, ref) => ({
+    fecha:r.fecha, tipo, desc, ref,
+    montoUYU: Number(r.monto_uyu != null ? r.monto_uyu : r.monto) || 0,
+    moneda: r.moneda || 'UYU', montoNativo: Number(r.monto) || 0, tipo_cambio: r.tipo_cambio
+  });
   const all = [];
-  (_ecData.cobros||[]).forEach(r   => all.push({ fecha:r.fecha, tipo:'cobro',   desc:r.descripcion, ref:r.ref||'—', monto:Number(r.monto) }));
-  (_ecData.gastos||[]).forEach(r   => all.push({ fecha:r.fecha, tipo:'gasto',   desc:r.descripcion, ref:r.ref||r.categoria||'—', monto:Number(r.monto) }));
-  (_ecData.repartos||[]).forEach(r => all.push({ fecha:r.fecha, tipo:'reparto', desc:r.descripcion, ref:r.ref||'—', monto:Number(r.monto) }));
-  (_ecData.caja||[]).forEach(r     => all.push({ fecha:r.fecha, tipo:r.tipo,    desc:r.descripcion, ref:'',          monto:Number(r.monto) }));
-  // Filtrar y ordenar
+  (_ecData.cobros||[]).forEach(r   => all.push(mk(r,'cobro',   r.descripcion, r.ref||'—')));
+  (_ecData.gastos||[]).forEach(r   => all.push(mk(r,'gasto',   r.descripcion, r.ref||r.categoria||'—')));
+  (_ecData.repartos||[]).forEach(r => all.push(mk(r,'reparto', r.descripcion, r.ref||'—')));
+  (_ecData.caja||[]).forEach(r     => all.push(mk(r, r.tipo,   r.descripcion, '')));
+  // Filtrar
   const filtered = _ecFiltroTipo
     ? all.filter(m => _ecFiltroTipo === 'caja' ? (m.tipo==='ingreso'||m.tipo==='egreso') : m.tipo === _ecFiltroTipo)
     : all;
-  filtered.sort((a,b) => (b.fecha||'').localeCompare(a.fecha||'') || 0);
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:28px;color:var(--text-3)">No hay movimientos para el período seleccionado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">No hay movimientos para el período seleccionado.</td></tr>';
+    if (tfoot) tfoot.innerHTML = '';
     return;
   }
-  tbody.innerHTML = filtered.map(m => {
+  // Orden cronológico ascendente (viejo→nuevo) para el saldo corriente
+  filtered.sort((a,b) => _ecFechaKey(a.fecha).localeCompare(_ecFechaKey(b.fecha)) || 0);
+  // Saldo corriente sumando ingresos y restando egresos
+  let saldo = 0;
+  const rows = filtered.map(m => {
     const t = EC_TIPOS[m.tipo] || { lbl:m.tipo, bg:'var(--surface-2)', fg:'var(--text-3)', signo:1 };
     const signo = t.signo;
-    const montoStr = (signo > 0 ? '+' : '−') + ' $ ' + Math.round(m.monto).toLocaleString('es-UY');
+    saldo += signo * m.montoUYU;
+    // Monto: si es USD, mostrar U$S nativo + equivalente en pesos
+    const esUSD = m.moneda === 'USD';
+    const montoStr = esUSD
+      ? `<div>${signo>0?'+':'−'} <span style="font-size:9.5px;font-weight:700;color:var(--info-fg);background:var(--info-soft);padding:1px 4px;border-radius:3px">U$S</span> ${Math.round(m.montoNativo).toLocaleString('es-UY')}</div><div style="font-size:10.5px;color:var(--text-3);font-weight:600">≈ ${fmtP(m.montoUYU)}</div>`
+      : `${signo>0?'+':'−'} ${fmtP(m.montoUYU)}`;
     return `<tr style="border-bottom:1px solid var(--border-2)">
       <td style="padding:10px 16px;font-size:12.5px;color:var(--text-3);white-space:nowrap">${m.fecha||'—'}</td>
       <td style="padding:10px 16px"><span style="background:${t.bg};color:${t.fg};padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap">${t.lbl}</span></td>
       <td style="padding:10px 16px;font-size:13px;font-weight:600">${m.desc||'—'}</td>
       <td style="padding:10px 16px;font-size:12.5px;color:var(--text-2)">${m.ref||''}</td>
       <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-weight:700;color:${signo>0?'var(--ok-fg)':'var(--bad-fg,#dc2626)'};white-space:nowrap">${montoStr}</td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-weight:800;color:${saldo>=0?'var(--text-1)':'var(--bad-fg,#dc2626)'};white-space:nowrap">${fmtP(saldo)}</td>
     </tr>`;
-  }).join('');
+  });
+  // Mostrar el más reciente arriba pero conservando el saldo ya calculado
+  tbody.innerHTML = rows.reverse().join('');
+  if (tfoot) {
+    tfoot.innerHTML = `<tr style="border-top:2px solid var(--border)">
+      <td colspan="5" style="padding:12px 16px;text-align:right;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-2)">Saldo actual</td>
+      <td style="padding:12px 16px;text-align:right;font-family:var(--mono);font-weight:900;font-size:16px;color:${saldo>=0?'var(--ok-fg)':'var(--bad-fg,#dc2626)'};white-space:nowrap">${fmtP(saldo)}</td>
+    </tr>`;
+  }
 }
 
 // ── CAJA ──────────────────────────────────────────────────────────────
