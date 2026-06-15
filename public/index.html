@@ -2389,16 +2389,58 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
   <div class="mb">
     <div class="frow">
       <div class="fgrp"><label>Nombre *</label><input id="vNombre" placeholder="Nombre completo"></div>
+      <div class="fgrp"><label>Comisión (%)</label><input id="vComision" type="number" min="0" max="100" step="0.5" placeholder="0"></div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Teléfono</label><input id="vTelefono" placeholder="+598 9x xxx xxx"></div>
       <div class="fgrp"><label>Email</label><input id="vEmail" placeholder="vendedor@mail.com"></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-2);margin:6px 0 8px;padding-top:10px;border-top:1px solid var(--border)">🏦 Datos bancarios <span style="font-weight:400;color:var(--text-3)">(para pagar comisiones)</span></div>
+    <div class="frow">
+      <div class="fgrp"><label>Banco</label><input id="vBanco" placeholder="Ej: BROU, Itaú…"></div>
+      <div class="fgrp"><label>Número de cuenta</label><input id="vCuentaNum" placeholder="001234567-00001"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Sucursal</label><input id="vCuentaSuc" placeholder="Ej: 19 — Maldonado"></div>
+      <div class="fgrp"><label>Moneda</label><select id="vCuentaMon"><option value="UYU">$ Pesos</option><option value="USD">U$S Dólares</option></select></div>
+      <div class="fgrp"><label>Tipo</label><select id="vCuentaTipo"><option value="caja_ahorro">Caja de ahorro</option><option value="cuenta_corriente">Cuenta corriente</option></select></div>
     </div>
     <div class="frow">
       <div class="fgrp"><label>Notas internas</label><textarea id="vNotas" style="height:64px" placeholder="Info adicional…"></textarea></div>
     </div>
   </div>
   <div class="mf"><button class="bs2" onclick="closeM()">Cancelar</button><button class="bp2" onclick="guardarVendedor()">Guardar</button></div>
+</div>
+
+<!-- Modal: pago / salida a vendedor -->
+<div class="modal" id="mPagoVend" style="max-width:440px">
+  <div class="mh">
+    <div class="mt" id="mPagoVendTit">Registrar pago a vendedor</div>
+    <button class="mx" onclick="closeM()">✕</button>
+  </div>
+  <div class="mb">
+    <div id="pvResumen" style="background:var(--surface-2,var(--bg));border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px"></div>
+    <div class="frow">
+      <div class="fgrp"><label>Monto a pagar *</label><input id="pvMonto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="fgrp"><label>Fecha</label><input id="pvFecha" type="date"></div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Origen del dinero *</label>
+        <select id="pvOrigen" onchange="_pagoVendOrigenHint()">
+          <option value="caja">🏦 Caja (egreso)</option>
+          <option value="utilidades">📈 Utilidades (bolsa de reparto)</option>
+        </select>
+        <div id="pvOrigenHint" style="font-size:10.5px;color:var(--text-3);margin-top:3px"></div>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fgrp"><label>Notas</label><textarea id="pvNotas" style="height:48px" placeholder="Opcional…"></textarea></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="bs2" onclick="closeM()">Cancelar</button>
+    <button class="bp2" onclick="guardarPagoVendedor()">Registrar pago</button>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
@@ -7457,9 +7499,41 @@ function renderVendedores() {
           </div>
         </div>`:``}
       </div>`:`<div style="font-size:12px;color:var(--text-faint);text-align:center;padding:4px 0">Sin actividad registrada</div>`}
+      ${_comisionBlockHTML(v)}
+      ${v.banco||v.cuenta_numero?`<div style="font-size:11px;color:var(--text-3);border-top:1px solid var(--border);padding-top:8px">🏦 ${[v.banco,v.cuenta_numero].filter(Boolean).join(' · ')}${v.cuenta_moneda==='USD'?' · U$S':''}</div>`:''}
       ${v.notas?`<div style="font-size:12px;color:var(--text-3);font-style:italic;border-top:1px solid var(--border);padding-top:8px">${v.notas}</div>`:''}
     </div>`;
   }).join('');
+}
+
+// Bloque de comisión devengada / pagada / saldo + botón de pago
+function _comisionBlockHTML(v) {
+  const pct = Number(v.comision_pct) || 0;
+  const fmtM = n => '$ ' + Math.round(n).toLocaleString('es-UY');
+  const deveng = Number(v.comision_devengada) || 0;
+  const pagada = Number(v.comision_pagada) || 0;
+  const saldo  = Number(v.comision_saldo) || 0;
+  if (pct <= 0 && pagada <= 0) {
+    return `<div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11.5px;color:var(--text-faint)">Sin comisión definida</span>
+      <button class="btn btn--ghost btn--sm" onclick="abrirPagoVendedor(${v.id})">Registrar pago</button>
+    </div>`;
+  }
+  return `<div style="border-top:1px solid var(--border);padding-top:9px;display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11.5px;color:var(--text-3)">Comisión <b style="color:var(--brand)">${pct}%</b> devengada</span>
+      <span style="font-size:13px;font-weight:700;color:var(--text-1)">${fmtM(deveng)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11.5px;color:var(--text-3)">Pagado</span>
+      <span style="font-size:12.5px;font-weight:600;color:var(--ok-fg,#16a34a)">${fmtM(pagada)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px dashed var(--border)">
+      <span style="font-size:11.5px;font-weight:700;color:var(--text-2)">Saldo a pagar</span>
+      <span style="font-size:14px;font-weight:800;color:${saldo>0.5?'var(--bad-fg,#dc2626)':'var(--text-faint)'}">${fmtM(saldo)}</span>
+    </div>
+    <button class="btn ${saldo>0.5?'btn--primary':'btn--ghost'} btn--sm" style="margin-top:5px;justify-content:center" onclick="abrirPagoVendedor(${v.id})">＋ Registrar pago</button>
+  </div>`;
 }
 
 function abrirFormVendedor(id) {
@@ -7469,11 +7543,19 @@ function abrirFormVendedor(id) {
     const v = _vendedoresCache.find(x => Number(x.id) === _editVendedorId);
     if (!v) return;
     document.getElementById('vNombre').value = v.nombre || '';
+    document.getElementById('vComision').value = v.comision_pct || '';
     document.getElementById('vTelefono').value = v.telefono || '';
     document.getElementById('vEmail').value = v.email || '';
+    document.getElementById('vBanco').value = v.banco || '';
+    document.getElementById('vCuentaNum').value = v.cuenta_numero || '';
+    document.getElementById('vCuentaSuc').value = v.cuenta_sucursal || '';
+    document.getElementById('vCuentaMon').value = v.cuenta_moneda || 'UYU';
+    document.getElementById('vCuentaTipo').value = v.cuenta_tipo || 'caja_ahorro';
     document.getElementById('vNotas').value = v.notas || '';
   } else {
-    ['vNombre','vTelefono','vEmail','vNotas'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
+    ['vNombre','vComision','vTelefono','vEmail','vBanco','vCuentaNum','vCuentaSuc','vNotas'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
+    document.getElementById('vCuentaMon').value = 'UYU';
+    document.getElementById('vCuentaTipo').value = 'caja_ahorro';
   }
   openM('mVendedor');
 }
@@ -7481,10 +7563,18 @@ function abrirFormVendedor(id) {
 async function guardarVendedor() {
   const nombre = document.getElementById('vNombre').value.trim();
   if (!nombre) { showToast('Nombre requerido', 'err'); return; }
+  const comision = parseFloat(document.getElementById('vComision').value);
+  if (!isNaN(comision) && (comision < 0 || comision > 100)) { showToast('La comisión debe estar entre 0 y 100%', 'err'); return; }
   const body = {
     nombre,
+    comision_pct: document.getElementById('vComision').value || 0,
     telefono: document.getElementById('vTelefono').value.trim() || null,
     email: document.getElementById('vEmail').value.trim() || null,
+    banco: document.getElementById('vBanco').value.trim() || null,
+    cuenta_numero: document.getElementById('vCuentaNum').value.trim() || null,
+    cuenta_sucursal: document.getElementById('vCuentaSuc').value.trim() || null,
+    cuenta_moneda: document.getElementById('vCuentaMon').value,
+    cuenta_tipo: document.getElementById('vCuentaTipo').value,
     notas: document.getElementById('vNotas').value.trim() || null
   };
   const d = _editVendedorId
@@ -7500,6 +7590,72 @@ async function eliminarVendedor(id) {
     if (d.ok) { showToast('Vendedor eliminado', 'ok'); loadVendedores(); }
     else showToast(d.error || 'Error', 'err');
   }, { title: 'Eliminar vendedor' });
+}
+
+// ── PAGO / SALIDA A VENDEDOR (desde Caja o Utilidades) ────────────────
+let _pagoVendId = null;
+let _pagoVendSaldos = { caja: 0, utilidades: 0 };
+
+async function abrirPagoVendedor(id) {
+  const v = _vendedoresCache.find(x => Number(x.id) === Number(id));
+  if (!v) { showToast('Vendedor no encontrado', 'err'); return; }
+  _pagoVendId = Number(id);
+  const fmtM = n => '$ ' + Math.round(n).toLocaleString('es-UY');
+  const saldo = Number(v.comision_saldo) || 0;
+  document.getElementById('mPagoVendTit').textContent = 'Pago a ' + v.nombre;
+  document.getElementById('pvResumen').innerHTML =
+    `<div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Comisión devengada (${Number(v.comision_pct)||0}%)</span><b>${fmtM(v.comision_devengada||0)}</b></div>
+     <div style="display:flex;justify-content:space-between"><span style="color:var(--text-3)">Ya pagado</span><b>${fmtM(v.comision_pagada||0)}</b></div>
+     <div style="display:flex;justify-content:space-between;margin-top:4px;padding-top:4px;border-top:1px dashed var(--border)"><span style="font-weight:700">Saldo a pagar</span><b style="color:${saldo>0.5?'var(--bad-fg,#dc2626)':'var(--text-1)'}">${fmtM(saldo)}</b></div>`;
+  document.getElementById('pvMonto').value = saldo > 0.5 ? Math.round(saldo) : '';
+  document.getElementById('pvFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('pvNotas').value = '';
+  document.getElementById('pvOrigen').value = 'caja';
+  // Saldos disponibles para el hint
+  _pagoVendSaldos = { caja: 0, utilidades: 0 };
+  try {
+    const [cj, rp] = await Promise.all([apiGet('/api/caja'), apiGet('/api/repartos')]);
+    _pagoVendSaldos.caja = Number(cj.saldo) || 0;
+    _pagoVendSaldos.utilidades = Number(rp.bolsa?.disponible_libre ?? rp.bolsa?.disponible) || 0;
+  } catch {}
+  _pagoVendOrigenHint();
+  openM('mPagoVend');
+  setTimeout(() => document.getElementById('pvMonto').focus(), 120);
+}
+
+function _pagoVendOrigenHint() {
+  const origen = document.getElementById('pvOrigen').value;
+  const fmtM = n => '$ ' + Math.round(n).toLocaleString('es-UY');
+  const el = document.getElementById('pvOrigenHint');
+  if (origen === 'caja') el.textContent = `Genera un egreso en la Caja. Saldo actual: ${fmtM(_pagoVendSaldos.caja)}`;
+  else el.textContent = `Descuenta de la bolsa de utilidades. Disponible: ${fmtM(_pagoVendSaldos.utilidades)}`;
+}
+
+async function guardarPagoVendedor() {
+  const v = _vendedoresCache.find(x => Number(x.id) === _pagoVendId);
+  if (!v) { showToast('Vendedor no encontrado', 'err'); return; }
+  const monto = parseFloat(document.getElementById('pvMonto').value);
+  const fecha = document.getElementById('pvFecha').value;
+  const notas = document.getElementById('pvNotas').value.trim() || null;
+  const origen = document.getElementById('pvOrigen').value;
+  if (isNaN(monto) || monto <= 0 || !fecha) { showToast('Monto y fecha requeridos', 'err'); return; }
+  const concepto = `Comisión vendedor: ${v.nombre}`;
+  let d;
+  if (origen === 'caja') {
+    d = await apiPost('/api/caja', { tipo:'egreso', concepto, monto, fecha, ref_tipo:'vendedor', ref_id:v.id, notas });
+  } else {
+    d = await apiPost('/api/repartos', {
+      descripcion: concepto, destinatario: v.nombre, monto, fecha, notas,
+      vendedor_id: v.id, ejecutar_ya: true, para_caja: 0
+    });
+  }
+  if (d.ok) {
+    showToast(`Pago a ${v.nombre} registrado ✓ (${origen==='caja'?'Caja':'Utilidades'})`, 'ok');
+    closeM();
+    loadVendedores();
+    loadCaja?.(); loadEstadoCuentaData?.();
+    if (typeof loadRepartos === 'function' && origen === 'utilidades') loadRepartos();
+  } else showToast(d.error || 'Error', 'err');
 }
 
 // ── LOGS ──────────────────────────────────────────────────────────────

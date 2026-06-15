@@ -345,10 +345,14 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok:true, data:rep.rows, destinatarios, bolsa:{total_utilidad,ejecutado,pendiente,disponible:total_utilidad-ejecutado,disponible_libre:total_utilidad-ejecutado-pendiente,detalle} });
       }
       if (m === "POST") {
-        const { descripcion, destinatario, monto, fecha, notas, para_caja } = req.body||{};
+        const { descripcion, destinatario, monto, fecha, notas, para_caja, vendedor_id, ejecutar_ya } = req.body||{};
         if (!descripcion||!monto) return res.status(400).json({ok:false,error:"Descripción y monto requeridos"});
-        const r = await db.execute({ sql:"INSERT INTO repartos (descripcion,destinatario,monto,fecha,notas,estado,para_caja,created_by) VALUES (?,?,?,?,?,'pendiente',?,?)", args:[descripcion,destinatario||null,Number(monto),fecha||null,notas||null,para_caja?1:0,user.id] });
-        await logAction(db,user,"CREAR_REPARTO","reparto",Number(r.lastInsertRowid));
+        try { await db.execute("ALTER TABLE repartos ADD COLUMN vendedor_id INTEGER"); } catch {}
+        const hoy = new Date().toISOString().slice(0,10);
+        const estado = ejecutar_ya ? "ejecutado" : "pendiente";
+        const execAt = ejecutar_ya ? (fecha||hoy) : null;
+        const r = await db.execute({ sql:"INSERT INTO repartos (descripcion,destinatario,monto,fecha,notas,estado,para_caja,vendedor_id,executed_at,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)", args:[descripcion,destinatario||null,Number(monto),fecha||null,notas||null,estado,para_caja?1:0,vendedor_id||null,execAt,user.id] });
+        await logAction(db,user,ejecutar_ya?"EJECUTAR_REPARTO":"CREAR_REPARTO","reparto",Number(r.lastInsertRowid));
         return res.status(200).json({ok:true,data:{id:Number(r.lastInsertRowid)}});
       }
       if (m === "PUT" && id) {
@@ -385,6 +389,12 @@ export default async function handler(req, res) {
     // ───────────────────────── VENDEDORES ─────────────────────────
     if (recurso === "vendedores") {
       if (m === "GET") {
+        // Asegurar columnas nuevas (idempotente — por si setup no corrió aún)
+        for (const c of ["comision_pct REAL DEFAULT 0","banco TEXT","cuenta_numero TEXT","cuenta_sucursal TEXT","cuenta_moneda TEXT DEFAULT 'UYU'","cuenta_tipo TEXT DEFAULT 'caja_ahorro'"]) {
+          try { await db.execute(`ALTER TABLE vendedores ADD COLUMN ${c}`); } catch {}
+        }
+        try { await db.execute("ALTER TABLE repartos ADD COLUMN vendedor_id INTEGER"); } catch {}
+        try { await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`); } catch {}
         const r = await db.execute(`
           SELECT v.*,
             (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id) as total_presupuestos,
@@ -397,26 +407,39 @@ export default async function handler(req, res) {
             (SELECT COALESCE(SUM(co.monto),0) FROM cobros co
                WHERE co.presupuesto_id IN (
                  SELECT p.id FROM presupuestos p WHERE p.vendedor_id=v.id
-               )) as total_cobrado
+               )) as total_cobrado,
+            (SELECT COALESCE(SUM(p.precio),0) FROM presupuestos p WHERE p.vendedor_id=v.id
+               AND p.estado='cobrado') as base_comision,
+            (SELECT COALESCE(SUM(cm.monto),0) FROM caja_movimientos cm
+               WHERE cm.ref_tipo='vendedor' AND cm.ref_id=v.id AND cm.tipo='egreso') as pagado_caja,
+            (SELECT COALESCE(SUM(rr.monto),0) FROM repartos rr
+               WHERE rr.vendedor_id=v.id AND rr.estado='ejecutado') as pagado_utilidades
           FROM vendedores v WHERE v.activo=1 ORDER BY v.nombre`);
-        return res.status(200).json({ ok: true, data: r.rows });
+        // Comisión devengada = base (precio cobrado) × % comisión; saldo = devengada − pagado
+        const data = r.rows.map(v => {
+          const pct = Number(v.comision_pct) || 0;
+          const comision_devengada = Math.round((Number(v.base_comision) || 0) * pct / 100 * 100) / 100;
+          const comision_pagada = (Number(v.pagado_caja) || 0) + (Number(v.pagado_utilidades) || 0);
+          return { ...v, comision_devengada, comision_pagada, comision_saldo: Math.round((comision_devengada - comision_pagada) * 100) / 100 };
+        });
+        return res.status(200).json({ ok: true, data });
       }
       if (m === "POST") {
-        const { nombre, email, telefono, notas } = req.body || {};
+        const { nombre, email, telefono, notas, comision_pct, banco, cuenta_numero, cuenta_sucursal, cuenta_moneda, cuenta_tipo } = req.body || {};
         if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
         const r = await db.execute({
-          sql: "INSERT INTO vendedores (nombre,email,telefono,notas) VALUES (?,?,?,?)",
-          args: [nombre.trim(), email||null, telefono||null, notas||null]
+          sql: "INSERT INTO vendedores (nombre,email,telefono,notas,comision_pct,banco,cuenta_numero,cuenta_sucursal,cuenta_moneda,cuenta_tipo) VALUES (?,?,?,?,?,?,?,?,?,?)",
+          args: [nombre.trim(), email||null, telefono||null, notas||null, Number(comision_pct)||0, banco||null, cuenta_numero||null, cuenta_sucursal||null, cuenta_moneda||"UYU", cuenta_tipo||"caja_ahorro"]
         });
         await logAction(db, user, "CREAR_VENDEDOR", "vendedor", Number(r.lastInsertRowid));
         return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
       }
       if (m === "PUT" && id) {
-        const { nombre, email, telefono, notas } = req.body || {};
+        const { nombre, email, telefono, notas, comision_pct, banco, cuenta_numero, cuenta_sucursal, cuenta_moneda, cuenta_tipo } = req.body || {};
         if (!nombre) return res.status(400).json({ ok: false, error: "Nombre requerido" });
         await db.execute({
-          sql: "UPDATE vendedores SET nombre=?,email=?,telefono=?,notas=? WHERE id=?",
-          args: [nombre.trim(), email||null, telefono||null, notas||null, id]
+          sql: "UPDATE vendedores SET nombre=?,email=?,telefono=?,notas=?,comision_pct=?,banco=?,cuenta_numero=?,cuenta_sucursal=?,cuenta_moneda=?,cuenta_tipo=? WHERE id=?",
+          args: [nombre.trim(), email||null, telefono||null, notas||null, Number(comision_pct)||0, banco||null, cuenta_numero||null, cuenta_sucursal||null, cuenta_moneda||"UYU", cuenta_tipo||"caja_ahorro", id]
         });
         await logAction(db, user, "EDITAR_VENDEDOR", "vendedor", id);
         return res.status(200).json({ ok: true });

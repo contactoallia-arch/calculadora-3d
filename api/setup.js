@@ -115,6 +115,17 @@ export default async function handler(req, res) {
   try { await db.execute("ALTER TABLE usuarios ADD COLUMN cuenta_moneda TEXT DEFAULT 'UYU'"); } catch {}
   try { await db.execute("ALTER TABLE usuarios ADD COLUMN cuenta_tipo TEXT DEFAULT 'caja_ahorro'"); } catch {}
 
+  // Vendedores: comisión + datos bancarios (para pagar comisiones por transferencia)
+  try { await db.execute("ALTER TABLE vendedores ADD COLUMN comision_pct REAL DEFAULT 0"); } catch {}
+  try { await db.execute("ALTER TABLE vendedores ADD COLUMN banco TEXT"); } catch {}
+  try { await db.execute("ALTER TABLE vendedores ADD COLUMN cuenta_numero TEXT"); } catch {}
+  try { await db.execute("ALTER TABLE vendedores ADD COLUMN cuenta_sucursal TEXT"); } catch {}
+  try { await db.execute("ALTER TABLE vendedores ADD COLUMN cuenta_moneda TEXT DEFAULT 'UYU'"); } catch {}
+  try { await db.execute("ALTER TABLE vendedores ADD COLUMN cuenta_tipo TEXT DEFAULT 'caja_ahorro'"); } catch {}
+
+  // Repartos: vínculo opcional a vendedor (para pagos de comisión desde utilidades)
+  try { await db.execute("ALTER TABLE repartos ADD COLUMN vendedor_id INTEGER"); } catch {}
+
   // Gastos: origen del pago y quién pagó (para gastos personales)
   try { await db.execute("ALTER TABLE gastos ADD COLUMN origen TEXT DEFAULT 'empresa'"); } catch {}
   try { await db.execute("ALTER TABLE gastos ADD COLUMN pagado_por INTEGER"); } catch {}
