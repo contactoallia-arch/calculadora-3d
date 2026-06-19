@@ -96,6 +96,13 @@ export default async function handler(req, res) {
   const db = getDB();
   const { id, action } = req.query;
 
+  // Garantizar columnas nuevas (bases viejas que aún no corrieron setup)
+  for (const stmt of [
+    "ALTER TABLE presupuestos ADD COLUMN comision_pct REAL",
+    "ALTER TABLE presupuestos ADD COLUMN created_by INTEGER",
+    "ALTER TABLE presupuestos ADD COLUMN vendedor_id INTEGER"
+  ]) { try { await db.execute(stmt); } catch {} }
+
   // /api/presupuestos/:id/duplicar
   if (id && action === "duplicar") {
     if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Método no permitido" });
