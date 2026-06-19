@@ -578,6 +578,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ ok: false, error: "Recurso o método no soportado" });
   } catch (e) {
-    return res.status(500).json({ ok: false, error: e.message });
+    const frame = (e.stack || "").split("\n")[1] || "";
+    return res.status(500).json({ ok: false, error: e.message + " — " + frame.trim() });
   }
 }
