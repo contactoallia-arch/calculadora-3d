@@ -96,6 +96,7 @@ export default async function handler(req, res) {
   const db = getDB();
   const { id, action } = req.query;
 
+  try {
   // Garantizar columnas nuevas (bases viejas que aún no corrieron setup)
   for (const stmt of [
     "ALTER TABLE presupuestos ADD COLUMN comision_pct REAL",
@@ -463,4 +464,7 @@ export default async function handler(req, res) {
   }
 
   return res.status(405).json({ ok: false, error: "Método no permitido" });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
 }

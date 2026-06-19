@@ -4525,17 +4525,26 @@ async function guardarEditPres() {
     vendedor_id: parseInt(document.getElementById('editPresVendedor').value)||null
   };
 
-  let d;
-  if (_editPresId) {
-    d = await apiPut(`/api/presupuestos/${_editPresId}`, { numero: _presCache.find(x=>Number(x.id)===_editPresId)?.numero, ...body });
-  } else {
-    d = await apiPost('/api/presupuestos', body);
+  const btn = document.querySelector('#mEditPres .bp2');
+  const orig = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    let d;
+    if (_editPresId) {
+      d = await apiPut(`/api/presupuestos/${_editPresId}`, { numero: _presCache.find(x=>Number(x.id)===_editPresId)?.numero, ...body });
+    } else {
+      d = await apiPost('/api/presupuestos', body);
+    }
+    if (d.ok) {
+      showToast(_editPresId ? 'Presupuesto actualizado' : 'Presupuesto creado', 'ok');
+      closeM(); loadPresupuestos();
+    }
+    else showToast(d.error || 'Error al guardar', 'err');
+  } catch(e) {
+    showToast('Error al guardar: ' + (e.message||'sin conexión'), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig; }
   }
-  if (d.ok) {
-    showToast(_editPresId ? 'Presupuesto actualizado' : 'Presupuesto creado', 'ok');
-    closeM(); loadPresupuestos();
-  }
-  else showToast(d.error || 'Error', 'err');
 }
 
 function cargarDesdeProducto() {
