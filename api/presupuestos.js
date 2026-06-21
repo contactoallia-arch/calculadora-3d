@@ -78,7 +78,7 @@ async function quitarIngresoCajaAuto(db, presId) {
   } catch { return 0; }
 }
 
-async function resolveCliente(db, body) {
+async function resolveCliente(db, body, user) {
   const nombre = (body.cliente_nombre || body.cliente || "").trim();
   if (!nombre || nombre === "—") return null;
   const r = await db.execute({ sql: "SELECT id FROM clientes WHERE LOWER(nombre)=LOWER(?) OR (empresa IS NOT NULL AND LOWER(empresa)=LOWER(?))", args: [nombre, nombre] });
