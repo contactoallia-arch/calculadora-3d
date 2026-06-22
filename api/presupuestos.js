@@ -345,19 +345,25 @@ export default async function handler(req, res) {
         }
       } catch {}
 
-      // Re-snapshot del % de comisión SOLO si cambió el vendedor asignado
-      // (editar otros campos no debe alterar la comisión ya fijada)
+      // % de comisión del presupuesto.
+      // Prioridad: el % editado en el formulario (body.comision_pct) →
+      // re-snapshot del % del vendedor SOLO si cambió el vendedor asignado →
+      // si no, se conserva el ya fijado (editar otros campos no lo altera).
       let comisionUpd = "comision_pct=COALESCE(comision_pct, comision_pct)"; // no-op por defecto
-      try {
-        const prevR = await db2.execute({ sql: "SELECT vendedor_id, comision_pct FROM presupuestos WHERE id=?", args: [id] });
-        const prev = prevR.rows[0];
-        const nuevoVend = vendedor_id || null;
-        if (Number(prev?.vendedor_id || 0) !== Number(nuevoVend || 0)) {
-          let pct = null;
-          if (nuevoVend) { const vr = await db2.execute({ sql: "SELECT comision_pct FROM vendedores WHERE id=?", args: [nuevoVend] }); pct = vr.rows[0]?.comision_pct ?? null; }
-          comisionUpd = `comision_pct=${pct == null ? "NULL" : Number(pct)}`;
-        }
-      } catch {}
+      if (req.body?.comision_pct != null && req.body.comision_pct !== "") {
+        comisionUpd = `comision_pct=${Number(req.body.comision_pct)}`;
+      } else {
+        try {
+          const prevR = await db2.execute({ sql: "SELECT vendedor_id, comision_pct FROM presupuestos WHERE id=?", args: [id] });
+          const prev = prevR.rows[0];
+          const nuevoVend = vendedor_id || null;
+          if (Number(prev?.vendedor_id || 0) !== Number(nuevoVend || 0)) {
+            let pct = null;
+            if (nuevoVend) { const vr = await db2.execute({ sql: "SELECT comision_pct FROM vendedores WHERE id=?", args: [nuevoVend] }); pct = vr.rows[0]?.comision_pct ?? null; }
+            comisionUpd = `comision_pct=${pct == null ? "NULL" : Number(pct)}`;
+          }
+        } catch {}
+      }
       // snap usa COALESCE para no borrarlo si el formulario no lo envía
       await db2.execute({
         sql: `UPDATE presupuestos SET numero=?,pieza=?,cliente=?,cliente_id=?,mat=?,qty=?,precio=?,margen=?,fecha=?,snap=COALESCE(?,snap),moneda=?,tipo_cambio=?,fecha_entrega=?,notas=?,vendedor_id=?,${comisionUpd},costos_internos=?,cliente_tipo=?,cliente_empresa=?,cliente_rut=?,alto=?,ancho=?,profundo=?,peso=?,updated_at=datetime('now') WHERE id=?`,
@@ -433,10 +439,16 @@ export default async function handler(req, res) {
     if (!precio || precio <= 0) return res.status(400).json({ ok: false, error: "Precio inválido" });
     // Vendedor: el presupuesto se asigna siempre a su propia ficha (no puede crear para otro)
     const vendedor_id = user.rol === "vendedor" ? (user.vendedor_id || null) : (body.vendedor_id || null);
-    // Snapshot del % de comisión vigente del vendedor (editarlo luego no afecta a este presupuesto)
+    // Snapshot del % de comisión para este presupuesto.
+    // Prioridad: el % editado en la calculadora (body.comision_pct) → el % vigente del vendedor.
+    // Editar luego el % del vendedor no afecta a este presupuesto.
     let comisionPct = null;
     if (vendedor_id) {
-      try { const vr = await db.execute({ sql: "SELECT comision_pct FROM vendedores WHERE id=?", args: [vendedor_id] }); comisionPct = vr.rows[0]?.comision_pct ?? null; } catch {}
+      if (body.comision_pct != null && body.comision_pct !== "") {
+        comisionPct = Number(body.comision_pct);
+      } else {
+        try { const vr = await db.execute({ sql: "SELECT comision_pct FROM vendedores WHERE id=?", args: [vendedor_id] }); comisionPct = vr.rows[0]?.comision_pct ?? null; } catch {}
+      }
     }
     const clienteId = await resolveCliente(db, body, user);
     const clienteNombre = (body.cliente_nombre || body.cliente || "—").trim();

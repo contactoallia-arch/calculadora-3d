@@ -1301,6 +1301,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
           <button class="chip" id="pchip-entregado" onclick="setPresChip('entregado')">Entregado</button>
           <button class="chip" id="pchip-cobrado" onclick="setPresChip('cobrado')">Cobrado</button>
         </div>
+        <!-- Filtro por vendedor -->
+        <select id="presVendFilter" onchange="filterPresupuestos()" title="Filtrar por vendedor" style="height:34px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);padding:0 10px;font-size:13px;color:var(--text);outline:none;font-family:var(--sans);max-width:180px">
+          <option value="">Todos los vendedores</option>
+        </select>
         <!-- Desktop: input visible | Mobile: ícono toggle -->
         <div class="pres-search-wrap">
           <input id="presSearch" placeholder="Buscar…" oninput="filterPresupuestos()" class="pres-search-inp">
@@ -2970,7 +2974,7 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
     </div>
     <div class="f"><label class="fl">Notas del pedido</label><textarea id="notes" rows="2" placeholder="Color, acabado, tolerancias, instrucciones especiales…"></textarea></div>
     <div class="f"><label class="fl">Vendedor <span style="font-size:10px;color:var(--t3);font-weight:400;text-transform:none;letter-spacing:0">(uso interno)</span></label>
-      <select id="calcVendedor"><option value="">— Sin vendedor —</option></select>
+      <select id="calcVendedor" onchange="onCalcVendedorChange()"><option value="">— Sin vendedor —</option></select>
     </div>
   </div>
   <div class="dbanner">Sección desactivada — no aparecerá en el PDF.</div>
@@ -3072,6 +3076,20 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div class="ph-stat"><div class="ph-stl">Margen ef.</div><div class="ph-stv" id="tEffMargen">—</div></div>
         <div class="ph-stat"><div class="ph-stl">Piezas</div><div class="ph-stv" id="tCount">0</div></div>
       </div>
+      <!-- Comisión del vendedor (solo si hay vendedor asignado) -->
+      <div id="comVendBlock" style="display:none;margin-top:16px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rm);padding:14px 18px;width:100%">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);opacity:.75">Comisión vendedor <span id="comVendName" style="text-transform:none;letter-spacing:0;opacity:.9"></span></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="number" id="comVendPct" min="0" max="100" step="0.5" value="0" oninput="onComVendPctChange()" title="% sobre la utilidad — editable solo para este presupuesto" style="width:78px;height:34px;font-size:14px;font-family:var(--mono);font-weight:700;text-align:right;border:1.5px solid var(--acg);border-radius:var(--rs);background:var(--surface);color:var(--ac);padding:0 8px;outline:none">
+            <span style="font-size:14px;font-weight:700;color:var(--t2)">% util.</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:var(--t2)">Comisión a pagar</span><span id="comVendMonto" style="font-weight:700;color:var(--ac)">—</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:15px;border-top:1px solid var(--acg);padding-top:8px;margin-top:2px"><span style="font-weight:700">Utilidad neta (empresa)</span><span id="comVendNeta" style="font-weight:800;color:var(--ok-fg)">—</span></div>
+        </div>
+      </div>
       <div id="ivaDesglose" style="display:none;margin-top:16px;background:var(--acs);border:1px solid var(--acg);border-radius:var(--rm);padding:14px 18px;width:100%">
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);opacity:.7;margin-bottom:10px">Desglose con IVA (22%)</div>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -3156,6 +3174,10 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
         <div id="ecKpiRepartido" class="num" style="font-size:22px;font-weight:800;color:var(--warn-fg,#d97706)">—</div>
       </div>
       <div class="card card-pad" style="padding:14px 18px">
+        <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🤝 Comisiones</div>
+        <div id="ecKpiComisiones" class="num" style="font-size:22px;font-weight:800;color:var(--warn-fg,#d97706)">—</div>
+      </div>
+      <div class="card card-pad" style="padding:14px 18px">
         <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🏦 En Caja</div>
         <div id="ecKpiCaja" class="num" style="font-size:22px;font-weight:800;color:var(--brand)">—</div>
       </div>
@@ -3200,6 +3222,26 @@ input[type="date"]:hover::-webkit-calendar-picker-indicator,input[type="month"]:
             <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-3)">Cargando…</td></tr>
           </tbody>
           <tfoot id="ecMovFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <!-- Comisiones por vendedor -->
+    <div class="card" id="ecComisionesCard" style="overflow:hidden;margin-top:14px;display:none">
+      <div class="card-head" style="padding:12px 18px;border-bottom:1px solid var(--border)">
+        <h3 class="card-title">🤝 Comisiones por vendedor</h3>
+        <span style="font-size:11.5px;color:var(--text-3)">sobre la utilidad de presupuestos cobrados</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr style="background:var(--surface-2)">
+            <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Vendedor</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Utilidad generada</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Comisión</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Pagado</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Saldo a pagar</th>
+            <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3)">Utilidad neta empresa</th>
+          </tr></thead>
+          <tbody id="ecComisionesBody"></tbody>
         </table>
       </div>
     </div>
@@ -3753,9 +3795,28 @@ async function loadPresupuestos() {
     const d = await apiGet('/api/presupuestos');
     if (!d.ok) return;
     _presCache = d.data;
+    _cargarVendFiltroPres();
     updatePresStats();
     filterPresupuestos();
   } catch(e) { console.error(e); }
+}
+
+// Poblar el selector de filtro por vendedor (oculto para rol vendedor)
+async function _cargarVendFiltroPres() {
+  const sel = document.getElementById('presVendFilter');
+  if (!sel) return;
+  if (_currentUser?.rol === 'vendedor') { sel.style.display = 'none'; return; }
+  try {
+    let lista = _vendedoresCache;
+    if (!lista || !lista.length) {
+      const d = await apiGet('/api/vendedores');
+      if (d.ok) { _vendedoresCache = d.data || []; lista = _vendedoresCache; }
+    }
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Todos los vendedores</option>' +
+      (lista || []).map(v => `<option value="${v.id}">${v.nombre}</option>`).join('');
+    if (cur) sel.value = cur;
+  } catch {}
 }
 
 function updatePresStats() {
@@ -3793,9 +3854,11 @@ function filterPresupuestos() {
   const v1 = document.getElementById('presSearch')?.value||'';
   const v2 = document.getElementById('presSearchM')?.value||'';
   const search = nrm(v1||v2);
+  const vendFiltro = document.getElementById('presVendFilter')?.value||'';
   const rows = _presCache.filter(p => {
     const est = p.estado||'sin_enviar';
     if(_presChip && est !== _presChip) return false;
+    if(vendFiltro && String(p.vendedor_id||'') !== vendFiltro) return false;
     if(search && !nrm(p.pieza||'').includes(search) && !nrm(p.cliente_nombre||p.cliente||'').includes(search)) return false;
     return true;
   });
@@ -7896,7 +7959,8 @@ let S={
   editingId:null, editingNum:null,
   lc:null, lcArts:null,
   sumPrecios:false,
-  overridePrice:null
+  overridePrice:null,
+  comisionPct:null   // % de comisión del vendedor para ESTE presupuesto (null = usar el del vendedor)
 };
 try{const p=JSON.parse(localStorage.getItem('al-prices'));if(p)S.prices={...DEF,...p}}catch(e){}
 
@@ -8711,11 +8775,50 @@ function recalcTotal(){
   set('tProfit',fmtC(overProfit,C,ex));
   set('tEffMargen',effMargenTotal);
   set('tCount',S.articulos.length);
+  renderComisionVendedor(overProfit,C,ex);
   const ivaRow=document.getElementById('ivaDesglose');
   if(ivaRow){ if(S.ivaOnBill){ivaRow.style.display='';set('iva-neto',fmtC(totalP,C,ex));set('iva-monto',fmtC(iva,C,ex));set('iva-total',fmtC(conIVA,C,ex));} else ivaRow.style.display='none'; }
   // Lista por artículo
   const tA=document.getElementById('tArticulos');
   if(tA) tA.innerHTML=arts.length?arts.map((r,i)=>{const matD=r.mat&&r.grams?`${r.mat} · ${r.grams}g · `:'';const unitD=r.qty>1?` · precio unit. ${fmtC(r.totalP/r.qty,C,ex)}`:'';return`<div class="prblock sum"><div class="prb-row"><span class="prb-name">${i+1}. ${r.desc}${r.qty>1?` <span style="font-size:11px;color:var(--t3)">×${r.qty}</span>`:''}</span><span class="prb-price">${fmtC(r.totalP,C,ex)}</span></div><div class="prb-detail">${matD}margen ${r.margin}%${unitD}</div></div>`}).join(''):'<div class="hint">Agregá una pieza para ver el total.</div>';
+}
+
+// ── COMISIÓN DEL VENDEDOR (calculadora) ───────────────────────────────
+// Muestra la comisión sobre la utilidad. % precargado del vendedor pero
+// editable solo para este presupuesto (no toca la config del vendedor).
+function renderComisionVendedor(profit,C,ex){
+  const block=document.getElementById('comVendBlock');
+  if(!block)return;
+  const vid=parseInt(document.getElementById('calcVendedor')?.value)||null;
+  if(!vid){ block.style.display='none'; return; }
+  const v=(_vendedoresCache||[]).find(x=>Number(x.id)===vid);
+  const defPct=v?Number(v.comision_pct)||0:0;
+  const pct=S.comisionPct!=null?S.comisionPct:defPct;
+  const inp=document.getElementById('comVendPct');
+  if(inp&&document.activeElement!==inp) inp.value=pct;
+  const base=Math.max(0,profit||0);
+  const com=base*pct/100;
+  const neta=(profit||0)-com;
+  const nm=document.getElementById('comVendName'); if(nm) nm.textContent=v?('· '+v.nombre):'';
+  const fm=document.getElementById('comVendMonto'); if(fm) fm.textContent=fmtC(com,C,ex);
+  const fn=document.getElementById('comVendNeta'); if(fn) fn.textContent=fmtC(neta,C,ex);
+  block.style.display='';
+}
+function onComVendPctChange(){
+  const inp=document.getElementById('comVendPct');
+  const val=parseFloat(inp.value);
+  S.comisionPct=isNaN(val)?0:Math.max(0,Math.min(100,val));
+  recalcTotal();
+}
+function onCalcVendedorChange(){ S.comisionPct=null; recalcTotal(); }
+
+// % de comisión efectivo del presupuesto actual (override o el del vendedor)
+function _comisionPctActual(){
+  const vid=parseInt(document.getElementById('calcVendedor')?.value)||null;
+  if(!vid)return null;
+  const v=(_vendedoresCache||[]).find(x=>Number(x.id)===vid);
+  const def=v?Number(v.comision_pct)||0:0;
+  return S.comisionPct!=null?S.comisionPct:def;
 }
 
 // ── DISPLAY (global) ──────────────────────────────────────────────────
@@ -9018,7 +9121,7 @@ function confirmEditNum(){
   if(v>0){S.editingNum=v;document.getElementById('presNumLabel').textContent='#'+String(v).padStart(4,'0');}
   cancelEditNum();
 }
-function newPresupuesto(){S.editingId=null;S.editingNum=null;updatePresBar();clearOverridePrice?.();}
+function newPresupuesto(){S.editingId=null;S.editingNum=null;S.comisionPct=null;updatePresBar();clearOverridePrice?.();}
 
 // ── PRECIO MANUAL POR PIEZA ───────────────────────────────────────────
 function startOverrideArt(aid){
@@ -9162,6 +9265,7 @@ async function savePresupuesto(){
     fecha_entrega:document.getElementById('delivDate').value||null,
     notas:document.getElementById('notes').value||null,
     vendedor_id:parseInt(document.getElementById('calcVendedor').value)||null,
+    comision_pct:_comisionPctActual(),
     snap:(()=>{
       const s=captureForm();
       const arts=S.lcArts||[];
@@ -9386,6 +9490,7 @@ function captureForm(){
     cPhone:document.getElementById('cPhone').value, delivDate:document.getElementById('delivDate').value,
     notes:document.getElementById('notes').value,
     vendedorId:parseInt(document.getElementById('calcVendedor').value)||null,
+    comisionPct:S.comisionPct,
     exRate:document.getElementById('exRate').value, disp:S.disp, ivaOnBill:S.ivaOnBill, overridePrice:S.overridePrice,
     articulos:S.articulos.map(a=>art(a.id))
   };
@@ -9464,6 +9569,7 @@ function restoreForm(snap){
   setg('pieceName',snap.pedido!==undefined?snap.pedido:snap.pieceName); setg('cName',snap.cName);
   setg('cEmail',snap.cEmail); setg('cPhone',snap.cPhone); setg('delivDate',snap.delivDate); setg('notes',snap.notes);
   setg('calcVendedor',snap.vendedorId!=null?String(snap.vendedorId):'');
+  S.comisionPct=(snap.comisionPct!=null?Number(snap.comisionPct):null);
   if(snap.exRate)setg('exRate',snap.exRate);
   if(snap.disp)S.disp=snap.disp;
   S.ivaOnBill=!!snap.ivaOnBill; const ib=document.getElementById('ivaOnBill'); if(ib)ib.checked=S.ivaOnBill;
@@ -9620,11 +9726,14 @@ async function loadEstadoCuentaData() {
     document.getElementById('ecKpiCobrado').textContent  = fmt(r.totalCobrado);
     document.getElementById('ecKpiGastado').textContent  = fmt(r.totalGastado);
     document.getElementById('ecKpiRepartido').textContent= fmt(r.totalRepartido);
+    const comEl = document.getElementById('ecKpiComisiones');
+    if (comEl) comEl.textContent = fmt(r.totalComisiones);
     document.getElementById('ecKpiCaja').textContent     = fmt(r.saldoCaja);
     const netoEl = document.getElementById('ecKpiNeto');
     netoEl.textContent = fmt(neto);
     netoEl.style.color = neto >= 0 ? 'var(--ok-fg)' : 'var(--bad-fg,#dc2626)';
     renderECMov();
+    renderComisionesVendedores(d.vendedores);
     renderGastosPersonales(d.gastos_personales);
   } catch(e) {
     console.error(e);
@@ -9703,6 +9812,37 @@ function renderECMov() {
       <td style="padding:12px 16px;text-align:right;font-family:var(--mono);font-weight:900;font-size:16px;color:${saldo>=0?'var(--ok-fg)':'var(--bad-fg,#dc2626)'};white-space:nowrap">${fmtP(saldo)}</td>
     </tr>`;
   }
+}
+
+// ── COMISIONES POR VENDEDOR (estado de cuenta) ────────────────────────
+function renderComisionesVendedores(vendedores) {
+  const card = document.getElementById('ecComisionesCard');
+  const tbody = document.getElementById('ecComisionesBody');
+  if (!card || !tbody) return;
+  const lista = vendedores || [];
+  if (!lista.length) { card.style.display = 'none'; return; }
+  const fmtP = v => '$ ' + Math.round(v||0).toLocaleString('es-UY');
+  let tUtil=0, tCom=0, tPag=0, tSaldo=0, tNeta=0;
+  tbody.innerHTML = lista.map(v => {
+    const neta = (v.utilidad||0) - (v.comision_devengada||0);
+    tUtil += v.utilidad||0; tCom += v.comision_devengada||0; tPag += v.comision_pagada||0; tSaldo += v.comision_saldo||0; tNeta += neta;
+    return `<tr style="border-bottom:1px solid var(--border-2)">
+      <td style="padding:10px 16px;font-size:13px;font-weight:600">${v.nombre}</td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-size:12.5px;color:var(--text-2)">${fmtP(v.utilidad)}</td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--warn-fg,#d97706)">${fmtP(v.comision_devengada)}<div style="font-size:10px;color:var(--text-3);font-weight:600">${v.comision_pct||0}% util.</div></td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-size:12.5px;color:var(--ok-fg)">${fmtP(v.comision_pagada)}</td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-weight:800;color:${(v.comision_saldo||0)>0?'var(--bad-fg,#dc2626)':'var(--text-3)'}">${fmtP(v.comision_saldo)}</td>
+      <td style="padding:10px 16px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--text-1)">${fmtP(neta)}</td>
+    </tr>`;
+  }).join('') + `<tr style="border-top:2px solid var(--border);background:var(--surface-2)">
+      <td style="padding:11px 16px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--text-2)">Total</td>
+      <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:800">${fmtP(tUtil)}</td>
+      <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:800;color:var(--warn-fg,#d97706)">${fmtP(tCom)}</td>
+      <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:800;color:var(--ok-fg)">${fmtP(tPag)}</td>
+      <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:900;color:${tSaldo>0?'var(--bad-fg,#dc2626)':'var(--text-3)'}">${fmtP(tSaldo)}</td>
+      <td style="padding:11px 16px;text-align:right;font-family:var(--mono);font-weight:900;color:var(--text-1)">${fmtP(tNeta)}</td>
+    </tr>`;
+  card.style.display = '';
 }
 
 // ── CAJA ──────────────────────────────────────────────────────────────

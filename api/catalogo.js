@@ -536,7 +536,9 @@ export default async function handler(req, res) {
           "ALTER TABLE gastos ADD COLUMN moneda TEXT DEFAULT 'UYU'",
           "ALTER TABLE gastos ADD COLUMN tipo_cambio REAL",
           "ALTER TABLE gastos ADD COLUMN aprobado INTEGER DEFAULT 1",
-          "ALTER TABLE caja_movimientos ADD COLUMN moneda TEXT DEFAULT 'UYU'"
+          "ALTER TABLE caja_movimientos ADD COLUMN moneda TEXT DEFAULT 'UYU'",
+          "ALTER TABLE repartos ADD COLUMN vendedor_id INTEGER",
+          "ALTER TABLE presupuestos ADD COLUMN comision_pct REAL"
         ]) { try { await db.execute(stmt); } catch {} }
         const { desde, hasta } = req.query;
         const bf = (col) => {
@@ -572,7 +574,41 @@ export default async function handler(req, res) {
         const totalGastado  = gastos.rows.reduce((s,r)=>s+r.monto_uyu,0);
         const totalRepartido= repartos.rows.reduce((s,r)=>s+r.monto_uyu,0);
         const saldoCaja     = caja.rows.reduce((s,r)=>s+(r.tipo==='ingreso'?r.monto_uyu:-r.monto_uyu),0);
-        return res.status(200).json({ok:true, tipo_cambio:tcActual, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows, gastos_personales:gpRows.rows});
+
+        // ── Comisiones por vendedor (sobre utilidad de presupuestos cobrados) ──
+        let vendedores = [], totalComisiones = 0;
+        try {
+          try { await db.execute("ALTER TABLE presupuestos ADD COLUMN comision_pct REAL"); } catch {}
+          const [vrows, pcob, pagCaja, pagRep] = await Promise.all([
+            db.execute("SELECT id,nombre,comision_pct FROM vendedores WHERE activo=1"),
+            db.execute("SELECT vendedor_id, precio, margen, costos_internos, snap, comision_pct FROM presupuestos WHERE estado='cobrado' AND vendedor_id IS NOT NULL"),
+            db.execute("SELECT ref_id, COALESCE(SUM(monto),0) as t FROM caja_movimientos WHERE ref_tipo='vendedor' AND tipo='egreso' GROUP BY ref_id"),
+            db.execute("SELECT vendedor_id, COALESCE(SUM(monto),0) as t FROM repartos WHERE vendedor_id IS NOT NULL AND estado='ejecutado' GROUP BY vendedor_id")
+          ]);
+          const pctVend = {}; vrows.rows.forEach(v => pctVend[v.id] = Number(v.comision_pct) || 0);
+          const utilV = {}, comV = {};
+          for (const p of pcob.rows) {
+            const u = utilidadDePres(p);
+            if (u === null) continue;
+            const pct = (p.comision_pct == null ? pctVend[p.vendedor_id] : Number(p.comision_pct)) || 0;
+            utilV[p.vendedor_id] = (utilV[p.vendedor_id] || 0) + u;
+            comV[p.vendedor_id]  = (comV[p.vendedor_id]  || 0) + u * pct / 100;
+          }
+          const pagC = {}; pagCaja.rows.forEach(r => pagC[r.ref_id] = Number(r.t) || 0);
+          const pagR = {}; pagRep.rows.forEach(r => pagR[r.vendedor_id] = Number(r.t) || 0);
+          vendedores = vrows.rows.map(v => {
+            const dev = Math.round((comV[v.id] || 0) * 100) / 100;
+            const pag = Math.round(((pagC[v.id] || 0) + (pagR[v.id] || 0)) * 100) / 100;
+            return { id: v.id, nombre: v.nombre, comision_pct: Number(v.comision_pct) || 0,
+              utilidad: Math.round((utilV[v.id] || 0) * 100) / 100,
+              comision_devengada: dev, comision_pagada: pag,
+              comision_saldo: Math.round((dev - pag) * 100) / 100 };
+          }).filter(v => v.comision_devengada > 0 || v.comision_pagada > 0)
+            .sort((a, b) => b.comision_saldo - a.comision_saldo);
+          totalComisiones = Math.round(vendedores.reduce((s, v) => s + v.comision_devengada, 0) * 100) / 100;
+        } catch {}
+
+        return res.status(200).json({ok:true, tipo_cambio:tcActual, resumen:{totalCobrado,totalGastado,totalRepartido,saldoCaja,totalComisiones}, cobros:cobros.rows, gastos:gastos.rows, repartos:repartos.rows, caja:caja.rows, gastos_personales:gpRows.rows, vendedores});
       }
     }
 
