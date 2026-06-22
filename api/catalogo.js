@@ -1,5 +1,46 @@
 import { getDB } from "./_lib/db.js";
 import { requireAuth, logAction } from "./_lib/auth.js";
+import bcrypt from "bcryptjs";
+
+// Contraseña genérica para los accesos de vendedor que se crean automáticamente.
+const VENDEDOR_PASS_DEFAULT = "3";
+
+// Garantiza que cada vendedor activo tenga su cuenta de usuario (rol='vendedor').
+// - Si ya existe un usuario con su mismo nombre/email, lo vincula (vendedor_id + rol).
+// - Si no, crea uno nuevo con contraseña genérica. Login: por NOMBRE + contraseña.
+// Idempotente: solo crea/vincula lo que falta.
+async function ensureVendedorUsuarios(db) {
+  try { await db.execute("ALTER TABLE usuarios ADD COLUMN vendedor_id INTEGER"); } catch {}
+  const vends = await db.execute("SELECT id,nombre,email FROM vendedores WHERE activo=1");
+  if (!vends.rows.length) return 0;
+  const users = await db.execute("SELECT id,nombre,email,vendedor_id FROM usuarios");
+  const byVend = new Set(users.rows.filter(u => u.vendedor_id != null).map(u => Number(u.vendedor_id)));
+  const emails = new Set(users.rows.map(u => (u.email || "").toLowerCase()));
+  let hash = null, creados = 0;
+  for (const v of vends.rows) {
+    if (byVend.has(Number(v.id))) continue; // ya tiene usuario vinculado
+    // ¿Existe un usuario con su mismo email o nombre? Vincularlo en vez de duplicar.
+    const existing = users.rows.find(u =>
+      (v.email && u.email && u.email.toLowerCase() === v.email.toLowerCase()) ||
+      (u.nombre || "").toLowerCase() === (v.nombre || "").toLowerCase()
+    );
+    if (existing) {
+      await db.execute({ sql: "UPDATE usuarios SET vendedor_id=?, rol='vendedor' WHERE id=?", args: [v.id, existing.id] });
+      byVend.add(Number(v.id));
+      continue;
+    }
+    if (!hash) hash = await bcrypt.hash(VENDEDOR_PASS_DEFAULT, 10);
+    let email = (v.email || "").toLowerCase().trim();
+    if (!email || emails.has(email)) email = `vendedor${v.id}@artelab.local`;
+    if (emails.has(email)) email = `vendedor${v.id}.${Date.now()}@artelab.local`;
+    await db.execute({
+      sql: "INSERT INTO usuarios (nombre,email,password_hash,rol,activo,vendedor_id) VALUES (?,?,?,?,1,?)",
+      args: [v.nombre, email, hash, "vendedor", v.id]
+    });
+    emails.add(email); byVend.add(Number(v.id)); creados++;
+  }
+  return creados;
+}
 
 // Utilidad de un presupuesto: precio − costos internos, o margen% sobre precio. null si no hay datos.
 function utilidadDePres(p) {
@@ -411,6 +452,8 @@ export default async function handler(req, res) {
         }
         try { await db.execute("ALTER TABLE repartos ADD COLUMN vendedor_id INTEGER"); } catch {}
         try { await db.execute(`CREATE TABLE IF NOT EXISTS caja_movimientos (id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'ingreso', concepto TEXT NOT NULL, monto REAL NOT NULL DEFAULT 0, moneda TEXT DEFAULT 'UYU', fecha TEXT NOT NULL, ref_tipo TEXT, ref_id INTEGER, notas TEXT, created_by INTEGER, created_at TEXT DEFAULT (datetime('now')))`); } catch {}
+        // Backfill: asegurar acceso de usuario para cada vendedor (solo admin/operador lo dispara)
+        if (user.rol !== "vendedor") { try { await ensureVendedorUsuarios(db); } catch {} }
         const r = await db.execute(`
           SELECT v.*,
             (SELECT COUNT(*) FROM presupuestos p WHERE p.vendedor_id=v.id) as total_presupuestos,
@@ -459,6 +502,8 @@ export default async function handler(req, res) {
           args: [nombre.trim(), email||null, telefono||null, notas||null, Number(comision_pct)||0, banco||null, cuenta_numero||null, cuenta_sucursal||null, cuenta_moneda||"UYU", cuenta_tipo||"caja_ahorro"]
         });
         await logAction(db, user, "CREAR_VENDEDOR", "vendedor", Number(r.lastInsertRowid));
+        // Crear automáticamente el acceso de usuario (rol='vendedor') para el nuevo vendedor
+        try { await ensureVendedorUsuarios(db); } catch {}
         return res.status(200).json({ ok: true, data: { id: Number(r.lastInsertRowid) } });
       }
       if (m === "PUT" && id) {

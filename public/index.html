@@ -7593,6 +7593,7 @@ function renderVendedores() {
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:14.5px;line-height:1.2">${v.nombre}</div>
           ${(v.email||v.telefono)?`<div style="font-size:11.5px;color:var(--text-3);margin-top:2px">${[v.email,v.telefono].filter(Boolean).join(' · ')}</div>`:''}
+          <div style="font-size:10.5px;color:var(--brand);margin-top:3px;font-weight:600" title="Inicia sesión con su nombre y la contraseña genérica">🔑 Acceso: <b>${v.nombre}</b> · clave <b>3</b></div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="icon-btn" title="Editar" onclick="abrirFormVendedor(${v.id})"><svg class="icon" viewBox="0 0 18 18"><path d="M13 2.5L15.5 5l-9 9L3 15l.5-3.5z"/></svg></button>
